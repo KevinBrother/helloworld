@@ -1,0 +1,16 @@
+{
+  "name": "vuepress-starter",
+  "version": "1.0.0",
+  "main": "index.js",
+  "author": "caojunjie <1301239018@qq.com>",
+  "license": "MIT",
+  "scripts": {
+    "dev": "vuepress dev docs",
+    "build": "vuepress build docs"
+  },
+  "devDependencies": {
+    "@vuepress/plugin-register-components": "^1.9.7",
+    "vite": "^2.8.6",
+    "vuepress": "^2.0.0-beta.36"
+  }
+}
