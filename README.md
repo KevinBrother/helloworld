@@ -17,6 +17,12 @@
   - vue、doc
   - 基本使用方法、vite的打包、注册vue组件的问题
   - vuepress第二版的使用案例
+
+- [x] nuxtjs
+  - nuxt-demo
+  - vue、ssr
+  - vue的服务端渲染框架
+  - 在pages文件夹创建vue文件会直接映射到路由上
   
 - [x] docker-compose
   <!-- - docker-compose build ： 暂时理解为 会触发compose 中的build命令 ， 构建镜像-->
