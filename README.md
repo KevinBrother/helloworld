@@ -23,6 +23,11 @@
   - vue、ssr
   - vue的服务端渲染框架
   - 在pages文件夹创建vue文件会直接映射到路由上
+
+- [x] eggjs
+  - egg-demo
+  - node、后端
+  - js的后端服务框架
   
 - [x] docker-compose
   <!-- - docker-compose build ： 暂时理解为 会触发compose 中的build命令 ， 构建镜像-->

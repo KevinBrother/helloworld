@@ -52,6 +52,8 @@ typings/
 # Optional REPL history
 .node_repl_history
 
+egg-example
+
 # Output of 'npm pack'
 *.tgz
 
