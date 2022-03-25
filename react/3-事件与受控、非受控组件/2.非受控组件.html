@@ -1,0 +1,50 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta http-equiv="X-UA-Compatible" content="IE=edge" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Document</title>
+    <script src="../util//babel07/babel.js"></script>
+    <script src="../util/react16/react.development.js"></script>
+    <script src="../util/react16/react-dom.development.js"></script>
+  </head>
+  <body>
+    <form></form>
+    <div id="text"></div>
+    <script type="text/babel">
+      class MyComponent extends React.Component {
+        render() {
+          return (
+            <form onSubmit={this.submit}>
+              <input
+                ref={(c) => {
+                  this.usernameRef = c;
+                }}
+                type="text"
+                name="username"
+              />
+              <input
+                ref={(c) => {
+                  this.passwordRef = c;
+                }}
+                type="password"
+                name="password"
+              />
+              <button>登录</button>
+            </form>
+          );
+        }
+
+        submit = (event) => {
+          event.preventDefault();
+          const username = this.usernameRef.value;
+          const password = this.passwordRef.value;
+          console.log('eee');
+          alert(`用户名：${username} 密码： ${password}`);
+        };
+      }
+      ReactDOM.render(<MyComponent />, document.getElementById('text'));
+    </script>
+  </body>
+</html>
