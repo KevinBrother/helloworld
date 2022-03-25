@@ -1,0 +1,42 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta http-equiv="X-UA-Compatible" content="IE=edge" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Document</title>
+    <script src="../../util//babel07/babel.js"></script>
+    <script src="../../util/react16/react.development.js"></script>
+    <script src="../../util/react16/react-dom.development.js"></script>
+  </head>
+  <body>
+    <div id="text"></div>
+    <script type="text/babel">
+      class MyComponent extends React.Component {
+        render() {
+          return (
+            <div>
+              <input ref="input1" type="text" placeholder="点击输出我的值" />
+              <button onClick={this.showLeft}>欢迎来到类组件</button>
+              <input
+                ref="input2"
+                onBlur={this.blurRight}
+                type="text"
+                placeholder="失去焦点输入我的值"
+              />
+            </div>
+          );
+        }
+
+        showLeft = () => {
+          alert(this.refs.input1.value);
+        };
+
+        blurRight = () => {
+          alert(this.refs.input2.value);
+        };
+      }
+      ReactDOM.render(<MyComponent />, document.getElementById('text'));
+    </script>
+  </body>
+</html>

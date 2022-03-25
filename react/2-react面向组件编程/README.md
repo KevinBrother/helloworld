@@ -39,6 +39,8 @@
 ## 组件实例的三大属性
 
 - state
+  - 不可直接修改，需要通过setState，这样可以触发render重新渲染页面
+  - setState的值是合并的形式，不是替换
   
 - props
   - props 只读，不可修改
@@ -48,3 +50,5 @@
   - 构造函数中的props是否调用super取决于，是否需要在构造函数中直接通过this访问props<font color="red">一般不需要调用suer，直接使用即可</font>
   
 - refs
+  - react提供的直接操作dom的方式
+  - 有直接字符串的（不推荐使用，有性能问题，后面可能会被废弃）、<font color="red">内联回调的</font>、回调绑定到类上的、还有<font color="red">createRef</font>官方api的

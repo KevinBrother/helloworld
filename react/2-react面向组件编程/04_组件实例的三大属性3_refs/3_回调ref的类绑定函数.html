@@ -1,0 +1,68 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta http-equiv="X-UA-Compatible" content="IE=edge" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Document</title>
+    <script src="../../util//babel07/babel.js"></script>
+    <script src="../../util/react16/react.development.js"></script>
+    <script src="../../util/react16/react-dom.development.js"></script>
+  </head>
+  <body>
+    <div id="text"></div>
+    <script type="text/babel">
+      class MyComponent extends React.Component {
+        state = {
+          isHot: true
+        };
+        render() {
+          const { isHot } = this.state;
+
+          return (
+            <div>
+              <div>今天天气比较{isHot ? '炎热' : '凉爽'}</div>
+              {/* <input
+                  ref={this.setTextInputRef}
+                  type="text"
+                  placeholder="点击输出我的值"
+                /> */}
+
+              {
+                <input
+                  ref={(c) => {
+                    this.input1 = c;
+                    console.log(
+                      '内联的ref在重复render时的第一次 element为null',
+                      c
+                    );
+                  }}
+                  type="text"
+                  placeholder="点击输出我的值"
+                />
+              }
+              <button onClick={this.showLeft}>欢迎来到类组件</button>
+
+              <button onClick={this.changeWeather}>切换天气</button>
+            </div>
+          );
+        }
+
+        setTextInputRef = (element) => {
+          this.input1 = element;
+          console.log('@', element);
+        };
+
+        showLeft = () => {
+          alert(this.input1.value);
+        };
+
+        changeWeather = () => {
+          const { isHot } = this.state;
+          this.setState({ isHot: !isHot });
+        };
+      }
+      ReactDOM.render(<MyComponent />, document.getElementById('text'));
+    </script>
+  </body>
+</html>
