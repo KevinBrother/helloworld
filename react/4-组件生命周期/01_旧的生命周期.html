@@ -1,0 +1,146 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta http-equiv="X-UA-Compatible" content="IE=edge" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Document</title>
+    <script src="../util//babel07/babel.js"></script>
+    <script src="../util/react16/react.development.js"></script>
+    <script src="../util/react16/react-dom.development.js"></script>
+  </head>
+  <body>
+    <div id="text"></div>
+    <script type="text/babel">
+      class Count extends React.Component {
+        constructor(props) {
+          super(props);
+          console.log('Count constructor', props);
+          this.state = { count: 0 };
+        }
+
+        shouldComponentUpdate(props) {
+          console.log('Count shouldComponentUpdate', props);
+          return true;
+        }
+
+        componentWillMount(props) {
+          console.log('Count componentWillMount', props);
+        }
+
+        componentDidMount(props) {
+          console.log('Count componentDidMount', props);
+        }
+
+        componentWillUpdate(props) {
+          console.log('Count componentWillUpdate', props);
+        }
+
+        componentDidUpdate(prevProps, prevState, snapshot) {
+          console.log(
+            'Count componentDidUpdate',
+            prevProps,
+            prevState,
+            snapshot
+          );
+        }
+
+        componentWillUnmount(props) {
+          console.log('Count componentWillUnmount', props);
+        }
+
+        render() {
+          console.log('Count render');
+          return (
+            <div>
+              <div>更新的数字为 {this.state.count}</div>
+              <div>
+                <button onClick={this.add}>数字+1</button>
+                <button onClick={this.force}>强制更新</button>
+                <button onClick={this.remove}>卸载组件</button>
+              </div>
+            </div>
+          );
+        }
+
+        force = () => {
+          this.forceUpdate();
+        };
+
+        add = () => {
+          this.setState({ count: this.state.count + 1 });
+        };
+
+        remove = () => {
+          ReactDOM.unmountComponentAtNode(document.getElementById('text'));
+        };
+      }
+
+      class Father extends React.Component {
+        state = { car: '奔驰' };
+
+        changeCar = () => {
+          this.setState({ car: '宝马' });
+        };
+
+        componentWillMount(props) {
+          console.log('Father componentWillMount', props);
+        }
+
+        componentDidMount(props) {
+          console.log('Father componentDidMount', props);
+        }
+
+        render(props) {
+          console.log('Father render', props);
+
+          return (
+            <div>
+              <div>这是父组件</div>
+              <button onClick={this.changeCar}>换车</button>
+              <Son carName={this.state.car} />
+            </div>
+          );
+        }
+      }
+
+      class Son extends React.Component {
+        componentWillReceiveProps(props) {
+          console.log('Son componentWillReceiveProps', props);
+        }
+
+        shouldComponentUpdate(props) {
+          console.log('Son shouldComponentUpdate', props);
+          return true;
+        }
+
+        componentWillMount(props) {
+          console.log('Son componentWillMount', props);
+        }
+
+        componentDidMount(props) {
+          console.log('Son componentDidMount', props);
+        }
+
+        componentWillUpdate(props) {
+          console.log('Son componentWillUpdate', props);
+        }
+
+        componentDidUpdate(prevProps, prevState, snapshot) {
+          console.log('Son componentDidUpdate', prevProps, prevState, snapshot);
+        }
+
+        render() {
+          console.log('Son render');
+          return (
+            <div>
+              <div>这是子组件: 接到的车是 {this.props.carName}</div>
+            </div>
+          );
+        }
+      }
+
+      ReactDOM.render(<Count />, document.getElementById('text'));
+    </script>
+  </body>
+</html>
