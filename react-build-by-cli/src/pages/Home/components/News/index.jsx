@@ -1,6 +1,6 @@
 import React, { Component } from 'react';
-import { withRouter } from 'react-router-dom';
-class Header extends Component {
+
+export default class News extends Component {
   back = () => {
     this.props.history.goBack();
   };
@@ -15,7 +15,6 @@ class Header extends Component {
   render() {
     return (
       <div>
-        <h1>header</h1>
         <button onClick={this.back}>back</button>
         <button onClick={this.forward}>forward</button>
         <button onClick={this.go}>后退2</button>
@@ -23,5 +22,3 @@ class Header extends Component {
     );
   }
 }
-
-export default withRouter(Header);
