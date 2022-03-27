@@ -1,0 +1,23 @@
+
+ul.my-ul-li-rest, li{
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.my-bottom-not-last > li:not(:last-child) {
+  border-bottom: 1px solid #dee2e6;
+}
+
+.my-bottom-not-last > div:not(:last-child) {
+  border-bottom: 1px solid #dee2e6;
+}
+
+/* ul和li的初始化和底部li的无border */
+ul.my-ul-li-rest-bottom-border, li {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+   border-bottom: 1px solid #dee2e6;
+}
+
