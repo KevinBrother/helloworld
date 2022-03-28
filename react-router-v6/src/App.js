@@ -1,12 +1,12 @@
 import React from 'react';
-
+import { NavLink, useRoutes } from 'react-router-dom';
 import Header from './components/Header';
-import { NavLink, Route, Routes, Navigate } from 'react-router-dom';
+import router from './router';
 import './index.css';
-import About from './pages/About';
-import Home from './pages/Home';
 
 export default function App() {
+  const elements = useRoutes(router);
+
   function isActiveLink({ isActive }) {
     return isActive ? 'nav-list active' : 'nav-list';
   }
@@ -33,16 +33,7 @@ export default function App() {
             </ul>
           </div>
           <div className="col-auto">
-            <div className="nav">
-              <Routes>
-                <Route path="/about/*" element={<About />}></Route>
-                <Route path="/home/*" element={<Home></Home>}></Route>
-                <Route
-                  path="/*"
-                  element={<Navigate to="/about"></Navigate>}
-                ></Route>
-              </Routes>
-            </div>
+            <div className="nav">{elements}</div>
           </div>
         </div>
       </main>

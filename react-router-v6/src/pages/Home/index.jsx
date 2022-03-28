@@ -1,32 +1,7 @@
-// export default class Home extends Component {
-//   render() {
-//     return (
-//       <div>
-//         <div className="nav">
-//           <NavLink className="nav-link" to="/home/news">
-//             news
-//           </NavLink>
-
-//           <NavLink className="nav-link" to="/home/message">
-//             message
-//           </NavLink>
-//         </div>
-
-//         <Routes>
-//           <Route path="news" element={<News />}></Route>
-//           <Route path="message/*" element={<Message />}></Route>
-//         </Routes>
-//       </div>
-//     );
-//   }
-// }
-
 import React from 'react';
-import { Routes, Route, NavLink } from 'react-router-dom';
-import Message from './components/Message';
-import News from './components/News';
+import { Routes, Route, NavLink, Outlet } from 'react-router-dom';
 
-export default function index() {
+export default function Home() {
   return (
     <div>
       <div className="nav">
@@ -38,11 +13,7 @@ export default function index() {
           message
         </NavLink>
       </div>
-
-      <Routes>
-        <Route path="news" element={<News />}></Route>
-        <Route path="message/*" element={<Message />}></Route>
-      </Routes>
+      <Outlet></Outlet>
     </div>
   );
 }

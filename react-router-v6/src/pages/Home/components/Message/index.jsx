@@ -1,5 +1,5 @@
 import React from 'react';
-import { Link, Route, Routes, useNavigate } from 'react-router-dom';
+import { Link, Route, Routes, useNavigate, Outlet } from 'react-router-dom';
 import Detail from './Detail';
 
 const users = [
@@ -41,12 +41,7 @@ export default function Message() {
         })}
       </ul>
       <hr />
-      <Routes>
-        {/* <Route path="detail/:id/:name" element={<Detail />} /> */}
-        {/* <Route path="detail/" element={<Detail />} /> */}
-
-        <Route path="detail/" element={<Detail />} />
-      </Routes>
+      <Outlet></Outlet>
     </div>
   );
 }
