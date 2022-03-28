@@ -7,7 +7,11 @@ export default class Home extends Component {
     return (
       <div>
         <div className="nav">
-          <NavLink className="nav-link" to="/home/news">
+          <NavLink
+            activeClassName="自定义class"
+            className="nav-link"
+            to="/home/news"
+          >
             news
           </NavLink>
 
