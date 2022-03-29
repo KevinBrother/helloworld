@@ -1,47 +1,53 @@
 import React, { Component } from 'react';
-
+import store from '../redux/store';
 export default class Count extends Component {
-  state = { count: 0 };
+  componentDidMount() {
+    store.subscribe(() => {
+      this.setState({});
+    });
+  }
 
-  increases = () => {
+  increase = () => {
     const { value } = this.selectNum;
-    this.setState((state) => ({ count: state.count + value * 1 }));
+
+    store.dispatch({ type: 'increase', date: value });
   };
 
   decreases = () => {
     const { value } = this.selectNum;
-    this.setState((state) => ({ count: state.count - value * 1 }));
+    store.dispatch({ type: 'decrease', date: value });
   };
 
-  increasesIfOdd = () => {
+  increaseIfOdd = () => {
     const { value } = this.selectNum;
-    const { count } = this.state;
+    const count = store.getState();
     if (count % 2 !== 0) {
-      this.setState({ count: count + value * 1 });
+      store.dispatch({ type: 'increase', date: value });
     }
   };
 
-  increasesAsync = () => {
+  increaseAsync = () => {
     const { value } = this.selectNum;
     setTimeout(() => {
-      this.setState((state) => ({ count: state.count + value * 1 }));
+      store.dispatch({ type: 'increase', date: value });
     }, 500);
   };
 
   render() {
+    console.log('##', store.getState());
     return (
       <div>
-        <h1>结果为 {this.state.count}</h1>
+        <h1>结果为 {store.getState()}</h1>
         <select ref={(c) => (this.selectNum = c)}>
           <option value="1">1</option>
           <option value="2">2</option>
           <option value="3">3</option>
         </select>
 
-        <button onClick={this.increases}>+</button>
+        <button onClick={this.increase}>+</button>
         <button onClick={this.decreases}>-</button>
-        <button onClick={this.increasesIfOdd}>奇数加</button>
-        <button onClick={this.increasesAsync}>异步的加</button>
+        <button onClick={this.increaseIfOdd}>奇数加</button>
+        <button onClick={this.increaseAsync}>异步的加</button>
       </div>
     );
   }
