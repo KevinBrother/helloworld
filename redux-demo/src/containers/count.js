@@ -20,6 +20,6 @@ export default connect(mapStateToProps, mapDispatchToProps)(CountUi);
  */
 
 export default connect((state) => ({ count: state }), {
-  increase: (value) => createIncreaseAction(value),
-  decrease: (value) => createDecreaseAction(value)
+  increase: createIncreaseAction,
+  decrease: createDecreaseAction
 })(CountUi);
