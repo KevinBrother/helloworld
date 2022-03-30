@@ -1,43 +1,35 @@
 import React, { Component } from 'react';
-import store from '../redux/store';
 export default class Count extends Component {
-  componentDidMount() {
-    store.subscribe(() => {
-      this.setState({});
-    });
-  }
-
   increase = () => {
     const { value } = this.selectNum;
 
-    store.dispatch({ type: 'increase', date: value });
+    this.props.increase(value);
   };
 
   decreases = () => {
     const { value } = this.selectNum;
-    store.dispatch({ type: 'decrease', date: value });
+    this.props.decrease(value);
   };
 
   increaseIfOdd = () => {
     const { value } = this.selectNum;
-    const count = store.getState();
-    if (count % 2 !== 0) {
-      store.dispatch({ type: 'increase', date: value });
+    if (this.props.count % 2 !== 0) {
+      this.props.increase(value);
     }
   };
 
   increaseAsync = () => {
     const { value } = this.selectNum;
     setTimeout(() => {
-      store.dispatch({ type: 'increase', date: value });
+      this.props.increase(value);
     }, 500);
   };
 
   render() {
-    console.log('##', store.getState());
+    console.log('##', this.props);
     return (
       <div>
-        <h1>结果为 {store.getState()}</h1>
+        <h1>结果为 {this.props.count}</h1>
         <select ref={(c) => (this.selectNum = c)}>
           <option value="1">1</option>
           <option value="2">2</option>
