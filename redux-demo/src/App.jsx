@@ -1,9 +1,11 @@
-import Count from './containers/count.js';
+import Count from './containers/Count';
+import Person from './containers/Person';
 
 function App() {
   return (
     <div>
-      <Count />
+      <Count /> 
+      <Person />
     </div>
   );
 }

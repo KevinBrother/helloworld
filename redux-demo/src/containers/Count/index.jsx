@@ -3,7 +3,7 @@ import { connect } from 'react-redux';
 import {
   createIncreaseAction,
   createDecreaseAction
-} from '../redux/actions/count';
+} from '../../redux/actions/count';
 
 class Count extends Component {
   increase = () => {
@@ -35,7 +35,8 @@ class Count extends Component {
     console.log('##', this.props);
     return (
       <div>
-        <h1>结果为 {this.props.count}</h1>
+        <h1>下面得总共的人数为{this.props.personNum}</h1>
+
         <select ref={(c) => (this.selectNum = c)}>
           <option value="1">1</option>
           <option value="2">2</option>
@@ -51,7 +52,7 @@ class Count extends Component {
   }
 }
 
-export default connect((state) => ({ count: state }), {
+export default connect((state) => ({ personNum: state.person.length }), {
   increase: createIncreaseAction,
   decrease: createDecreaseAction
 })(Count);
