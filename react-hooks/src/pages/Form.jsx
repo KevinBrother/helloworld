@@ -1,5 +1,6 @@
 import React from 'react';
 import useForm from '../hooks/useForm';
+import Input from './Input';
 
 export default function Form() {
   const [formData, setFormValue, resetFormData] = useForm({
@@ -12,12 +13,10 @@ export default function Form() {
       <form>
         <div className="form-group">
           <label>姓名</label>
-          <input
-            className="form-control"
-            type="text"
+          <Input
             value={formData.username}
-            onChange={(event) => setFormValue('username', event.target.value)}
-          />
+            onChange={(value) => setFormValue('username', value)}
+          ></Input>
         </div>
         <div className="form-group">
           <label>邮箱</label>
