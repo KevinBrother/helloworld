@@ -15,6 +15,7 @@ export default function Form() {
           <label>姓名</label>
           <Input
             value={formData.username}
+            name="username"
             onChange={(value) => setFormValue('username', value)}
           ></Input>
         </div>
