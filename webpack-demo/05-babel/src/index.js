@@ -1,4 +1,4 @@
-import Bar from './Bar.jsx';
+import Bar from './Bar';
 import React from 'react';
 import ReactDom from 'react-dom';
 
