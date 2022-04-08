@@ -6,6 +6,6 @@ module.exports = {
     path: path.resolve(__dirname, 'dist')
   },
   module: {
-    rules: [{ test: /\.js$/, use: 'babel-loader' }]
+    rules: [{ test: /\.js|jsx$/, use: 'babel-loader' }]
   }
 };

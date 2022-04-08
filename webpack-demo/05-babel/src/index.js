@@ -1,3 +1,14 @@
-[1, 2, 3].map((n) => n + 1);
+import Bar from './Bar.jsx';
+import React from 'react';
+import ReactDom from 'react-dom';
 
-document.body.appendChild(component('这是template 显示的内容'));
+function Foo() {
+  return (
+    <>
+      <Bar />
+      <div>this is react 的jsx</div>
+    </>
+  );
+}
+
+ReactDom.render(<Foo />, document.getElementById('root'));
