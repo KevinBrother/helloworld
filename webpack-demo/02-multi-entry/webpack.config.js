@@ -4,8 +4,8 @@ const path = require('path');
 module.exports = {
   // entry: ['./src/index.js', './src/secondEntry.js']
   entry: {
-    first: './src/index.js',
-    second: './src/secondEntry.js'
+    first: path.resolve(__dirname, './src/index.js'),
+    second: path.resolve(__dirname, './src/secondEntry.js')
   },
 
   // 多入口不能一次输出到一个文件中，可以配合占位符【name】来输出多个文件

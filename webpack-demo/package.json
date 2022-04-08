@@ -7,6 +7,7 @@
     "test": "echo \"Error: no test specified\" && exit 1",
     "default": "webpack build -c ./01-default/webpack.config.js",
     "multiEntry": "webpack build -c ./02-multi-entry/webpack.config.js",
+    "loader": "webpack build -c ./03-loader/webpack.config.js",
     "build": "webpack build"
   },
   "keywords": [],
