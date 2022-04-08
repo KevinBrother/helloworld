@@ -42,6 +42,7 @@ how
 - less-loader 将less文件转换成css
 - ts-loader 将TS转换成JS
 - file-loader 进行图片、字体等的打包
+- url-loader 功能和file-loader类似，额外的是可以设置较小资源自动base64,内部使用的也是file-loader
 - raw-loader 将文件以字符串的形式导入  
   - 可以解析.txt文件
 - thread-loader 多进程打包JS和CSS // TODO 2022年4月8日 12:12:50 感觉这个很厉害
