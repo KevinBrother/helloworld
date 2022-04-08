@@ -1,3 +1,5 @@
 import { component } from '../../utils';
+import a from './a.txt';
 
-document.body.appendChild(component('这是index.js 显示的内容'));
+console.log('[ a ] >', a);
+document.body.appendChild(component(a));

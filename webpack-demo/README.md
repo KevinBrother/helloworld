@@ -14,7 +14,8 @@
 - less-loader 将less文件转换成css
 - ts-loader 将TS转换成JS
 - file-loader 进行图片、字体等的打包
-- raw-loader 将文件以字符串的形式导入 // TODO 2022年4月8日 10:56:57 不是很能理解哦
+- raw-loader 将文件以字符串的形式导入  
+  - 可以解析.txt文件
 - thread-loader 多进程打包JS和CSS
 
 ## tip: 目录结构的原因，webpack每次的build目录相对根路径是在package.json同层的，所以配置中的entry需要加上path的解析
