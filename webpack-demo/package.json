@@ -4,14 +4,13 @@
   "description": "",
   "main": "index.js",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1",
-    "default": "webpack build -c ./01-default/webpack.config.js",
-    "multiEntry": "webpack build -c ./02-multi-entry/webpack.config.js",
-    "loader": "webpack build -c ./03-loader/webpack.config.js",
-    "plugin": "webpack build -c ./04-plugin/webpack.config.js",
-    "babel": "webpack build -c ./05-babel/webpack.config.js",
-    "loader-use": "webpack build -c ./06-loader-use/webpack.config.js",
-    "build": "webpack build"
+    "default": "webpack -c ./01-default/webpack.config.js",
+    "multiEntry": "webpack  -c ./02-multi-entry/webpack.config.js",
+    "loader": "webpack  -c ./03-loader/webpack.config.js",
+    "plugin": "webpack  -c ./04-plugin/webpack.config.js",
+    "babel": "webpack  -c ./05-babel/webpack.config.js",
+    "file-loader": "webpack -c ./06-file-loader/webpack.config.js",
+    "build": "webpack"
   },
   "keywords": [],
   "author": "",

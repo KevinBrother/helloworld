@@ -72,7 +72,7 @@ how
 - UglifyjsWebpackPlugin 压缩JS // TODO 2022年4月8日 15:02:00 没看出效果
 - ZipWebpackPlugin 将打包出的资源生成一个zip包
 
-## [babel](https://www.babeljs.cn/docs/)
+## 05 [babel](https://www.babeljs.cn/docs/)
 
 why
 
@@ -87,6 +87,20 @@ what
   - 预设库 @babel/preset-env
   - 专门用于react的 @babel/preset-react
   - 专门用于typescript的 @babel/preset-typescript
+
+how
+
+- 怎么做
+
+## 06 file-loader
+
+why
+
+- 解析图片、字体
+
+what
+
+- 是什么
 
 how
 
