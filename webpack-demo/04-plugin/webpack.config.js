@@ -25,12 +25,13 @@ module.exports = {
   plugins: [
     // new webpack.ProgressPlugin(),
     new MiniCssExtractPlugin(),
-    /*     new CopyPlugin({
+    // copyPlugin在内层的to属性可能有bug，在外层没问题
+    /* new CopyPlugin({
       patterns: [
         {
           from: path.resolve(__dirname, 'src'),
+          // from: 'src',
           to: path.resolve(__dirname, 'copy-src')
-          // force: true
         }
       ]
     }), */

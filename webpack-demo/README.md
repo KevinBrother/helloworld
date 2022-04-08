@@ -66,7 +66,7 @@ how
 - CommonsChunkPlugin 将chunks相同的模块代码提取成公共js
 - CleanWebpackPlugin  清理构建目录 // webpack5 已移除，从output中直接clean为true就行
 - MiniCssExtractPlugin  将CSS从bundle文件里提取成一个独立的CSS文件
-- CopyWebpackPlugin 将文件或文件夹拷贝到构建的输出目录 
+- CopyWebpackPlugin 将文件或文件夹拷贝到构建的输出目录  // TODO 2022年4月8日 16:45:41 copyPlugin在内层的to属性可能有bug，在外层没问题
 - HtmlWebpackPlugin 创建html文件去承载输出的bundle 可以默认生成，也可以通过template指定模板
 - UglifyjsWebpackPlugin 压缩JS // TODO 2022年4月8日 15:02:00 没看出效果
 - ZipWebpackPlugin 将打包出的资源生成一个zip包
