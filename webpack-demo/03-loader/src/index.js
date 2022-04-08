@@ -1,5 +1,7 @@
 import { component } from '../../utils';
-import a from './a.txt';
+import desc from './desc.txt';
+import './style.css';
+import './default.less';
 
-console.log('[ a ] >', a);
-document.body.appendChild(component(a));
+console.log('[ a ] >', desc);
+document.body.appendChild(component(desc));
