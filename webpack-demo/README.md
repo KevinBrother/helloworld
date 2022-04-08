@@ -71,4 +71,24 @@ how
 - UglifyjsWebpackPlugin 压缩JS // TODO 2022年4月8日 15:02:00 没看出效果
 - ZipWebpackPlugin 将打包出的资源生成一个zip包
 
+## [babel](https://www.babeljs.cn/docs/)
+
+why
+
+- js的最新提案浏览器不能支持，各浏览器对js语法的支持也不一致，所以需要通过babel转换为低版本的js
+- jsx、vue的指令、typescript等语言，浏览器也不认得，所以需要把这些转换成浏览器认识的js语言
+- 一句话总结就是只要和js相互转换的就的用babel其他文件图片、css、less等使用其他各自的loader就行（css兼容需要使用postcss）
+
+what
+
+- babel常用的分为
+  - 核心库 @babel/core、
+  - 预设库 @babel/preset-env
+  - 专门用于react的 @babel/preset-react
+  - 专门用于typescript的 @babel/preset-typescript
+
+how
+
+- 怎么做
+
 ## tip: webpack每次的build目录相对根路径是在package.json同层的，所以当前组织的目录结构，需要在配置中的entry需要加上path的解析

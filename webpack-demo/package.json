@@ -9,12 +9,16 @@
     "multiEntry": "webpack build -c ./02-multi-entry/webpack.config.js",
     "loader": "webpack build -c ./03-loader/webpack.config.js",
     "plugin": "webpack build -c ./04-plugin/webpack.config.js",
+    "babel": "webpack build -c ./05-babel/webpack.config.js",
     "build": "webpack build"
   },
   "keywords": [],
   "author": "",
   "license": "ISC",
   "devDependencies": {
+    "@babel/core": "^7.17.9",
+    "@babel/preset-env": "^7.16.11",
+    "babel-loader": "^8.2.4",
     "copy-webpack-plugin": "^10.2.4",
     "css-loader": "^6.7.1",
     "extract-text-webpack-plugin": "^3.0.2",
