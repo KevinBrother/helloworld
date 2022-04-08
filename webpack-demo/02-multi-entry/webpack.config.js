@@ -10,6 +10,7 @@ module.exports = {
 
   // 多入口不能一次输出到一个文件中，可以配合占位符【name】来输出多个文件
   output: {
-    filename: '[name].bundle.js'
+    filename: '[name].bundle.js',
+    path: path.resolve(__dirname, 'dist')
   }
 };

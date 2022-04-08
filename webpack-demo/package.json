@@ -5,8 +5,8 @@
   "main": "index.js",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
-    "default": "webpack build -c ./config/01-default-webpack.config.js",
-    "multiEntry": "webpack build -c ./config/01-default-webpack.config.js",
+    "default": "webpack build -c ./01-default/webpack.config.js",
+    "multiEntry": "webpack build -c ./02-multi-entry/webpack.config.js",
     "build": "webpack build"
   },
   "keywords": [],
