@@ -16,6 +16,6 @@
 - file-loader 进行图片、字体等的打包
 - raw-loader 将文件以字符串的形式导入  
   - 可以解析.txt文件
-- thread-loader 多进程打包JS和CSS
+- thread-loader 多进程打包JS和CSS // TODO 2022年4月8日 12:12:50 感觉这个很厉害
 
-## tip: 目录结构的原因，webpack每次的build目录相对根路径是在package.json同层的，所以配置中的entry需要加上path的解析
+## tip: webpack每次的build目录相对根路径是在package.json同层的，所以当前组织的目录结构，需要在配置中的entry需要加上path的解析
