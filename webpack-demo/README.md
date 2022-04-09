@@ -106,4 +106,24 @@ how
 
 - 怎么做
 
-## tip: webpack每次的build目录相对根路径是在package.json同层的，所以当前组织的目录结构，需要在配置中的entry需要加上path的解析
+## 07 HMR
+
+why
+
+- 实际使用开发模式的配置,开发模式，文件修改，浏览器自动更新，方便开发
+
+how
+
+## 08 文件指纹策略：chunkhash、contenthash和hash
+
+## 09 HTML、CSS、JavaScript代码压缩
+
+
+## 进阶用法
+
+
+
+## tip
+
+- 每次build都的手动，`webpack --watch` 可以监听文件的修改，从而自动构建，不用每次都手动build， 如npm run default:watch
+- webpack每次的build目录相对根路径是在package.json同层的，所以当前组织的目录结构，需要在配置中的entry需要加上path的解析
