@@ -3,7 +3,7 @@ const HtmlWebpackPlugin = require('html-webpack-plugin');
 const { CleanWebpackPlugin } = require('clean-webpack-plugin');
 const MiniCssExtractPlugin = require('mini-css-extract-plugin');
 module.exports = {
-  mode: 'development',
+  mode: 'production',
   entry: {
     index: path.resolve(__dirname, './src/index.js'),
     bar: path.resolve(__dirname, './src/bar.js')
@@ -15,7 +15,6 @@ module.exports = {
   module: {
     rules: [
       { test: /\.js|jsx$/, use: 'babel-loader' },
-      { test: /\.(png|jpg|gif|svg)$/, use: ['file-loader'] },
       {
         test: /\.less$/,
         use: [
@@ -23,7 +22,12 @@ module.exports = {
           'css-loader',
           'less-loader',
           {
-            loader: 'postcss-loader'
+            loader: 'postcss-loader',
+            options: {
+              postcssOptions: {
+                plugins: [require('autoprefixer')]
+              }
+            }
           }
         ]
       }
