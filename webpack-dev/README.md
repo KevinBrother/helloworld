@@ -14,6 +14,10 @@
 
 ## html、css、js压缩
 
+html使用html-webpack-plugin
+js webpack自带来ugliyjs
+css 使用 css-minimizer-webpack-plugin
+
 ## postcss与autoprefixer自动补全CSS3前缀
 
 `yarn add -D postcss-loader autoprefixer -D`
