@@ -16,6 +16,22 @@ module.exports = {
     rules: [
       { test: /\.js|jsx$/, use: 'babel-loader' },
       {
+        test: /\.(png|jpg|gif|svg)$/,
+        use: [
+          {
+            loader: 'file-loader',
+            options: {
+              name(resourcePath, resourceQuery) {
+                if (process.env.NODE_ENV === 'development') {
+                  return '[path][name].[ext]';
+                }
+                return '[name]-[hash:8].[ext]';
+              }
+            }
+          }
+        ]
+      },
+      {
         test: /\.less$/,
         use: [
           MiniCssExtractPlugin.loader,
@@ -40,7 +56,7 @@ module.exports = {
     // static: __dirname + '/public'
   },
   plugins: [
-    new MiniCssExtractPlugin(),
+    new MiniCssExtractPlugin({ filename: '[name]_[contenthash:8].css' }),
     new CleanWebpackPlugin(),
     new HtmlWebpackPlugin({
       template: './public/index.html',
