@@ -43,3 +43,10 @@ raw-loader 需要使用0.5.1版本的，高版本的有问题,它不能直接从
 ## 提取页面公共资源
 
 通过内置的splitChunks,可以把重复使用的功能单独抽离出来 // TODO 2022年4月10日 13:55:04 公共的资源太多怎么再抽离出chunk呢？按需加载？
+
+## [Tree Shaking](https://juejin.cn/post/7004297344300777502)
+
+- 利用es6模块系统，删除⽆⽤代码
+- 必须是es6语法，cmj的不支持
+- 函数不能有副作用
+- minimizer中默认是配置了js的压缩，但是如果配置了css的压缩就需要手动的安装terser-webpack-plugin再配置js压缩

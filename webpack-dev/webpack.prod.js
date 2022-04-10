@@ -3,6 +3,7 @@ const HtmlWebpackPlugin = require('html-webpack-plugin');
 const { CleanWebpackPlugin } = require('clean-webpack-plugin');
 const MiniCssExtractPlugin = require('mini-css-extract-plugin');
 const CssMinimizerPlugin = require('css-minimizer-webpack-plugin');
+const TerserPlugin = require('terser-webpack-plugin');
 const glob = require('glob');
 
 const getMultiPage = function () {
@@ -83,13 +84,23 @@ module.exports = {
     ]
   },
   resolve: {
-    extensions: ['.jsx']
+    extensions: ['.jsx', '.js', '.json']
   },
   devServer: {
     // static: __dirname + '/public'
   },
   optimization: {
-    minimizer: [new CssMinimizerPlugin()],
+    minimizer: [
+      new CssMinimizerPlugin(),
+      new TerserPlugin({
+        parallel: true, // 可省略，默认开启并行
+        terserOptions: {
+          toplevel: true, // 最高级别，删除无用代码
+          ie8: true,
+          safari10: true
+        }
+      })
+    ],
     splitChunks: {
       cacheGroups: {
         commons: {
