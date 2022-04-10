@@ -4,14 +4,16 @@ const { CleanWebpackPlugin } = require('clean-webpack-plugin');
 const MiniCssExtractPlugin = require('mini-css-extract-plugin');
 const CssMinimizerPlugin = require('css-minimizer-webpack-plugin');
 const TerserPlugin = require('terser-webpack-plugin');
+const ESLintPlugin = require('eslint-webpack-plugin');
 const glob = require('glob');
+const autoprefixer = require('autoprefixer');
 
 const getMultiPage = function () {
-  const files = glob.sync(__dirname + '/src/*/index.js');
+  const files = glob.sync(`${__dirname}/src/*/index.js`);
   const entryMap = {};
   const htmlWebpackPlugins = [];
 
-  files.forEach(function (file) {
+  files.forEach((file) => {
     const match = file.match(/\/src\/(.*)\/index.js/);
     const pageName = match[1];
     // 生成entry
@@ -41,14 +43,14 @@ module.exports = {
   },
   module: {
     rules: [
-      { test: /\.js|jsx$/, use: 'babel-loader' },
+      { test: /\.js|jsx$/, use: ['babel-loader'] },
       {
         test: /\.(png|jpg|gif|svg)$/,
         use: [
           {
             loader: 'file-loader',
             options: {
-              name(resourcePath, resourceQuery) {
+              name() {
                 if (process.env.NODE_ENV === 'development') {
                   return '[path][name].[ext]';
                 }
@@ -68,7 +70,7 @@ module.exports = {
             loader: 'postcss-loader',
             options: {
               postcssOptions: {
-                plugins: [require('autoprefixer')]
+                plugins: [autoprefixer]
               }
             }
           },
@@ -114,7 +116,8 @@ module.exports = {
   },
   plugins: [
     new MiniCssExtractPlugin({ filename: '[name]_[contenthash:8].css' }),
-    new CleanWebpackPlugin()
+    new CleanWebpackPlugin(),
+    new ESLintPlugin()
   ].concat(htmlWebpackPlugins),
   devtool: 'source-map'
 };

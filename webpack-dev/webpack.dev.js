@@ -3,11 +3,11 @@ const HtmlWebpackPlugin = require('html-webpack-plugin');
 const glob = require('glob');
 
 const getMultiPage = function () {
-  const files = glob.sync(__dirname + '/src/*/index.js');
+  const files = glob.sync(`${__dirname}/src/*/index.js`);
   const entryMap = {};
   const htmlWebpackPlugins = [];
 
-  files.forEach(function (file) {
+  files.forEach((file) => {
     const match = file.match(/\/src\/(.*)\/index.js/);
     const pageName = match[1];
     // 生成entry
@@ -48,7 +48,7 @@ module.exports = {
       }
     ]
   },
-  /* 
+  /*
  // TODO 2022年4月10日 12:14:00 resolve在开发模式下开启有bug！！！
  resolve: {
     extensions: ['.jsx']

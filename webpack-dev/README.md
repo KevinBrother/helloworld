@@ -57,3 +57,10 @@ webpack 默认会用大量的闭包来包裹函数和引入，通过scope hoisti
 
 ## 代码分割
 
+使用es6的import(), 配合@babel/plugin-syntax-dynamic-import插件（现在preset已经自带了，不需要额外引入）
+
+## ESLint
+
+- 全都基于eslint这个库以及.eslintrc.*的配置文件
+- 也可以使用别的团队已经定义好的配置，进行二次开发
+- webpack5 使用eslint-webpack-plugin插件就可以在build时对代码打包验证
