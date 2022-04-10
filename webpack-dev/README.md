@@ -50,3 +50,10 @@ raw-loader 需要使用0.5.1版本的，高版本的有问题,它不能直接从
 - 必须是es6语法，cmj的不支持
 - 函数不能有副作用
 - minimizer中默认是配置了js的压缩，但是如果配置了css的压缩就需要手动的安装terser-webpack-plugin再配置js压缩
+
+## 作用域提升 · Scope Hoisting
+
+webpack 默认会用大量的闭包来包裹函数和引入，通过scope hoisting能大大减少这种代码
+
+## 代码分割
+
