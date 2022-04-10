@@ -6,6 +6,7 @@ import logo from './logo.png';
 function Foo() {
   return (
     <>
+      {console.log(12)}
       <div>this is index 的jsx</div>
       <img src={logo} alt="" />
     </>

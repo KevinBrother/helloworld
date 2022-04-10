@@ -89,7 +89,17 @@ module.exports = {
     // static: __dirname + '/public'
   },
   optimization: {
-    minimizer: [new CssMinimizerPlugin()]
+    minimizer: [new CssMinimizerPlugin()],
+    splitChunks: {
+      cacheGroups: {
+        commons: {
+          // test: /(react|react-dom)/,
+          minChunks: 2,
+          name: 'vendor',
+          chunks: 'all'
+        }
+      }
+    }
   },
   plugins: [
     new MiniCssExtractPlugin({ filename: '[name]_[contenthash:8].css' }),
