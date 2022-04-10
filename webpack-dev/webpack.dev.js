@@ -30,7 +30,7 @@ const { entryMap, htmlWebpackPlugins } = getMultiPage();
 
 module.exports = {
   mode: 'development',
-  entry: './src/bar/index.js',
+  entry: entryMap,
   output: {
     filename: '[name]_[chunkhash:8].js',
     path: path.resolve(__dirname, 'dist')
@@ -48,19 +48,15 @@ module.exports = {
       }
     ]
   },
-  resolve: {
+  /* 
+ // TODO 2022年4月10日 12:14:00 resolve在开发模式下开启有bug！！！
+ resolve: {
     extensions: ['.jsx']
-  },
+  }, */
   devServer: {
     // static: __dirname + '/public'
-    hot: true
   },
   // plugins: [].concat(htmlWebpackPlugins),
-  plugins: [
-    new HtmlWebpackPlugin({
-      template: './public/bar.html',
-      filename: 'bar.html'
-    })
-  ],
+  plugins: [].concat(htmlWebpackPlugins),
   devtool: 'source-map'
 };
