@@ -55,6 +55,7 @@ module.exports = {
   }, */
   devServer: {
     // static: __dirname + '/public'
+    open: true
   },
   // plugins: [].concat(htmlWebpackPlugins),
   plugins: [].concat(htmlWebpackPlugins),

@@ -1,7 +1,9 @@
 import React, { useState } from 'react';
 import ReactDom from 'react-dom';
 import './default.less';
+import add from '@kevinbrother/webpack-lib';
 import { getA } from './tree-shaking';
+
 // import Text from '../components/Text';
 import logo from './logo.png';
 
@@ -24,6 +26,8 @@ function Foo() {
   return (
     <>
       {console.log(12)}
+
+      {add(1, 2)}
       {hasText ? <Text /> : null}
       <div>
         this is index 的jsx
