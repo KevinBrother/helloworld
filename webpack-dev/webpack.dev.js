@@ -37,6 +37,17 @@ module.exports = {
     filename: '[name]_[chunkhash:8].js',
     path: path.resolve(__dirname, 'dist')
   },
+  devServer: {
+    // static: __dirname + '/public'
+    open: true,
+    client: {
+      overlay: {
+        errors: true,
+        warnings: false
+      },
+      progress: true
+    }
+  },
   module: {
     rules: [
       { test: /\.js|jsx$/, use: 'babel-loader' },
@@ -55,10 +66,7 @@ module.exports = {
  resolve: {
     extensions: ['.jsx']
   }, */
-  devServer: {
-    // static: __dirname + '/public'
-    open: true
-  },
+
   // plugins: [].concat(htmlWebpackPlugins),
   plugins: [new ESLintPlugin(), new FriendlyErrorsWebpackPlugin()].concat(
     htmlWebpackPlugins
