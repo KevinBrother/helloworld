@@ -18,6 +18,7 @@ module.exports = {
     'import/no-extraneous-dependencies': ['error', { devDependencies: true }],
     'react/jsx-filename-extension': ['warn', { extensions: ['.js', '.jsx'] }],
     'react/jsx-one-expression-per-line': 'off',
-    'react/button-has-type': 'off'
+    'react/button-has-type': 'off',
+    'no-console': 'off'
   }
 };

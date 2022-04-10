@@ -70,3 +70,5 @@ webpack 默认会用大量的闭包来包裹函数和引入，通过scope hoisti
 ## 优化构建时命令行的显示日志
 
 在配置文件中添加`stats: 'errors-only'` 即可,配合FriendlyErrorsWebpackPlugin插件可以更好的提示
+
+## 构建时处理，可以在plugin中处理compile中各个阶段，后续再深入讨论

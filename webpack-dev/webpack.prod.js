@@ -9,7 +9,7 @@ const FriendlyErrorsWebpackPlugin = require('friendly-errors-webpack-plugin');
 const glob = require('glob');
 const autoprefixer = require('autoprefixer');
 
-const getMultiPage = function () {
+const getMultiPage = () => {
   const files = glob.sync(`${__dirname}/src/*/index.js`);
   const entryMap = {};
   const htmlWebpackPlugins = [];
@@ -119,7 +119,15 @@ module.exports = {
     new MiniCssExtractPlugin({ filename: '[name]_[contenthash:8].css' }),
     new CleanWebpackPlugin(),
     new ESLintPlugin(),
-    new FriendlyErrorsWebpackPlugin()
+    new FriendlyErrorsWebpackPlugin(),
+    function () {
+      this.hooks.done.tap('done', (stats) => {
+        console.info(
+          '构建成功了，可以在这儿自定义事件',
+          stats.toString().length
+        );
+      });
+    }
   ].concat(htmlWebpackPlugins),
   devtool: 'source-map',
   stats: 'errors-only'
