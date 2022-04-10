@@ -8,6 +8,11 @@
     "build": "webpack build",
     "prepublish": "webpack build"
   },
+  "files": [
+    "dist",
+    "README.md",
+    "index.js"
+  ],
   "keywords": [],
   "author": "",
   "license": "ISC",
