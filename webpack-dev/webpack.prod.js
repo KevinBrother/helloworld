@@ -94,5 +94,6 @@ module.exports = {
   plugins: [
     new MiniCssExtractPlugin({ filename: '[name]_[contenthash:8].css' }),
     new CleanWebpackPlugin()
-  ].concat(htmlWebpackPlugins)
+  ].concat(htmlWebpackPlugins),
+  devtool: 'source-map'
 };
