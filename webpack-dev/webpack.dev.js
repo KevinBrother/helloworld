@@ -1,8 +1,10 @@
 const path = require('path');
 const HtmlWebpackPlugin = require('html-webpack-plugin');
+const ESLintPlugin = require('eslint-webpack-plugin');
+const FriendlyErrorsWebpackPlugin = require('friendly-errors-webpack-plugin');
 const glob = require('glob');
 
-const getMultiPage = function () {
+const getMultiPage = () => {
   const files = glob.sync(`${__dirname}/src/*/index.js`);
   const entryMap = {};
   const htmlWebpackPlugins = [];
@@ -58,6 +60,9 @@ module.exports = {
     open: true
   },
   // plugins: [].concat(htmlWebpackPlugins),
-  plugins: [].concat(htmlWebpackPlugins),
-  devtool: 'source-map'
+  plugins: [new ESLintPlugin(), new FriendlyErrorsWebpackPlugin()].concat(
+    htmlWebpackPlugins
+  ),
+  devtool: 'source-map',
+  stats: 'errors-only'
 };

@@ -63,4 +63,10 @@ webpack 默认会用大量的闭包来包裹函数和引入，通过scope hoisti
 
 - 全都基于eslint这个库以及.eslintrc.*的配置文件
 - 也可以使用别的团队已经定义好的配置，进行二次开发
-- webpack5 使用eslint-webpack-plugin插件就可以在build时对代码打包验证
+- webpack5 使用eslint-webpack-plugin插件就可以在build时对代码打包验证(以前的版本用的是eslint-loader)
+
+## 服务端渲染 // TODO 2022年4月10日 20:07:21
+
+## 优化构建时命令行的显示日志
+
+在配置文件中添加`stats: 'errors-only'` 即可,配合FriendlyErrorsWebpackPlugin插件可以更好的提示

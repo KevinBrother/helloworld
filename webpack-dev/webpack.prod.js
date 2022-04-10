@@ -5,6 +5,7 @@ const MiniCssExtractPlugin = require('mini-css-extract-plugin');
 const CssMinimizerPlugin = require('css-minimizer-webpack-plugin');
 const TerserPlugin = require('terser-webpack-plugin');
 const ESLintPlugin = require('eslint-webpack-plugin');
+const FriendlyErrorsWebpackPlugin = require('friendly-errors-webpack-plugin');
 const glob = require('glob');
 const autoprefixer = require('autoprefixer');
 
@@ -117,7 +118,9 @@ module.exports = {
   plugins: [
     new MiniCssExtractPlugin({ filename: '[name]_[contenthash:8].css' }),
     new CleanWebpackPlugin(),
-    new ESLintPlugin()
+    new ESLintPlugin(),
+    new FriendlyErrorsWebpackPlugin()
   ].concat(htmlWebpackPlugins),
-  devtool: 'source-map'
+  devtool: 'source-map',
+  stats: 'errors-only'
 };
