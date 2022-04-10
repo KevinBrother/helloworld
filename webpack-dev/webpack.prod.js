@@ -45,6 +45,13 @@ module.exports = {
                 plugins: [require('autoprefixer')]
               }
             }
+          },
+          {
+            loader: 'px2rem-loader',
+            options: {
+              remUni: 75,
+              remPrecision: 8
+            }
           }
         ]
       }
@@ -63,6 +70,7 @@ module.exports = {
     new MiniCssExtractPlugin({ filename: '[name]_[contenthash:8].css' }),
     new CleanWebpackPlugin(),
     new HtmlWebpackPlugin({
+      // scriptLoading: 'module',
       template: './public/index.html',
       filename: 'index.html',
       chunks: ['index']

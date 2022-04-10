@@ -21,3 +21,13 @@ css 使用 css-minimizer-webpack-plugin
 ## postcss与autoprefixer自动补全CSS3前缀
 
 `yarn add -D postcss-loader autoprefixer -D`
+
+## 移动端CSS px 自动转换成rem
+
+`yarn add -D px2rem-loader lib-flexible raw-loader -D`
+px2rem-loader
+lib-flexible:页面渲染时计算根元素的font-size值，需要配合raw-loader加载静态资源直接放到html的文件头部中
+
+## 静态资源内联
+
+raw-loader 需要使用0.5.1版本的，高版本的有问题,它不能直接从node-modules中加载js
