@@ -35,3 +35,7 @@ raw-loader 需要使用0.5.1版本的，高版本的有问题,它不能直接从
 ## 多页面打包
 
 每次都需要手动配置entry和htmlWebpackPlugin太过繁琐，可以使用一定的文件组织方式，配合glob库提取文件，动态生成
+
+## sourcemap
+
+打包后的js经过压缩不好定位bug调试，需要生成对应的sourcemap匹配错误

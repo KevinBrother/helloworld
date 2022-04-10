@@ -1,8 +1,5 @@
 const path = require('path');
 const HtmlWebpackPlugin = require('html-webpack-plugin');
-const { CleanWebpackPlugin } = require('clean-webpack-plugin');
-const MiniCssExtractPlugin = require('mini-css-extract-plugin');
-const CssMinimizerPlugin = require('css-minimizer-webpack-plugin');
 const glob = require('glob');
 
 const getMultiPage = function () {
@@ -33,7 +30,7 @@ const { entryMap, htmlWebpackPlugins } = getMultiPage();
 
 module.exports = {
   mode: 'development',
-  entry: entryMap,
+  entry: './src/bar/index.js',
   output: {
     filename: '[name]_[chunkhash:8].js',
     path: path.resolve(__dirname, 'dist')
@@ -43,42 +40,11 @@ module.exports = {
       { test: /\.js|jsx$/, use: 'babel-loader' },
       {
         test: /\.(png|jpg|gif|svg)$/,
-        use: [
-          {
-            loader: 'file-loader',
-            options: {
-              name(resourcePath, resourceQuery) {
-                if (process.env.NODE_ENV === 'development') {
-                  return '[path][name].[ext]';
-                }
-                return '[name]-[hash:8].[ext]';
-              }
-            }
-          }
-        ]
+        use: ['file-loader']
       },
       {
         test: /\.less$/,
-        use: [
-          MiniCssExtractPlugin.loader,
-          'css-loader',
-          'less-loader',
-          {
-            loader: 'postcss-loader',
-            options: {
-              postcssOptions: {
-                plugins: [require('autoprefixer')]
-              }
-            }
-          },
-          {
-            loader: 'px2rem-loader',
-            options: {
-              remUni: 75,
-              remPrecision: 8
-            }
-          }
-        ]
+        use: ['style-loader', 'css-loader', 'less-loader']
       }
     ]
   },
@@ -87,10 +53,14 @@ module.exports = {
   },
   devServer: {
     // static: __dirname + '/public'
+    hot: true
   },
+  // plugins: [].concat(htmlWebpackPlugins),
   plugins: [
-    new MiniCssExtractPlugin({ filename: '[name]_[contenthash:8].css' }),
-    new CleanWebpackPlugin()
-  ].concat(htmlWebpackPlugins),
+    new HtmlWebpackPlugin({
+      template: './public/bar.html',
+      filename: 'bar.html'
+    })
+  ],
   devtool: 'source-map'
 };
