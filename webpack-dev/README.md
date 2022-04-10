@@ -31,3 +31,7 @@ lib-flexible:页面渲染时计算根元素的font-size值，需要配合raw-loa
 ## 静态资源内联
 
 raw-loader 需要使用0.5.1版本的，高版本的有问题,它不能直接从node-modules中加载js
+
+## 多页面打包
+
+每次都需要手动配置entry和htmlWebpackPlugin太过繁琐，可以使用一定的文件组织方式，配合glob库提取文件，动态生成
