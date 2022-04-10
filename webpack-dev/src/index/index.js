@@ -15,6 +15,7 @@ function Foo() {
   const getText = () => {
     import('../components/Text.js').then((text) => {
       console.log('text=======', text);
+      // TODO 2022年4月10日 15:35:07 react 通过setState,改变组件渲染的问题不知到如何修复
       Text = text.default;
       setHasText(true);
     });
