@@ -1,17 +1,29 @@
-import Drag from './pages/Drag';
-import RequestPage from './pages/RequestPage';
-import Form from './pages/Form';
-import Test from './pages/Test';
+import { useRoutes, Link } from 'react-router-dom';
+import { baseRouter, menuRouter } from './router';
+
+function Ad() {
+  const element = useRoutes(menuRouter.concat(baseRouter));
+  return <>{element}</>;
+}
 
 function App() {
   return (
-    <div>
-      {/* <RequestPage /> */}
-      {/* <Drag /> */}
-      {/* <Form /> */}
+    <>
+      <div style={{ display: 'flex' }}>
+        <ul>
+          {menuRouter.map((router) => {
+            const { path } = router;
 
-      {<Test />}
-    </div>
+            return (
+              <li key={path}>
+                <Link to={path}>{path.replace('/', '')}</Link>
+              </li>
+            );
+          })}
+        </ul>
+        <Ad />
+      </div>
+    </>
   );
 }
 
