@@ -1,9 +1,9 @@
 import { useRoutes, Link } from 'react-router-dom';
 import { baseRouter, menuRouter } from './router';
 
-function Ad() {
+function Container() {
   const element = useRoutes(menuRouter.concat(baseRouter));
-  return <>{element}</>;
+  return <div style={{ marginLeft: '30px' }}>{element}</div>;
 }
 
 function App() {
@@ -21,7 +21,7 @@ function App() {
             );
           })}
         </ul>
-        <Ad />
+        <Container />
       </div>
     </>
   );

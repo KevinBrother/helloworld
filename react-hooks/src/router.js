@@ -2,6 +2,9 @@ import Drag from './pages/Drag';
 import RequestPage from './pages/RequestPage';
 import Form from './pages/Form';
 import Test from './pages/Test';
+import Counter from './pages/Counter';
+import AsyncUsers from './pages/AsyncUsers';
+import WindowSize from './pages/WindowSize';
 
 const menuRouter = [
   {
@@ -19,6 +22,18 @@ const menuRouter = [
   {
     path: '/test',
     element: <Test />
+  },
+  {
+    path: '/counter',
+    element: <Counter />
+  },
+  {
+    path: '/asyncUsers',
+    element: <AsyncUsers />
+  },
+  {
+    path: '/windowSize',
+    element: <WindowSize />
   }
 ];
 
