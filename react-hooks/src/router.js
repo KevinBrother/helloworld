@@ -5,6 +5,7 @@ import Test from './pages/Test';
 import Counter from './pages/Counter';
 import AsyncUsers from './pages/AsyncUsers';
 import WindowSize from './pages/WindowSize';
+import RefDemo from './pages/RefDemo';
 
 const menuRouter = [
   {
@@ -34,6 +35,10 @@ const menuRouter = [
   {
     path: '/windowSize',
     element: <WindowSize />
+  },
+  {
+    path: '/RefDemo',
+    element: <RefDemo />
   }
 ];
 
