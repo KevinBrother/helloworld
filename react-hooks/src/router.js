@@ -6,6 +6,7 @@ import Counter from './pages/Counter';
 import AsyncUsers from './pages/AsyncUsers';
 import WindowSize from './pages/WindowSize';
 import RefDemo from './pages/RefDemo';
+import ContextDemo from './pages/ContextDemo';
 
 const menuRouter = [
   {
@@ -39,6 +40,10 @@ const menuRouter = [
   {
     path: '/RefDemo',
     element: <RefDemo />
+  },
+  {
+    path: '/ContextDemo',
+    element: <ContextDemo />
   }
 ];
 
