@@ -1,27 +1,28 @@
-import React, { useState } from 'react';
+import React, { useCallback } from 'react';
+import useAsync from '../hooks/useAsync-v2.js';
 
 export default function AsyncUsers() {
-  const [users, setUsers] = useState([]);
-  const [error, setError] = useState(null);
-  const [loading, setLoading] = useState(false);
-
-  function getUsers() {
-    setLoading(true);
-    fetch('https://reqres.in/api/users/')
-      .then((rsp) => rsp.json())
-      .then((rsp) => {
-        setUsers(rsp.data);
-        setLoading(false);
-      })
-      .catch((err) => {
-        setError(err);
-        setLoading(false);
-      });
-  }
+  const {
+    executer: fetchUser,
+    data: users,
+    loading,
+    error
+  } = useAsync(
+    useCallback(async () => {
+      // 为什么不直接放在hooks里处理掉呢？
+      const res = await fetch('https://reqres.in/api/users/');
+      const json = await res.json();
+      return json.data;
+    }, [])
+  );
 
   return (
     <>
-      <button className="btn btn-primary" onClick={getUsers} disabled={loading}>
+      <button
+        className="btn btn-primary"
+        onClick={fetchUser}
+        disabled={loading}
+      >
         获取用户
       </button>
       {error && <div style={{ color: 'red' }}>{toString(error)}</div>}
