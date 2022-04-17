@@ -1,6 +1,7 @@
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useEffect } from 'react';
 
-export default function useAsync(asyncFunction) {
+export default function useAsync(asyncFunction, options = {}) {
+  const { manual } = options;
   const [data, setData] = useState([]);
   const [error, setError] = useState(null);
   const [loading, setLoading] = useState(false);
@@ -17,6 +18,13 @@ export default function useAsync(asyncFunction) {
         setLoading(false);
       });
   }, [asyncFunction]);
+
+  useEffect(() => {
+    if (manual) {
+      return;
+    }
+    executer();
+  }, [manual, executer]);
 
   return { executer, data, error, loading };
 }

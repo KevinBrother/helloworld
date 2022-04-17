@@ -1,5 +1,17 @@
-import React, { useCallback } from 'react';
+import React from 'react';
 import useAsync from '../hooks/useAsync-v2.js';
+
+/* async function getUser() {
+  const res = await fetch('https://reqres.in/api/users/');
+  const json = await res.json();
+  return json.data;
+} */
+
+function getUser() {
+  return fetch('https://reqres.in/api/users/')
+    .then((res) => res.json())
+    .then((json) => json.data);
+}
 
 export default function AsyncUsers() {
   const {
@@ -7,14 +19,8 @@ export default function AsyncUsers() {
     data: users,
     loading,
     error
-  } = useAsync(
-    useCallback(async () => {
-      // 为什么不直接放在hooks里处理掉呢？
-      const res = await fetch('https://reqres.in/api/users/');
-      const json = await res.json();
-      return json.data;
-    }, [])
-  );
+    // } = useAsync(getUser, { manual: true });
+  } = useAsync(getUser);
 
   return (
     <>
