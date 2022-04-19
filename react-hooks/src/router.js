@@ -7,6 +7,9 @@ import AsyncUsers from './pages/AsyncUsers';
 import WindowSize from './pages/WindowSize';
 import RefDemo from './pages/RefDemo';
 import ContextDemo from './pages/ContextDemo';
+import PriceInput from './pages/PriceInput';
+import RenderProps from './pages/RenderProps';
+import Keyboard from './pages/Keyboard';
 
 const menuRouter = [
   {
@@ -44,6 +47,18 @@ const menuRouter = [
   {
     path: '/ContextDemo',
     element: <ContextDemo />
+  },
+  {
+    path: '/PriceInput',
+    element: <PriceInput />
+  },
+  {
+    path: '/RenderProps',
+    element: <RenderProps />
+  },
+  {
+    path: '/Keyboard',
+    element: <Keyboard />
   }
 ];
 
