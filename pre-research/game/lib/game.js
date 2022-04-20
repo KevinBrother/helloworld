@@ -21,13 +21,16 @@ exports.getRandomMora = () => {
 exports.compare = (a, b) => {
   if (a === b) {
     console.log('平局');
+    return 0;
   } else if (
     (a === MORA.ROCK && b === MORA.PAPER) ||
     (a === MORA.SCISSORS && b === MORA.ROCK) ||
     (a === MORA.PAPER && b === MORA.SCISSORS)
   ) {
     console.log('你输了');
+    return 1;
   } else {
     console.log('你赢了');
+    return -1;
   }
 };
