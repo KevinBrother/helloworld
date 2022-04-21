@@ -2,11 +2,30 @@ import React from 'react';
 import useForm from '../hooks/useForm';
 import Input from './Input';
 
+const validate = {
+  username: (value) => {
+    if (!value) {
+      return '必填!';
+    }
+    return null;
+  },
+
+  email: (value) => {
+    if (!value.includes('@')) {
+      return '不是邮箱！！！';
+    }
+    return null;
+  }
+};
+
 export default function Form() {
-  const [formData, setFormValue, resetFormData] = useForm({
-    username: '',
-    email: ''
-  });
+  const [formData, errMsg, setFormValue, resetFormData] = useForm(
+    {
+      username: '',
+      email: ''
+    },
+    validate
+  );
 
   return (
     <div className="container">
@@ -18,6 +37,7 @@ export default function Form() {
             name="username"
             onChange={(value) => setFormValue('username', value)}
           ></Input>
+          <div style={{ color: 'red' }}>{errMsg.username}</div>
         </div>
         <div className="form-group">
           <label>邮箱</label>
@@ -27,6 +47,7 @@ export default function Form() {
             value={formData.email}
             onChange={(event) => setFormValue('email', event.target.value)}
           />
+          <div style={{ color: 'red' }}>{errMsg.email}</div>
         </div>
       </form>
 
