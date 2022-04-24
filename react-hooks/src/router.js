@@ -10,6 +10,7 @@ import ContextDemo from './pages/ContextDemo';
 import PriceInput from './pages/PriceInput';
 import RenderProps from './pages/RenderProps';
 import Keyboard from './pages/Keyboard';
+import Summary from './pages/Summary';
 
 const menuRouter = [
   {
@@ -59,6 +60,10 @@ const menuRouter = [
   {
     path: '/Keyboard',
     element: <Keyboard />
+  },
+  {
+    path: '/Summary',
+    element: <Summary />
   }
 ];
 
