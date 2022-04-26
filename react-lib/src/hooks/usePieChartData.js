@@ -50,7 +50,7 @@ const initOption = {
         color: 'rgba(155,155,155,0.2)'
       }
     },
-    labelLayout: (params) => {
+    labelLayout: function (params) {
       const isLeft =
         params.labelRect.x < (this.chartInstance?.getWidth() || 0) / 2;
       const points = params.labelLinePoints;
@@ -160,11 +160,11 @@ function mergeOption(option, newV) {
   option.series.label.rich.value.fontSize = newV.labelValueFontSize || 14;
   option.series.label.rich.name.fontSize = newV.labelNameFontSize || 10;
   option.series.width = newV.width || 400;
-  return option;
+  return { ...option };
 }
 
 export function usePieChartData() {
-  const [option, setOption] = useState(initOption);
+  const [option, setOption] = useState();
 
   useEffect(() => {
     fetch('https://yapi.datagrand.com/mock/226/v1/stats/todayJobs')

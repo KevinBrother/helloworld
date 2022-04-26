@@ -1,8 +1,10 @@
 import React, { useEffect, useRef } from 'react';
 import * as echarts from 'echarts';
 
-export default function DrawEchart({ option = {} }) {
-  const chartRef = useRef(null);
+export default function DrawEchart(props) {
+  const { option = {}, width = 500, height = 500 } = props;
+
+  const chartDomRef = useRef(null);
 
   useEffect(() => {
     console.log(
@@ -10,17 +12,15 @@ export default function DrawEchart({ option = {} }) {
       'font-size:13px; background:pink; color:#bf2c9f;',
       option
     );
-    if (!option.series) {
+
+    if (!chartDomRef.current || !option.series) {
       return;
     }
-    const chartDom = document.getElementById('chartDom');
-    // TODO echarts实例需要判断是否存在
-    const chart = echarts.init(chartDom);
-    chart.clear();
+
+    const chart = echarts.init(chartDomRef.current);
+
     chart.setOption(option);
   }, [option]);
 
-  return (
-    <div ref={chartRef} id="chartDom" style={{ width: 500, height: 500 }}></div>
-  );
+  return <div ref={chartDomRef} style={{ width, height }}></div>;
 }
