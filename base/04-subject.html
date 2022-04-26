@@ -1,0 +1,33 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta http-equiv="X-UA-Compatible" content="IE=edge" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Document</title>
+    <script src="../lib/rxjs.umd.min.js"></script>
+  </head>
+  <body>
+    <script>
+      const { fromEvent } = rxjs;
+
+      // 1. 创建可观察对象observable
+      const click$ = fromEvent(document, 'click');
+
+      // 2. 创建观察者对象observer
+      var observer = {
+        next: (x) => console.log(x),
+        error: (err) => console.error('Observer got an error: ' + err),
+        complete: () => console.log('Observer got a complete notification')
+      };
+
+      // 3. 创建订阅对象 （订阅observable，并传入observer）
+      const subs$ = click$.subscribe(observer);
+      const subs2$ = click$.subscribe({ next: (x) => console.log(x) });
+      const subs3$ = click$.subscribe((x) => console.log(x));
+
+      // 4. 取消订阅
+      // subs$.unsubscribe();
+    </script>
+  </body>
+</html>
