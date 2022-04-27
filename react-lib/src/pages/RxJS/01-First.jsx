@@ -1,16 +1,17 @@
 import React, { useEffect } from 'react';
-import { fromEvent } from 'rxjs';
 
-const useClickObservable = (fn) => {
-  useEffect(() => {
-    let subscription = fromEvent(document, 'click').subscribe((e) => fn(e));
-    return () => subscription.unsubscribe();
-  }, [fn]);
-};
+import { Observable } from 'rxjs';
 
 export default function First() {
-  useClickObservable((e) => {
-    console.log(e);
+  var observable = Observable.create(function (observer) {
+    observer.next('jerry');
+    observer.next('Anna');
   });
+
+  // 订阅observable
+  observable.subscribe(function (value) {
+    console.log(value);
+  });
+
   return <div>rx</div>;
 }
