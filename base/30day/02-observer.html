@@ -1,0 +1,76 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta http-equiv="X-UA-Compatible" content="IE=edge" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Document</title>
+    <script src="../../lib/rxjs.umd.min.js"></script>
+  </head>
+  <body>
+    <script type="module">
+      // import { Observable } from '../../lib/rxjs.umd.min.js';
+      const { Observable } = rxjs;
+      var observable = Observable.create(function (observer) {
+        observer.next('jerry');
+        observer.next('Anna');
+        observer.complete();
+        observer.error('错啦！！！！');
+        observer.next('last');
+      });
+
+      // ======== 1. 直接只传一个参数实现订阅
+      observable.subscribe(function (value) {
+        console.log(
+          '%c [ 第一参数就是next的回调 ]',
+          'font-size:13px; background:pink; color:#bf2c9f;',
+          value
+        );
+      });
+
+      // ======== 2. 传一个observer对象订阅
+      const observer = {
+        next(value) {
+          console.log(
+            '%c [ 也可以接受对象类型的observe，包含三个方法 ]',
+            'font-size:13px; background:pink; color:#bf2c9f;',
+            value
+          );
+        },
+        complete() {
+          console.log(
+            '%c [ Observer对象类型的完成定义 ]-40',
+            'font-size:13px; background:pink; color:#bf2c9f;',
+            'down....'
+          );
+        },
+        error(err) {
+          console.error(
+            '%c [ 知道错了 ]-49',
+            'font-size:13px; background:pink; color:#bf2c9f;',
+            err
+          );
+        }
+      };
+
+      observable.subscribe(observer);
+
+      // ======== 3. 传三个函数，一次是next，error，complete对象订阅
+      observable.subscribe(
+        (nextValue) => {
+          console.log(nextValue);
+        },
+        (errorValue) => {
+          console.error(
+            '%c [ 也知道错了 ]-65',
+            'font-size:13px; background:pink; color:#bf2c9f;',
+            errorValue
+          );
+        },
+        () => {
+          console.log('down........');
+        }
+      );
+    </script>
+  </body>
+</html>
