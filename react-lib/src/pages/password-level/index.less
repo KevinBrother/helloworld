@@ -1,0 +1,67 @@
+// .password-meter {
+//   position: relative;
+//   width: calc(3 * var(--size));
+//   border: 0;
+
+//   --size: 60px;
+//   --gradient: linear-gradient(to right, red calc(var(--size) - 1px), transparent 0 calc(var(--size) + 1px), orange 0 calc(var(--size) * 2 - 1px), transparent 0 calc(var(--size) * 2 + 1px), green 0);
+// }
+:root {
+  --size: 60px;
+}
+
+.password-meter  {
+  width: calc(3 * var(--size));
+  border: 0; /* Safari */
+  position: relative;
+  --gradient: linear-gradient(
+    to right,
+    red calc(var(--size) - 1px),
+    transparent 0 calc(var(--size) + 1px),
+    orange 0 calc(var(--size) * 2 - 1px),
+    transparent 0 calc(var(--size) * 2 + 1px),
+    green 0
+  );
+}
+.password-meter::after {
+  content: '弱 中 强 aaaaaaaaaaaaaaaaaaaaaa';
+  position: absolute;
+  font-size: 14px;
+  line-height: 20px;
+  height: 20px;
+  overflow: hidden;
+  left: calc(var(--size) / 2 - 0.5em);
+  right: calc(var(--size) / 2 - 0.5em);
+  text-align: justify;
+  text-fill-color: transparent;
+  background: var(--gradient) calc(0.5em - var(--size) / 2) /
+    calc(3 * var(--size));
+  background-clip: text;
+}
+::meter-bar {
+  height: 12px;
+  width: calc(3 * var(--size));
+  border: 0;
+  background: #eee;
+mask: var(--gradient);
+  mask: var(--gradient);
+}
+::meter-bar,
+meter {
+  height: 12px;
+  background: #eee;
+}
+::meter-even-less-good-value {
+  background: red;
+}
+::meter-suboptimum-value {
+  background: linear-gradient(to right, red var(--size), orange 0);
+}
+::meter-optimum-value {
+  background: linear-gradient(
+    to right,
+    red var(--size),
+    orange 0 calc(2 * var(--size)),
+    green 0
+  );
+}

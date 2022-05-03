@@ -4,6 +4,7 @@ import RxJSHooks from './pages/RxJS/02-rxjs-hooks';
 import RxJSOperator from './pages/RxJS/03-operator';
 import ToDoList from './pages/RxJS/04-todo-list';
 import { MotionBall } from './pages/RxJS/05-ball/index.tsx';
+import { PasswordLevel } from './pages/password-level';
 
 const menuRouter = [
   {
@@ -29,6 +30,10 @@ const menuRouter = [
   {
     path: '/MotionBall',
     element: <MotionBall />
+  },
+  {
+    path: '/PasswordLevel',
+    element: <PasswordLevel />
   }
 ];
 
