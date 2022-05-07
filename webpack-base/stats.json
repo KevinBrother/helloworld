@@ -1,0 +1,1833 @@
+{
+  "hash": "eb60122226dc915627b8",
+  "version": "5.72.0",
+  "time": 947,
+  "builtAt": 1651838663130,
+  "publicPath": "auto",
+  "outputPath": "/Users/caojunjie/workspace/helloworld/webpack-base/04-plugin/dist",
+  "assetsByChunkName": {
+    "main": [
+      "main.css",
+      "main.js"
+    ]
+  },
+  "assets": [
+    {
+      "type": "asset",
+      "name": "dist.zip",
+      "size": 662,
+      "emitted": true,
+      "comparedForEmit": false,
+      "cached": false,
+      "info": {
+        "size": 662
+      },
+      "chunkNames": [],
+      "chunkIdHints": [],
+      "auxiliaryChunkNames": [],
+      "auxiliaryChunkIdHints": [],
+      "related": {},
+      "chunks": [],
+      "auxiliaryChunks": [],
+      "isOverSizeLimit": false
+    },
+    {
+      "type": "asset",
+      "name": "index.html",
+      "size": 253,
+      "emitted": true,
+      "comparedForEmit": false,
+      "cached": false,
+      "info": {
+        "size": 253
+      },
+      "chunkNames": [],
+      "chunkIdHints": [],
+      "auxiliaryChunkNames": [],
+      "auxiliaryChunkIdHints": [],
+      "related": {},
+      "chunks": [],
+      "auxiliaryChunks": [],
+      "isOverSizeLimit": false
+    },
+    {
+      "type": "asset",
+      "name": "main.js",
+      "size": 157,
+      "emitted": true,
+      "comparedForEmit": false,
+      "cached": false,
+      "info": {
+        "javascriptModule": false,
+        "minimized": true,
+        "size": 157
+      },
+      "chunkNames": [
+        "main"
+      ],
+      "chunkIdHints": [],
+      "auxiliaryChunkNames": [],
+      "auxiliaryChunkIdHints": [],
+      "related": {},
+      "chunks": [
+        179
+      ],
+      "auxiliaryChunks": [],
+      "isOverSizeLimit": false
+    },
+    {
+      "type": "asset",
+      "name": "main.css",
+      "size": 38,
+      "emitted": true,
+      "comparedForEmit": false,
+      "cached": false,
+      "info": {
+        "size": 38
+      },
+      "chunkNames": [
+        "main"
+      ],
+      "chunkIdHints": [],
+      "auxiliaryChunkNames": [],
+      "auxiliaryChunkIdHints": [],
+      "related": {},
+      "chunks": [
+        179
+      ],
+      "auxiliaryChunks": [],
+      "isOverSizeLimit": false
+    }
+  ],
+  "chunks": [
+    {
+      "rendered": true,
+      "initial": true,
+      "entry": true,
+      "recorded": false,
+      "size": 304,
+      "sizes": {
+        "javascript": 267,
+        "css/mini-extract": 37
+      },
+      "names": [
+        "main"
+      ],
+      "idHints": [],
+      "runtime": [
+        "main"
+      ],
+      "files": [
+        "main.css",
+        "main.js"
+      ],
+      "auxiliaryFiles": [],
+      "hash": "2c39bf5e99882b51e2aa",
+      "childrenByOrder": {},
+      "id": 179,
+      "siblings": [],
+      "parents": [],
+      "children": [],
+      "modules": [
+        {
+          "type": "module",
+          "moduleType": "javascript/esm",
+          "layer": null,
+          "size": 267,
+          "sizes": {
+            "javascript": 267
+          },
+          "built": true,
+          "codeGenerated": true,
+          "buildTimeExecuted": false,
+          "cached": false,
+          "identifier": "/Users/caojunjie/workspace/helloworld/webpack-base/04-plugin/src/index.js|d9c7cc530bbb18d75bbefa1571d16373",
+          "name": "./04-plugin/src/index.js + 1 modules",
+          "nameForCondition": "/Users/caojunjie/workspace/helloworld/webpack-base/04-plugin/src/index.js",
+          "index": 0,
+          "preOrderIndex": 0,
+          "index2": 2,
+          "postOrderIndex": 2,
+          "cacheable": true,
+          "optional": false,
+          "orphan": false,
+          "dependent": false,
+          "failed": false,
+          "errors": 0,
+          "warnings": 0,
+          "id": 180,
+          "chunks": [
+            179
+          ],
+          "assets": [],
+          "reasons": [
+            {
+              "moduleIdentifier": null,
+              "module": null,
+              "moduleName": null,
+              "resolvedModuleIdentifier": null,
+              "resolvedModule": null,
+              "type": "entry",
+              "active": true,
+              "explanation": "",
+              "userRequest": "/Users/caojunjie/workspace/helloworld/webpack-base/04-plugin/src/index.js",
+              "loc": "main",
+              "moduleId": null,
+              "resolvedModuleId": null
+            }
+          ],
+          "usedExports": [],
+          "providedExports": [],
+          "optimizationBailout": [],
+          "depth": 0,
+          "modules": [
+            {
+              "type": "module",
+              "moduleType": "javascript/auto",
+              "layer": null,
+              "size": 136,
+              "sizes": {
+                "javascript": 136
+              },
+              "built": true,
+              "codeGenerated": false,
+              "buildTimeExecuted": false,
+              "cached": false,
+              "identifier": "/Users/caojunjie/workspace/helloworld/webpack-base/04-plugin/src/index.js",
+              "name": "./04-plugin/src/index.js",
+              "nameForCondition": "/Users/caojunjie/workspace/helloworld/webpack-base/04-plugin/src/index.js",
+              "index": 0,
+              "preOrderIndex": 0,
+              "index2": 2,
+              "postOrderIndex": 2,
+              "cacheable": true,
+              "optional": false,
+              "orphan": false,
+              "dependent": true,
+              "issuer": null,
+              "issuerName": null,
+              "issuerPath": null,
+              "failed": false,
+              "errors": 0,
+              "warnings": 0,
+              "id": null,
+              "issuerId": null,
+              "chunks": [],
+              "assets": [],
+              "reasons": [],
+              "usedExports": [],
+              "providedExports": [],
+              "optimizationBailout": [
+                "Statement (ExpressionStatement) with side effects in source code at 4:0-57"
+              ],
+              "depth": 0
+            },
+            {
+              "type": "module",
+              "moduleType": "javascript/auto",
+              "layer": null,
+              "size": 131,
+              "sizes": {
+                "javascript": 131
+              },
+              "built": true,
+              "codeGenerated": false,
+              "buildTimeExecuted": false,
+              "cached": false,
+              "identifier": "/Users/caojunjie/workspace/helloworld/webpack-base/utils/index.js",
+              "name": "./utils/index.js",
+              "nameForCondition": "/Users/caojunjie/workspace/helloworld/webpack-base/utils/index.js",
+              "index": 2,
+              "preOrderIndex": 2,
+              "index2": 1,
+              "postOrderIndex": 1,
+              "cacheable": true,
+              "optional": false,
+              "orphan": false,
+              "dependent": true,
+              "issuer": "/Users/caojunjie/workspace/helloworld/webpack-base/04-plugin/src/index.js",
+              "issuerName": "./04-plugin/src/index.js",
+              "issuerPath": [
+                {
+                  "identifier": "/Users/caojunjie/workspace/helloworld/webpack-base/04-plugin/src/index.js",
+                  "name": "./04-plugin/src/index.js",
+                  "id": null
+                }
+              ],
+              "failed": false,
+              "errors": 0,
+              "warnings": 0,
+              "id": null,
+              "issuerId": null,
+              "chunks": [],
+              "assets": [],
+              "reasons": [
+                {
+                  "moduleIdentifier": "/Users/caojunjie/workspace/helloworld/webpack-base/04-plugin/src/index.js",
+                  "module": "./04-plugin/src/index.js",
+                  "moduleName": "./04-plugin/src/index.js",
+                  "resolvedModuleIdentifier": "/Users/caojunjie/workspace/helloworld/webpack-base/04-plugin/src/index.js",
+                  "resolvedModule": "./04-plugin/src/index.js",
+                  "type": "harmony side effect evaluation",
+                  "active": false,
+                  "explanation": "",
+                  "userRequest": "../../utils",
+                  "loc": "1:0-40",
+                  "moduleId": null,
+                  "resolvedModuleId": null
+                },
+                {
+                  "moduleIdentifier": "/Users/caojunjie/workspace/helloworld/webpack-base/04-plugin/src/index.js",
+                  "module": "./04-plugin/src/index.js",
+                  "moduleName": "./04-plugin/src/index.js",
+                  "resolvedModuleIdentifier": "/Users/caojunjie/workspace/helloworld/webpack-base/04-plugin/src/index.js",
+                  "resolvedModule": "./04-plugin/src/index.js",
+                  "type": "harmony import specifier",
+                  "active": true,
+                  "explanation": "",
+                  "userRequest": "../../utils",
+                  "loc": "4:26-35",
+                  "moduleId": null,
+                  "resolvedModuleId": null
+                }
+              ],
+              "usedExports": [
+                "component"
+              ],
+              "providedExports": [
+                "component"
+              ],
+              "optimizationBailout": [],
+              "depth": 1
+            }
+          ]
+        },
+        {
+          "type": "module",
+          "moduleType": "css/mini-extract",
+          "size": 37,
+          "sizes": {
+            "css/mini-extract": 37
+          },
+          "built": true,
+          "codeGenerated": true,
+          "buildTimeExecuted": false,
+          "cached": false,
+          "identifier": "css|/Users/caojunjie/workspace/helloworld/webpack-base/node_modules/css-loader/dist/cjs.js!/Users/caojunjie/workspace/helloworld/webpack-base/04-plugin/src/style.css|0",
+          "name": "css ./node_modules/css-loader/dist/cjs.js!./04-plugin/src/style.css",
+          "nameForCondition": "/Users/caojunjie/workspace/helloworld/webpack-base/04-plugin/src/style.css",
+          "index": 1,
+          "preOrderIndex": 1,
+          "index2": 0,
+          "postOrderIndex": 0,
+          "cacheable": true,
+          "optional": false,
+          "orphan": false,
+          "dependent": true,
+          "issuer": "/Users/caojunjie/workspace/helloworld/webpack-base/node_modules/mini-css-extract-plugin/dist/loader.js!/Users/caojunjie/workspace/helloworld/webpack-base/node_modules/css-loader/dist/cjs.js!/Users/caojunjie/workspace/helloworld/webpack-base/04-plugin/src/style.css",
+          "issuerName": "./04-plugin/src/style.css",
+          "issuerPath": [
+            {
+              "identifier": "/Users/caojunjie/workspace/helloworld/webpack-base/04-plugin/src/index.js",
+              "name": "./04-plugin/src/index.js",
+              "id": null
+            },
+            {
+              "identifier": "/Users/caojunjie/workspace/helloworld/webpack-base/node_modules/mini-css-extract-plugin/dist/loader.js!/Users/caojunjie/workspace/helloworld/webpack-base/node_modules/css-loader/dist/cjs.js!/Users/caojunjie/workspace/helloworld/webpack-base/04-plugin/src/style.css",
+              "name": "./04-plugin/src/style.css",
+              "id": null
+            }
+          ],
+          "failed": false,
+          "errors": 0,
+          "warnings": 0,
+          "id": null,
+          "issuerId": null,
+          "chunks": [
+            179
+          ],
+          "assets": [],
+          "reasons": [
+            {
+              "moduleIdentifier": "/Users/caojunjie/workspace/helloworld/webpack-base/node_modules/mini-css-extract-plugin/dist/loader.js!/Users/caojunjie/workspace/helloworld/webpack-base/node_modules/css-loader/dist/cjs.js!/Users/caojunjie/workspace/helloworld/webpack-base/04-plugin/src/style.css",
+              "module": "./04-plugin/src/style.css",
+              "moduleName": "./04-plugin/src/style.css",
+              "resolvedModuleIdentifier": "/Users/caojunjie/workspace/helloworld/webpack-base/node_modules/mini-css-extract-plugin/dist/loader.js!/Users/caojunjie/workspace/helloworld/webpack-base/node_modules/css-loader/dist/cjs.js!/Users/caojunjie/workspace/helloworld/webpack-base/04-plugin/src/style.css",
+              "resolvedModule": "./04-plugin/src/style.css",
+              "type": "unknown",
+              "active": true,
+              "explanation": "",
+              "userRequest": null,
+              "moduleId": null,
+              "resolvedModuleId": null
+            }
+          ],
+          "usedExports": null,
+          "providedExports": null,
+          "optimizationBailout": [
+            "ModuleConcatenation bailout: Module Concatenation is not implemented for CssModule"
+          ],
+          "depth": 2
+        }
+      ],
+      "origins": [
+        {
+          "module": "",
+          "moduleIdentifier": "",
+          "moduleName": "",
+          "loc": "main",
+          "request": "/Users/caojunjie/workspace/helloworld/webpack-base/04-plugin/src/index.js"
+        }
+      ]
+    }
+  ],
+  "modules": [
+    {
+      "type": "module",
+      "moduleType": "javascript/esm",
+      "layer": null,
+      "size": 267,
+      "sizes": {
+        "javascript": 267
+      },
+      "built": true,
+      "codeGenerated": true,
+      "buildTimeExecuted": false,
+      "cached": false,
+      "identifier": "/Users/caojunjie/workspace/helloworld/webpack-base/04-plugin/src/index.js|d9c7cc530bbb18d75bbefa1571d16373",
+      "name": "./04-plugin/src/index.js + 1 modules",
+      "nameForCondition": "/Users/caojunjie/workspace/helloworld/webpack-base/04-plugin/src/index.js",
+      "index": 0,
+      "preOrderIndex": 0,
+      "index2": 2,
+      "postOrderIndex": 2,
+      "cacheable": true,
+      "optional": false,
+      "orphan": false,
+      "failed": false,
+      "errors": 0,
+      "warnings": 0,
+      "id": 180,
+      "chunks": [
+        179
+      ],
+      "assets": [],
+      "reasons": [
+        {
+          "moduleIdentifier": null,
+          "module": null,
+          "moduleName": null,
+          "resolvedModuleIdentifier": null,
+          "resolvedModule": null,
+          "type": "entry",
+          "active": true,
+          "explanation": "",
+          "userRequest": "/Users/caojunjie/workspace/helloworld/webpack-base/04-plugin/src/index.js",
+          "loc": "main",
+          "moduleId": null,
+          "resolvedModuleId": null
+        }
+      ],
+      "usedExports": [],
+      "providedExports": [],
+      "optimizationBailout": [],
+      "depth": 0,
+      "modules": [
+        {
+          "type": "module",
+          "moduleType": "javascript/auto",
+          "layer": null,
+          "size": 136,
+          "sizes": {
+            "javascript": 136
+          },
+          "built": true,
+          "codeGenerated": false,
+          "buildTimeExecuted": false,
+          "cached": false,
+          "identifier": "/Users/caojunjie/workspace/helloworld/webpack-base/04-plugin/src/index.js",
+          "name": "./04-plugin/src/index.js",
+          "nameForCondition": "/Users/caojunjie/workspace/helloworld/webpack-base/04-plugin/src/index.js",
+          "index": 0,
+          "preOrderIndex": 0,
+          "index2": 2,
+          "postOrderIndex": 2,
+          "cacheable": true,
+          "optional": false,
+          "orphan": false,
+          "issuer": null,
+          "issuerName": null,
+          "issuerPath": null,
+          "failed": false,
+          "errors": 0,
+          "warnings": 0,
+          "id": null,
+          "issuerId": null,
+          "chunks": [],
+          "assets": [],
+          "reasons": [],
+          "usedExports": [],
+          "providedExports": [],
+          "optimizationBailout": [
+            "Statement (ExpressionStatement) with side effects in source code at 4:0-57"
+          ],
+          "depth": 0
+        },
+        {
+          "type": "module",
+          "moduleType": "javascript/auto",
+          "layer": null,
+          "size": 131,
+          "sizes": {
+            "javascript": 131
+          },
+          "built": true,
+          "codeGenerated": false,
+          "buildTimeExecuted": false,
+          "cached": false,
+          "identifier": "/Users/caojunjie/workspace/helloworld/webpack-base/utils/index.js",
+          "name": "./utils/index.js",
+          "nameForCondition": "/Users/caojunjie/workspace/helloworld/webpack-base/utils/index.js",
+          "index": 2,
+          "preOrderIndex": 2,
+          "index2": 1,
+          "postOrderIndex": 1,
+          "cacheable": true,
+          "optional": false,
+          "orphan": false,
+          "issuer": "/Users/caojunjie/workspace/helloworld/webpack-base/04-plugin/src/index.js",
+          "issuerName": "./04-plugin/src/index.js",
+          "issuerPath": [
+            {
+              "identifier": "/Users/caojunjie/workspace/helloworld/webpack-base/04-plugin/src/index.js",
+              "name": "./04-plugin/src/index.js",
+              "id": null
+            }
+          ],
+          "failed": false,
+          "errors": 0,
+          "warnings": 0,
+          "id": null,
+          "issuerId": null,
+          "chunks": [],
+          "assets": [],
+          "reasons": [
+            {
+              "moduleIdentifier": "/Users/caojunjie/workspace/helloworld/webpack-base/04-plugin/src/index.js",
+              "module": "./04-plugin/src/index.js",
+              "moduleName": "./04-plugin/src/index.js",
+              "resolvedModuleIdentifier": "/Users/caojunjie/workspace/helloworld/webpack-base/04-plugin/src/index.js",
+              "resolvedModule": "./04-plugin/src/index.js",
+              "type": "harmony side effect evaluation",
+              "active": false,
+              "explanation": "",
+              "userRequest": "../../utils",
+              "loc": "1:0-40",
+              "moduleId": null,
+              "resolvedModuleId": null
+            },
+            {
+              "moduleIdentifier": "/Users/caojunjie/workspace/helloworld/webpack-base/04-plugin/src/index.js",
+              "module": "./04-plugin/src/index.js",
+              "moduleName": "./04-plugin/src/index.js",
+              "resolvedModuleIdentifier": "/Users/caojunjie/workspace/helloworld/webpack-base/04-plugin/src/index.js",
+              "resolvedModule": "./04-plugin/src/index.js",
+              "type": "harmony import specifier",
+              "active": true,
+              "explanation": "",
+              "userRequest": "../../utils",
+              "loc": "4:26-35",
+              "moduleId": null,
+              "resolvedModuleId": null
+            }
+          ],
+          "usedExports": [
+            "component"
+          ],
+          "providedExports": [
+            "component"
+          ],
+          "optimizationBailout": [],
+          "depth": 1
+        }
+      ]
+    },
+    {
+      "type": "module",
+      "moduleType": "javascript/auto",
+      "layer": null,
+      "size": 131,
+      "sizes": {
+        "javascript": 131
+      },
+      "built": true,
+      "codeGenerated": false,
+      "buildTimeExecuted": false,
+      "cached": false,
+      "identifier": "/Users/caojunjie/workspace/helloworld/webpack-base/utils/index.js",
+      "name": "./utils/index.js",
+      "nameForCondition": "/Users/caojunjie/workspace/helloworld/webpack-base/utils/index.js",
+      "index": 2,
+      "preOrderIndex": 2,
+      "index2": 1,
+      "postOrderIndex": 1,
+      "cacheable": true,
+      "optional": false,
+      "orphan": true,
+      "issuer": "/Users/caojunjie/workspace/helloworld/webpack-base/04-plugin/src/index.js",
+      "issuerName": "./04-plugin/src/index.js",
+      "issuerPath": [
+        {
+          "identifier": "/Users/caojunjie/workspace/helloworld/webpack-base/04-plugin/src/index.js",
+          "name": "./04-plugin/src/index.js",
+          "id": null
+        }
+      ],
+      "failed": false,
+      "errors": 0,
+      "warnings": 0,
+      "id": null,
+      "issuerId": null,
+      "chunks": [],
+      "assets": [],
+      "reasons": [
+        {
+          "moduleIdentifier": "/Users/caojunjie/workspace/helloworld/webpack-base/04-plugin/src/index.js",
+          "module": "./04-plugin/src/index.js",
+          "moduleName": "./04-plugin/src/index.js",
+          "resolvedModuleIdentifier": "/Users/caojunjie/workspace/helloworld/webpack-base/04-plugin/src/index.js",
+          "resolvedModule": "./04-plugin/src/index.js",
+          "type": "harmony side effect evaluation",
+          "active": false,
+          "explanation": "",
+          "userRequest": "../../utils",
+          "loc": "1:0-40",
+          "moduleId": null,
+          "resolvedModuleId": null
+        },
+        {
+          "moduleIdentifier": "/Users/caojunjie/workspace/helloworld/webpack-base/04-plugin/src/index.js",
+          "module": "./04-plugin/src/index.js",
+          "moduleName": "./04-plugin/src/index.js",
+          "resolvedModuleIdentifier": "/Users/caojunjie/workspace/helloworld/webpack-base/04-plugin/src/index.js",
+          "resolvedModule": "./04-plugin/src/index.js",
+          "type": "harmony import specifier",
+          "active": true,
+          "explanation": "",
+          "userRequest": "../../utils",
+          "loc": "4:26-35",
+          "moduleId": null,
+          "resolvedModuleId": null
+        }
+      ],
+      "usedExports": [
+        "component"
+      ],
+      "providedExports": [
+        "component"
+      ],
+      "optimizationBailout": [],
+      "depth": 1
+    },
+    {
+      "type": "module",
+      "moduleType": "javascript/auto",
+      "layer": null,
+      "size": 50,
+      "sizes": {
+        "javascript": 50
+      },
+      "built": true,
+      "codeGenerated": false,
+      "buildTimeExecuted": false,
+      "cached": false,
+      "identifier": "/Users/caojunjie/workspace/helloworld/webpack-base/node_modules/mini-css-extract-plugin/dist/loader.js!/Users/caojunjie/workspace/helloworld/webpack-base/node_modules/css-loader/dist/cjs.js!/Users/caojunjie/workspace/helloworld/webpack-base/04-plugin/src/style.css",
+      "name": "./04-plugin/src/style.css",
+      "nameForCondition": "/Users/caojunjie/workspace/helloworld/webpack-base/04-plugin/src/style.css",
+      "index": null,
+      "preOrderIndex": null,
+      "index2": null,
+      "postOrderIndex": null,
+      "cacheable": true,
+      "optional": false,
+      "orphan": true,
+      "issuer": "/Users/caojunjie/workspace/helloworld/webpack-base/04-plugin/src/index.js",
+      "issuerName": "./04-plugin/src/index.js",
+      "issuerPath": [
+        {
+          "identifier": "/Users/caojunjie/workspace/helloworld/webpack-base/04-plugin/src/index.js",
+          "name": "./04-plugin/src/index.js",
+          "id": null
+        }
+      ],
+      "failed": false,
+      "errors": 0,
+      "warnings": 0,
+      "id": null,
+      "issuerId": null,
+      "chunks": [],
+      "assets": [],
+      "reasons": [
+        {
+          "moduleIdentifier": "/Users/caojunjie/workspace/helloworld/webpack-base/04-plugin/src/index.js|d9c7cc530bbb18d75bbefa1571d16373",
+          "module": "./04-plugin/src/index.js + 1 modules",
+          "moduleName": "./04-plugin/src/index.js + 1 modules",
+          "resolvedModuleIdentifier": "/Users/caojunjie/workspace/helloworld/webpack-base/04-plugin/src/index.js",
+          "resolvedModule": "./04-plugin/src/index.js",
+          "type": "harmony side effect evaluation",
+          "active": true,
+          "explanation": "",
+          "userRequest": "./style.css",
+          "loc": "2:0-21",
+          "moduleId": 180,
+          "resolvedModuleId": null
+        }
+      ],
+      "usedExports": false,
+      "providedExports": [],
+      "optimizationBailout": [
+        "ModuleConcatenation bailout: Module is not in any chunk"
+      ],
+      "depth": 1
+    },
+    {
+      "type": "module",
+      "moduleType": "css/mini-extract",
+      "size": 37,
+      "sizes": {
+        "css/mini-extract": 37
+      },
+      "built": true,
+      "codeGenerated": true,
+      "buildTimeExecuted": false,
+      "cached": false,
+      "identifier": "css|/Users/caojunjie/workspace/helloworld/webpack-base/node_modules/css-loader/dist/cjs.js!/Users/caojunjie/workspace/helloworld/webpack-base/04-plugin/src/style.css|0",
+      "name": "css ./node_modules/css-loader/dist/cjs.js!./04-plugin/src/style.css",
+      "nameForCondition": "/Users/caojunjie/workspace/helloworld/webpack-base/04-plugin/src/style.css",
+      "index": 1,
+      "preOrderIndex": 1,
+      "index2": 0,
+      "postOrderIndex": 0,
+      "cacheable": true,
+      "optional": false,
+      "orphan": false,
+      "issuer": "/Users/caojunjie/workspace/helloworld/webpack-base/node_modules/mini-css-extract-plugin/dist/loader.js!/Users/caojunjie/workspace/helloworld/webpack-base/node_modules/css-loader/dist/cjs.js!/Users/caojunjie/workspace/helloworld/webpack-base/04-plugin/src/style.css",
+      "issuerName": "./04-plugin/src/style.css",
+      "issuerPath": [
+        {
+          "identifier": "/Users/caojunjie/workspace/helloworld/webpack-base/04-plugin/src/index.js",
+          "name": "./04-plugin/src/index.js",
+          "id": null
+        },
+        {
+          "identifier": "/Users/caojunjie/workspace/helloworld/webpack-base/node_modules/mini-css-extract-plugin/dist/loader.js!/Users/caojunjie/workspace/helloworld/webpack-base/node_modules/css-loader/dist/cjs.js!/Users/caojunjie/workspace/helloworld/webpack-base/04-plugin/src/style.css",
+          "name": "./04-plugin/src/style.css",
+          "id": null
+        }
+      ],
+      "failed": false,
+      "errors": 0,
+      "warnings": 0,
+      "id": null,
+      "issuerId": null,
+      "chunks": [
+        179
+      ],
+      "assets": [],
+      "reasons": [
+        {
+          "moduleIdentifier": "/Users/caojunjie/workspace/helloworld/webpack-base/node_modules/mini-css-extract-plugin/dist/loader.js!/Users/caojunjie/workspace/helloworld/webpack-base/node_modules/css-loader/dist/cjs.js!/Users/caojunjie/workspace/helloworld/webpack-base/04-plugin/src/style.css",
+          "module": "./04-plugin/src/style.css",
+          "moduleName": "./04-plugin/src/style.css",
+          "resolvedModuleIdentifier": "/Users/caojunjie/workspace/helloworld/webpack-base/node_modules/mini-css-extract-plugin/dist/loader.js!/Users/caojunjie/workspace/helloworld/webpack-base/node_modules/css-loader/dist/cjs.js!/Users/caojunjie/workspace/helloworld/webpack-base/04-plugin/src/style.css",
+          "resolvedModule": "./04-plugin/src/style.css",
+          "type": "unknown",
+          "active": true,
+          "explanation": "",
+          "userRequest": null,
+          "moduleId": null,
+          "resolvedModuleId": null
+        }
+      ],
+      "usedExports": null,
+      "providedExports": null,
+      "optimizationBailout": [
+        "ModuleConcatenation bailout: Module Concatenation is not implemented for CssModule"
+      ],
+      "depth": 2
+    },
+    {
+      "type": "module",
+      "moduleType": "javascript/auto",
+      "layer": null,
+      "size": 471,
+      "sizes": {
+        "javascript": 471
+      },
+      "built": true,
+      "codeGenerated": true,
+      "buildTimeExecuted": true,
+      "cached": false,
+      "identifier": "/Users/caojunjie/workspace/helloworld/webpack-base/node_modules/css-loader/dist/cjs.js!/Users/caojunjie/workspace/helloworld/webpack-base/04-plugin/src/style.css",
+      "name": "./04-plugin/src/style.css.webpack[javascript/auto]!=!./node_modules/css-loader/dist/cjs.js!./04-plugin/src/style.css",
+      "nameForCondition": "/Users/caojunjie/workspace/helloworld/webpack-base/04-plugin/src/style.css",
+      "index": null,
+      "preOrderIndex": null,
+      "index2": null,
+      "postOrderIndex": null,
+      "cacheable": true,
+      "optional": false,
+      "orphan": true,
+      "issuer": "/Users/caojunjie/workspace/helloworld/webpack-base/node_modules/mini-css-extract-plugin/dist/loader.js!/Users/caojunjie/workspace/helloworld/webpack-base/node_modules/css-loader/dist/cjs.js!/Users/caojunjie/workspace/helloworld/webpack-base/04-plugin/src/style.css",
+      "issuerName": "./04-plugin/src/style.css",
+      "issuerPath": [
+        {
+          "identifier": "/Users/caojunjie/workspace/helloworld/webpack-base/04-plugin/src/index.js",
+          "name": "./04-plugin/src/index.js",
+          "id": null
+        },
+        {
+          "identifier": "/Users/caojunjie/workspace/helloworld/webpack-base/node_modules/mini-css-extract-plugin/dist/loader.js!/Users/caojunjie/workspace/helloworld/webpack-base/node_modules/css-loader/dist/cjs.js!/Users/caojunjie/workspace/helloworld/webpack-base/04-plugin/src/style.css",
+          "name": "./04-plugin/src/style.css",
+          "id": null
+        }
+      ],
+      "failed": false,
+      "errors": 0,
+      "warnings": 0,
+      "id": null,
+      "issuerId": null,
+      "chunks": [],
+      "assets": [],
+      "reasons": [
+        {
+          "moduleIdentifier": null,
+          "module": null,
+          "moduleName": null,
+          "resolvedModuleIdentifier": null,
+          "resolvedModule": null,
+          "type": "loader import",
+          "active": true,
+          "explanation": "",
+          "userRequest": "/Users/caojunjie/workspace/helloworld/webpack-base/04-plugin/src/style.css.webpack[javascript/auto]!=!!!/Users/caojunjie/workspace/helloworld/webpack-base/node_modules/css-loader/dist/cjs.js!/Users/caojunjie/workspace/helloworld/webpack-base/04-plugin/src/style.css",
+          "loc": "/Users/caojunjie/workspace/helloworld/webpack-base/04-plugin/src/style.css.webpack[javascript/auto]!=!!!/Users/caojunjie/workspace/helloworld/webpack-base/node_modules/css-loader/dist/cjs.js!/Users/caojunjie/workspace/helloworld/webpack-base/04-plugin/src/style.css",
+          "moduleId": null,
+          "resolvedModuleId": null
+        }
+      ],
+      "usedExports": false,
+      "providedExports": [
+        "default"
+      ],
+      "optimizationBailout": [
+        "Statement (VariableDeclaration) with side effects in source code at 4:0-100",
+        "ModuleConcatenation bailout: Module uses module.id"
+      ],
+      "depth": null
+    },
+    {
+      "type": "module",
+      "moduleType": "javascript/auto",
+      "layer": null,
+      "size": 2318,
+      "sizes": {
+        "javascript": 2318
+      },
+      "built": true,
+      "codeGenerated": true,
+      "buildTimeExecuted": true,
+      "cached": false,
+      "identifier": "/Users/caojunjie/workspace/helloworld/webpack-base/node_modules/css-loader/dist/runtime/api.js",
+      "name": "./node_modules/css-loader/dist/runtime/api.js",
+      "nameForCondition": "/Users/caojunjie/workspace/helloworld/webpack-base/node_modules/css-loader/dist/runtime/api.js",
+      "index": null,
+      "preOrderIndex": null,
+      "index2": null,
+      "postOrderIndex": null,
+      "cacheable": true,
+      "optional": false,
+      "orphan": true,
+      "issuer": "/Users/caojunjie/workspace/helloworld/webpack-base/node_modules/css-loader/dist/cjs.js!/Users/caojunjie/workspace/helloworld/webpack-base/04-plugin/src/style.css",
+      "issuerName": "./04-plugin/src/style.css.webpack[javascript/auto]!=!./node_modules/css-loader/dist/cjs.js!./04-plugin/src/style.css",
+      "issuerPath": [
+        {
+          "identifier": "/Users/caojunjie/workspace/helloworld/webpack-base/04-plugin/src/index.js",
+          "name": "./04-plugin/src/index.js",
+          "id": null
+        },
+        {
+          "identifier": "/Users/caojunjie/workspace/helloworld/webpack-base/node_modules/mini-css-extract-plugin/dist/loader.js!/Users/caojunjie/workspace/helloworld/webpack-base/node_modules/css-loader/dist/cjs.js!/Users/caojunjie/workspace/helloworld/webpack-base/04-plugin/src/style.css",
+          "name": "./04-plugin/src/style.css",
+          "id": null
+        },
+        {
+          "identifier": "/Users/caojunjie/workspace/helloworld/webpack-base/node_modules/css-loader/dist/cjs.js!/Users/caojunjie/workspace/helloworld/webpack-base/04-plugin/src/style.css",
+          "name": "./04-plugin/src/style.css.webpack[javascript/auto]!=!./node_modules/css-loader/dist/cjs.js!./04-plugin/src/style.css",
+          "id": null
+        }
+      ],
+      "failed": false,
+      "errors": 0,
+      "warnings": 0,
+      "id": null,
+      "issuerId": null,
+      "chunks": [],
+      "assets": [],
+      "reasons": [
+        {
+          "moduleIdentifier": "/Users/caojunjie/workspace/helloworld/webpack-base/node_modules/css-loader/dist/cjs.js!/Users/caojunjie/workspace/helloworld/webpack-base/04-plugin/src/style.css",
+          "module": "./04-plugin/src/style.css.webpack[javascript/auto]!=!./node_modules/css-loader/dist/cjs.js!./04-plugin/src/style.css",
+          "moduleName": "./04-plugin/src/style.css.webpack[javascript/auto]!=!./node_modules/css-loader/dist/cjs.js!./04-plugin/src/style.css",
+          "resolvedModuleIdentifier": "/Users/caojunjie/workspace/helloworld/webpack-base/node_modules/css-loader/dist/cjs.js!/Users/caojunjie/workspace/helloworld/webpack-base/04-plugin/src/style.css",
+          "resolvedModule": "./04-plugin/src/style.css.webpack[javascript/auto]!=!./node_modules/css-loader/dist/cjs.js!./04-plugin/src/style.css",
+          "type": "harmony side effect evaluation",
+          "active": true,
+          "explanation": "",
+          "userRequest": "../../node_modules/css-loader/dist/runtime/api.js",
+          "loc": "3:0-92",
+          "moduleId": null,
+          "resolvedModuleId": null
+        },
+        {
+          "moduleIdentifier": "/Users/caojunjie/workspace/helloworld/webpack-base/node_modules/css-loader/dist/cjs.js!/Users/caojunjie/workspace/helloworld/webpack-base/04-plugin/src/style.css",
+          "module": "./04-plugin/src/style.css.webpack[javascript/auto]!=!./node_modules/css-loader/dist/cjs.js!./04-plugin/src/style.css",
+          "moduleName": "./04-plugin/src/style.css.webpack[javascript/auto]!=!./node_modules/css-loader/dist/cjs.js!./04-plugin/src/style.css",
+          "resolvedModuleIdentifier": "/Users/caojunjie/workspace/helloworld/webpack-base/node_modules/css-loader/dist/cjs.js!/Users/caojunjie/workspace/helloworld/webpack-base/04-plugin/src/style.css",
+          "resolvedModule": "./04-plugin/src/style.css.webpack[javascript/auto]!=!./node_modules/css-loader/dist/cjs.js!./04-plugin/src/style.css",
+          "type": "harmony import specifier",
+          "active": true,
+          "explanation": "",
+          "userRequest": "../../node_modules/css-loader/dist/runtime/api.js",
+          "loc": "4:30-57",
+          "moduleId": null,
+          "resolvedModuleId": null
+        },
+        {
+          "moduleIdentifier": "/Users/caojunjie/workspace/helloworld/webpack-base/node_modules/css-loader/dist/runtime/api.js",
+          "module": "./node_modules/css-loader/dist/runtime/api.js",
+          "moduleName": "./node_modules/css-loader/dist/runtime/api.js",
+          "resolvedModuleIdentifier": "/Users/caojunjie/workspace/helloworld/webpack-base/node_modules/css-loader/dist/runtime/api.js",
+          "resolvedModule": "./node_modules/css-loader/dist/runtime/api.js",
+          "type": "cjs self exports reference",
+          "active": true,
+          "explanation": "",
+          "userRequest": null,
+          "loc": "7:0-14",
+          "moduleId": null,
+          "resolvedModuleId": null
+        }
+      ],
+      "usedExports": false,
+      "providedExports": null,
+      "optimizationBailout": [
+        "CommonJS bailout: module.exports is used directly at 7:0-14",
+        "Statement (ExpressionStatement) with side effects in source code at 7:0-102:2",
+        "ModuleConcatenation bailout: Module is not an ECMAScript module"
+      ],
+      "depth": null
+    },
+    {
+      "type": "module",
+      "moduleType": "javascript/auto",
+      "layer": null,
+      "size": 64,
+      "sizes": {
+        "javascript": 64
+      },
+      "built": true,
+      "codeGenerated": true,
+      "buildTimeExecuted": true,
+      "cached": false,
+      "identifier": "/Users/caojunjie/workspace/helloworld/webpack-base/node_modules/css-loader/dist/runtime/noSourceMaps.js",
+      "name": "./node_modules/css-loader/dist/runtime/noSourceMaps.js",
+      "nameForCondition": "/Users/caojunjie/workspace/helloworld/webpack-base/node_modules/css-loader/dist/runtime/noSourceMaps.js",
+      "index": null,
+      "preOrderIndex": null,
+      "index2": null,
+      "postOrderIndex": null,
+      "cacheable": true,
+      "optional": false,
+      "orphan": true,
+      "issuer": "/Users/caojunjie/workspace/helloworld/webpack-base/node_modules/css-loader/dist/cjs.js!/Users/caojunjie/workspace/helloworld/webpack-base/04-plugin/src/style.css",
+      "issuerName": "./04-plugin/src/style.css.webpack[javascript/auto]!=!./node_modules/css-loader/dist/cjs.js!./04-plugin/src/style.css",
+      "issuerPath": [
+        {
+          "identifier": "/Users/caojunjie/workspace/helloworld/webpack-base/04-plugin/src/index.js",
+          "name": "./04-plugin/src/index.js",
+          "id": null
+        },
+        {
+          "identifier": "/Users/caojunjie/workspace/helloworld/webpack-base/node_modules/mini-css-extract-plugin/dist/loader.js!/Users/caojunjie/workspace/helloworld/webpack-base/node_modules/css-loader/dist/cjs.js!/Users/caojunjie/workspace/helloworld/webpack-base/04-plugin/src/style.css",
+          "name": "./04-plugin/src/style.css",
+          "id": null
+        },
+        {
+          "identifier": "/Users/caojunjie/workspace/helloworld/webpack-base/node_modules/css-loader/dist/cjs.js!/Users/caojunjie/workspace/helloworld/webpack-base/04-plugin/src/style.css",
+          "name": "./04-plugin/src/style.css.webpack[javascript/auto]!=!./node_modules/css-loader/dist/cjs.js!./04-plugin/src/style.css",
+          "id": null
+        }
+      ],
+      "failed": false,
+      "errors": 0,
+      "warnings": 0,
+      "id": null,
+      "issuerId": null,
+      "chunks": [],
+      "assets": [],
+      "reasons": [
+        {
+          "moduleIdentifier": "/Users/caojunjie/workspace/helloworld/webpack-base/node_modules/css-loader/dist/cjs.js!/Users/caojunjie/workspace/helloworld/webpack-base/04-plugin/src/style.css",
+          "module": "./04-plugin/src/style.css.webpack[javascript/auto]!=!./node_modules/css-loader/dist/cjs.js!./04-plugin/src/style.css",
+          "moduleName": "./04-plugin/src/style.css.webpack[javascript/auto]!=!./node_modules/css-loader/dist/cjs.js!./04-plugin/src/style.css",
+          "resolvedModuleIdentifier": "/Users/caojunjie/workspace/helloworld/webpack-base/node_modules/css-loader/dist/cjs.js!/Users/caojunjie/workspace/helloworld/webpack-base/04-plugin/src/style.css",
+          "resolvedModule": "./04-plugin/src/style.css.webpack[javascript/auto]!=!./node_modules/css-loader/dist/cjs.js!./04-plugin/src/style.css",
+          "type": "harmony side effect evaluation",
+          "active": true,
+          "explanation": "",
+          "userRequest": "../../node_modules/css-loader/dist/runtime/noSourceMaps.js",
+          "loc": "2:0-114",
+          "moduleId": null,
+          "resolvedModuleId": null
+        },
+        {
+          "moduleIdentifier": "/Users/caojunjie/workspace/helloworld/webpack-base/node_modules/css-loader/dist/cjs.js!/Users/caojunjie/workspace/helloworld/webpack-base/04-plugin/src/style.css",
+          "module": "./04-plugin/src/style.css.webpack[javascript/auto]!=!./node_modules/css-loader/dist/cjs.js!./04-plugin/src/style.css",
+          "moduleName": "./04-plugin/src/style.css.webpack[javascript/auto]!=!./node_modules/css-loader/dist/cjs.js!./04-plugin/src/style.css",
+          "resolvedModuleIdentifier": "/Users/caojunjie/workspace/helloworld/webpack-base/node_modules/css-loader/dist/cjs.js!/Users/caojunjie/workspace/helloworld/webpack-base/04-plugin/src/style.css",
+          "resolvedModule": "./04-plugin/src/style.css.webpack[javascript/auto]!=!./node_modules/css-loader/dist/cjs.js!./04-plugin/src/style.css",
+          "type": "harmony import specifier",
+          "active": true,
+          "explanation": "",
+          "userRequest": "../../node_modules/css-loader/dist/runtime/noSourceMaps.js",
+          "loc": "4:58-98",
+          "moduleId": null,
+          "resolvedModuleId": null
+        },
+        {
+          "moduleIdentifier": "/Users/caojunjie/workspace/helloworld/webpack-base/node_modules/css-loader/dist/runtime/noSourceMaps.js",
+          "module": "./node_modules/css-loader/dist/runtime/noSourceMaps.js",
+          "moduleName": "./node_modules/css-loader/dist/runtime/noSourceMaps.js",
+          "resolvedModuleIdentifier": "/Users/caojunjie/workspace/helloworld/webpack-base/node_modules/css-loader/dist/runtime/noSourceMaps.js",
+          "resolvedModule": "./node_modules/css-loader/dist/runtime/noSourceMaps.js",
+          "type": "cjs self exports reference",
+          "active": true,
+          "explanation": "",
+          "userRequest": null,
+          "loc": "3:0-14",
+          "moduleId": null,
+          "resolvedModuleId": null
+        }
+      ],
+      "usedExports": false,
+      "providedExports": null,
+      "optimizationBailout": [
+        "CommonJS bailout: module.exports is used directly at 3:0-14",
+        "Statement (ExpressionStatement) with side effects in source code at 3:0-5:2",
+        "ModuleConcatenation bailout: Module is not an ECMAScript module"
+      ],
+      "depth": null
+    },
+    {
+      "type": "module",
+      "moduleType": "runtime",
+      "layer": null,
+      "size": 267,
+      "sizes": {
+        "runtime": 267
+      },
+      "built": false,
+      "codeGenerated": true,
+      "buildTimeExecuted": true,
+      "cached": false,
+      "identifier": "webpack/runtime/compat get default export",
+      "name": "webpack/runtime/compat get default export",
+      "nameForCondition": null,
+      "index": null,
+      "preOrderIndex": null,
+      "index2": null,
+      "postOrderIndex": null,
+      "optional": false,
+      "orphan": true,
+      "failed": false,
+      "errors": 0,
+      "warnings": 0,
+      "id": null,
+      "chunks": [],
+      "assets": [],
+      "reasons": [],
+      "usedExports": [],
+      "providedExports": null,
+      "optimizationBailout": [
+        "ModuleConcatenation bailout: Module Concatenation is not implemented for CompatGetDefaultExportRuntimeModule"
+      ],
+      "depth": null
+    },
+    {
+      "type": "module",
+      "moduleType": "runtime",
+      "layer": null,
+      "size": 308,
+      "sizes": {
+        "runtime": 308
+      },
+      "built": false,
+      "codeGenerated": true,
+      "buildTimeExecuted": true,
+      "cached": false,
+      "identifier": "webpack/runtime/define property getters",
+      "name": "webpack/runtime/define property getters",
+      "nameForCondition": null,
+      "index": null,
+      "preOrderIndex": null,
+      "index2": null,
+      "postOrderIndex": null,
+      "optional": false,
+      "orphan": true,
+      "failed": false,
+      "errors": 0,
+      "warnings": 0,
+      "id": null,
+      "chunks": [],
+      "assets": [],
+      "reasons": [],
+      "usedExports": [],
+      "providedExports": null,
+      "optimizationBailout": [
+        "ModuleConcatenation bailout: Module Concatenation is not implemented for DefinePropertyGettersRuntimeModule"
+      ],
+      "depth": null
+    },
+    {
+      "type": "module",
+      "moduleType": "runtime",
+      "layer": null,
+      "size": 88,
+      "sizes": {
+        "runtime": 88
+      },
+      "built": false,
+      "codeGenerated": true,
+      "buildTimeExecuted": true,
+      "cached": false,
+      "identifier": "webpack/runtime/hasOwnProperty shorthand",
+      "name": "webpack/runtime/hasOwnProperty shorthand",
+      "nameForCondition": null,
+      "index": null,
+      "preOrderIndex": null,
+      "index2": null,
+      "postOrderIndex": null,
+      "optional": false,
+      "orphan": true,
+      "failed": false,
+      "errors": 0,
+      "warnings": 0,
+      "id": null,
+      "chunks": [],
+      "assets": [],
+      "reasons": [],
+      "usedExports": [],
+      "providedExports": null,
+      "optimizationBailout": [
+        "ModuleConcatenation bailout: Module Concatenation is not implemented for HasOwnPropertyRuntimeModule"
+      ],
+      "depth": null
+    },
+    {
+      "type": "module",
+      "moduleType": "runtime",
+      "layer": null,
+      "size": 274,
+      "sizes": {
+        "runtime": 274
+      },
+      "built": false,
+      "codeGenerated": true,
+      "buildTimeExecuted": true,
+      "cached": false,
+      "identifier": "webpack/runtime/make namespace object",
+      "name": "webpack/runtime/make namespace object",
+      "nameForCondition": null,
+      "index": null,
+      "preOrderIndex": null,
+      "index2": null,
+      "postOrderIndex": null,
+      "optional": false,
+      "orphan": true,
+      "failed": false,
+      "errors": 0,
+      "warnings": 0,
+      "id": null,
+      "chunks": [],
+      "assets": [],
+      "reasons": [],
+      "usedExports": [],
+      "providedExports": null,
+      "optimizationBailout": [
+        "ModuleConcatenation bailout: Module Concatenation is not implemented for MakeNamespaceObjectRuntimeModule"
+      ],
+      "depth": null
+    }
+  ],
+  "entrypoints": {
+    "main": {
+      "name": "main",
+      "chunks": [
+        179
+      ],
+      "assets": [
+        {
+          "name": "main.css",
+          "size": 38
+        },
+        {
+          "name": "main.js",
+          "size": 157
+        }
+      ],
+      "filteredAssets": 0,
+      "assetsSize": 195,
+      "auxiliaryAssets": [],
+      "filteredAuxiliaryAssets": 0,
+      "auxiliaryAssetsSize": 0,
+      "children": {},
+      "childAssets": {},
+      "isOverSizeLimit": false
+    }
+  },
+  "namedChunkGroups": {
+    "main": {
+      "name": "main",
+      "chunks": [
+        179
+      ],
+      "assets": [
+        {
+          "name": "main.css",
+          "size": 38
+        },
+        {
+          "name": "main.js",
+          "size": 157
+        }
+      ],
+      "filteredAssets": 0,
+      "assetsSize": 195,
+      "auxiliaryAssets": [],
+      "filteredAuxiliaryAssets": 0,
+      "auxiliaryAssetsSize": 0,
+      "children": {},
+      "childAssets": {},
+      "isOverSizeLimit": false
+    }
+  },
+  "errors": [],
+  "errorsCount": 0,
+  "warnings": [
+    {
+      "message": "configuration\nThe 'mode' option has not been set, webpack will fallback to 'production' for this value.\nSet 'mode' option to 'development' or 'production' to enable defaults for each environment.\nYou can also set it to 'none' to disable any default behavior. Learn more: https://webpack.js.org/configuration/mode/",
+      "stack": "NoModeWarning: configuration\nThe 'mode' option has not been set, webpack will fallback to 'production' for this value.\nSet 'mode' option to 'development' or 'production' to enable defaults for each environment.\nYou can also set it to 'none' to disable any default behavior. Learn more: https://webpack.js.org/configuration/mode/\n    at /Users/caojunjie/workspace/helloworld/webpack-base/node_modules/webpack/lib/WarnNoModeSetPlugin.js:20:30\n    at Hook.eval [as call] (eval at create (/Users/caojunjie/workspace/helloworld/webpack-base/node_modules/tapable/lib/HookCodeFactory.js:19:10), <anonymous>:25:1)\n    at Hook.CALL_DELEGATE [as _call] (/Users/caojunjie/workspace/helloworld/webpack-base/node_modules/tapable/lib/Hook.js:14:14)\n    at Compiler.newCompilation (/Users/caojunjie/workspace/helloworld/webpack-base/node_modules/webpack/lib/Compiler.js:1121:30)\n    at /Users/caojunjie/workspace/helloworld/webpack-base/node_modules/webpack/lib/Compiler.js:1166:29\n    at Hook.eval [as callAsync] (eval at create (/Users/caojunjie/workspace/helloworld/webpack-base/node_modules/tapable/lib/HookCodeFactory.js:33:10), <anonymous>:6:1)\n    at Hook.CALL_ASYNC_DELEGATE [as _callAsync] (/Users/caojunjie/workspace/helloworld/webpack-base/node_modules/tapable/lib/Hook.js:18:14)\n    at Compiler.compile (/Users/caojunjie/workspace/helloworld/webpack-base/node_modules/webpack/lib/Compiler.js:1161:28)\n    at /Users/caojunjie/workspace/helloworld/webpack-base/node_modules/webpack/lib/Compiler.js:524:12\n    at Compiler.readRecords (/Users/caojunjie/workspace/helloworld/webpack-base/node_modules/webpack/lib/Compiler.js:986:5)"
+    }
+  ],
+  "warningsCount": 1,
+  "children": [
+    {
+      "name": "HtmlWebpackCompiler",
+      "hash": "9e5b655b7526ce55d665",
+      "version": "5.72.0",
+      "time": 161,
+      "builtAt": 1651838662444,
+      "publicPath": "",
+      "outputPath": "/Users/caojunjie/workspace/helloworld/webpack-base/04-plugin/dist",
+      "assetsByChunkName": {},
+      "assets": [],
+      "chunks": [
+        {
+          "rendered": true,
+          "initial": true,
+          "entry": true,
+          "recorded": false,
+          "size": 968,
+          "sizes": {
+            "javascript": 528,
+            "runtime": 440
+          },
+          "names": [
+            "HtmlWebpackPlugin_0-0"
+          ],
+          "idHints": [],
+          "runtime": [
+            "HtmlWebpackPlugin_0-0"
+          ],
+          "files": [],
+          "auxiliaryFiles": [],
+          "hash": "5e84b517c7923daa9584",
+          "childrenByOrder": {},
+          "id": 563,
+          "siblings": [],
+          "parents": [],
+          "children": [],
+          "modules": [
+            {
+              "type": "module",
+              "moduleType": "javascript/auto",
+              "layer": null,
+              "size": 451,
+              "sizes": {
+                "javascript": 451
+              },
+              "built": true,
+              "codeGenerated": true,
+              "buildTimeExecuted": false,
+              "cached": false,
+              "identifier": "/Users/caojunjie/workspace/helloworld/webpack-base/node_modules/html-webpack-plugin/lib/loader.js!/Users/caojunjie/workspace/helloworld/webpack-base/node_modules/html-webpack-plugin/default_index.ejs",
+              "name": "./node_modules/html-webpack-plugin/lib/loader.js!./node_modules/html-webpack-plugin/default_index.ejs",
+              "nameForCondition": "/Users/caojunjie/workspace/helloworld/webpack-base/node_modules/html-webpack-plugin/default_index.ejs",
+              "index": 1,
+              "preOrderIndex": 1,
+              "index2": 1,
+              "postOrderIndex": 1,
+              "cacheable": true,
+              "optional": false,
+              "orphan": false,
+              "dependent": false,
+              "issuer": null,
+              "issuerName": null,
+              "issuerPath": null,
+              "failed": false,
+              "errors": 0,
+              "warnings": 0,
+              "id": 893,
+              "issuerId": null,
+              "chunks": [
+                563
+              ],
+              "assets": [],
+              "reasons": [
+                {
+                  "moduleIdentifier": "/Users/caojunjie/workspace/helloworld/webpack-base/node_modules/html-webpack-plugin/lib/loader.js!/Users/caojunjie/workspace/helloworld/webpack-base/node_modules/html-webpack-plugin/default_index.ejs",
+                  "module": "./node_modules/html-webpack-plugin/lib/loader.js!./node_modules/html-webpack-plugin/default_index.ejs",
+                  "moduleName": "./node_modules/html-webpack-plugin/lib/loader.js!./node_modules/html-webpack-plugin/default_index.ejs",
+                  "resolvedModuleIdentifier": "/Users/caojunjie/workspace/helloworld/webpack-base/node_modules/html-webpack-plugin/lib/loader.js!/Users/caojunjie/workspace/helloworld/webpack-base/node_modules/html-webpack-plugin/default_index.ejs",
+                  "resolvedModule": "./node_modules/html-webpack-plugin/lib/loader.js!./node_modules/html-webpack-plugin/default_index.ejs",
+                  "type": "cjs self exports reference",
+                  "active": true,
+                  "explanation": "",
+                  "userRequest": null,
+                  "loc": "1:116-130",
+                  "moduleId": 893,
+                  "resolvedModuleId": 893
+                },
+                {
+                  "moduleIdentifier": null,
+                  "module": null,
+                  "moduleName": null,
+                  "resolvedModuleIdentifier": null,
+                  "resolvedModule": null,
+                  "type": "entry",
+                  "active": true,
+                  "explanation": "",
+                  "userRequest": "/Users/caojunjie/workspace/helloworld/webpack-base/node_modules/html-webpack-plugin/lib/loader.js!/Users/caojunjie/workspace/helloworld/webpack-base/node_modules/html-webpack-plugin/default_index.ejs",
+                  "loc": "HtmlWebpackPlugin_0-0",
+                  "moduleId": null,
+                  "resolvedModuleId": null
+                },
+                {
+                  "moduleIdentifier": null,
+                  "module": null,
+                  "moduleName": null,
+                  "resolvedModuleIdentifier": null,
+                  "resolvedModule": null,
+                  "type": null,
+                  "active": true,
+                  "explanation": "used as library export",
+                  "userRequest": null,
+                  "moduleId": null,
+                  "resolvedModuleId": null
+                }
+              ],
+              "usedExports": null,
+              "providedExports": null,
+              "optimizationBailout": [
+                "CommonJS bailout: module.exports is used directly at 1:116-130",
+                "Statement (VariableDeclaration) with side effects in source code at 1:0-116",
+                "ModuleConcatenation bailout: Module is not an ECMAScript module"
+              ],
+              "depth": 0
+            },
+            {
+              "type": "module",
+              "moduleType": "javascript/esm",
+              "layer": null,
+              "size": 77,
+              "sizes": {
+                "javascript": 77
+              },
+              "built": true,
+              "codeGenerated": true,
+              "buildTimeExecuted": false,
+              "cached": false,
+              "identifier": "javascript/esm|data:text/javascript,__webpack_public_path__ = __webpack_base_uri__ = htmlWebpackPluginPublicPath;",
+              "name": "data:text/javascript,__webpack_public_path__ = __webpack_base_uri__ = htmlWebpackPluginPublicPath;",
+              "nameForCondition": "data:text/javascript,__webpack_public_path__ = __webpack_base_uri__ = htmlWebpackPluginPublicPath;",
+              "index": 0,
+              "preOrderIndex": 0,
+              "index2": 0,
+              "postOrderIndex": 0,
+              "cacheable": true,
+              "optional": false,
+              "orphan": false,
+              "dependent": false,
+              "issuer": null,
+              "issuerName": null,
+              "issuerPath": null,
+              "failed": false,
+              "errors": 0,
+              "warnings": 0,
+              "id": 163,
+              "issuerId": null,
+              "chunks": [
+                563
+              ],
+              "assets": [],
+              "reasons": [
+                {
+                  "moduleIdentifier": null,
+                  "module": null,
+                  "moduleName": null,
+                  "resolvedModuleIdentifier": null,
+                  "resolvedModule": null,
+                  "type": "entry",
+                  "active": true,
+                  "explanation": "",
+                  "userRequest": "data:text/javascript,__webpack_public_path__ = __webpack_base_uri__ = htmlWebpackPluginPublicPath;",
+                  "loc": "HtmlWebpackPlugin_0-0",
+                  "moduleId": null,
+                  "resolvedModuleId": null
+                }
+              ],
+              "usedExports": [],
+              "providedExports": [],
+              "optimizationBailout": [
+                "Statement (ExpressionStatement) with side effects in source code at 1:0-77"
+              ],
+              "depth": 0
+            },
+            {
+              "type": "module",
+              "moduleType": "runtime",
+              "layer": null,
+              "size": 88,
+              "sizes": {
+                "runtime": 88
+              },
+              "built": false,
+              "codeGenerated": true,
+              "buildTimeExecuted": false,
+              "cached": false,
+              "identifier": "webpack/runtime/hasOwnProperty shorthand",
+              "name": "webpack/runtime/hasOwnProperty shorthand",
+              "nameForCondition": null,
+              "index": null,
+              "preOrderIndex": null,
+              "index2": null,
+              "postOrderIndex": null,
+              "optional": false,
+              "orphan": false,
+              "dependent": false,
+              "failed": false,
+              "errors": 0,
+              "warnings": 0,
+              "id": "",
+              "chunks": [
+                563
+              ],
+              "assets": [],
+              "reasons": [],
+              "usedExports": null,
+              "providedExports": [],
+              "optimizationBailout": [],
+              "depth": null
+            },
+            {
+              "type": "module",
+              "moduleType": "runtime",
+              "layer": null,
+              "size": 27,
+              "sizes": {
+                "runtime": 27
+              },
+              "built": false,
+              "codeGenerated": true,
+              "buildTimeExecuted": false,
+              "cached": false,
+              "identifier": "webpack/runtime/publicPath",
+              "name": "webpack/runtime/publicPath",
+              "nameForCondition": null,
+              "index": null,
+              "preOrderIndex": null,
+              "index2": null,
+              "postOrderIndex": null,
+              "optional": false,
+              "orphan": false,
+              "dependent": false,
+              "failed": false,
+              "errors": 0,
+              "warnings": 0,
+              "id": "",
+              "chunks": [
+                563
+              ],
+              "assets": [],
+              "reasons": [],
+              "usedExports": null,
+              "providedExports": [],
+              "optimizationBailout": [],
+              "depth": null
+            },
+            {
+              "type": "module",
+              "moduleType": "runtime",
+              "layer": null,
+              "size": 325,
+              "sizes": {
+                "runtime": 325
+              },
+              "built": false,
+              "codeGenerated": true,
+              "buildTimeExecuted": false,
+              "cached": false,
+              "identifier": "webpack/runtime/require chunk loading",
+              "name": "webpack/runtime/require chunk loading",
+              "nameForCondition": null,
+              "index": null,
+              "preOrderIndex": null,
+              "index2": null,
+              "postOrderIndex": null,
+              "optional": false,
+              "orphan": false,
+              "dependent": false,
+              "failed": false,
+              "errors": 0,
+              "warnings": 0,
+              "id": "",
+              "chunks": [
+                563
+              ],
+              "assets": [],
+              "reasons": [],
+              "usedExports": null,
+              "providedExports": [],
+              "optimizationBailout": [],
+              "depth": null
+            }
+          ],
+          "origins": [
+            {
+              "module": "",
+              "moduleIdentifier": "",
+              "moduleName": "",
+              "loc": "HtmlWebpackPlugin_0-0",
+              "request": "/Users/caojunjie/workspace/helloworld/webpack-base/node_modules/html-webpack-plugin/lib/loader.js!/Users/caojunjie/workspace/helloworld/webpack-base/node_modules/html-webpack-plugin/default_index.ejs"
+            },
+            {
+              "module": "",
+              "moduleIdentifier": "",
+              "moduleName": "",
+              "loc": "HtmlWebpackPlugin_0-0",
+              "request": "data:text/javascript,__webpack_public_path__ = __webpack_base_uri__ = htmlWebpackPluginPublicPath;"
+            }
+          ]
+        }
+      ],
+      "modules": [
+        {
+          "type": "module",
+          "moduleType": "javascript/esm",
+          "layer": null,
+          "size": 77,
+          "sizes": {
+            "javascript": 77
+          },
+          "built": true,
+          "codeGenerated": true,
+          "buildTimeExecuted": false,
+          "cached": false,
+          "identifier": "javascript/esm|data:text/javascript,__webpack_public_path__ = __webpack_base_uri__ = htmlWebpackPluginPublicPath;",
+          "name": "data:text/javascript,__webpack_public_path__ = __webpack_base_uri__ = htmlWebpackPluginPublicPath;",
+          "nameForCondition": "data:text/javascript,__webpack_public_path__ = __webpack_base_uri__ = htmlWebpackPluginPublicPath;",
+          "index": 0,
+          "preOrderIndex": 0,
+          "index2": 0,
+          "postOrderIndex": 0,
+          "cacheable": true,
+          "optional": false,
+          "orphan": false,
+          "issuer": null,
+          "issuerName": null,
+          "issuerPath": null,
+          "failed": false,
+          "errors": 0,
+          "warnings": 0,
+          "id": 163,
+          "issuerId": null,
+          "chunks": [
+            563
+          ],
+          "assets": [],
+          "reasons": [
+            {
+              "moduleIdentifier": null,
+              "module": null,
+              "moduleName": null,
+              "resolvedModuleIdentifier": null,
+              "resolvedModule": null,
+              "type": "entry",
+              "active": true,
+              "explanation": "",
+              "userRequest": "data:text/javascript,__webpack_public_path__ = __webpack_base_uri__ = htmlWebpackPluginPublicPath;",
+              "loc": "HtmlWebpackPlugin_0-0",
+              "moduleId": null,
+              "resolvedModuleId": null
+            }
+          ],
+          "usedExports": [],
+          "providedExports": [],
+          "optimizationBailout": [
+            "Statement (ExpressionStatement) with side effects in source code at 1:0-77"
+          ],
+          "depth": 0
+        },
+        {
+          "type": "module",
+          "moduleType": "javascript/auto",
+          "layer": null,
+          "size": 451,
+          "sizes": {
+            "javascript": 451
+          },
+          "built": true,
+          "codeGenerated": true,
+          "buildTimeExecuted": false,
+          "cached": false,
+          "identifier": "/Users/caojunjie/workspace/helloworld/webpack-base/node_modules/html-webpack-plugin/lib/loader.js!/Users/caojunjie/workspace/helloworld/webpack-base/node_modules/html-webpack-plugin/default_index.ejs",
+          "name": "./node_modules/html-webpack-plugin/lib/loader.js!./node_modules/html-webpack-plugin/default_index.ejs",
+          "nameForCondition": "/Users/caojunjie/workspace/helloworld/webpack-base/node_modules/html-webpack-plugin/default_index.ejs",
+          "index": 1,
+          "preOrderIndex": 1,
+          "index2": 1,
+          "postOrderIndex": 1,
+          "cacheable": true,
+          "optional": false,
+          "orphan": false,
+          "issuer": null,
+          "issuerName": null,
+          "issuerPath": null,
+          "failed": false,
+          "errors": 0,
+          "warnings": 0,
+          "id": 893,
+          "issuerId": null,
+          "chunks": [
+            563
+          ],
+          "assets": [],
+          "reasons": [
+            {
+              "moduleIdentifier": "/Users/caojunjie/workspace/helloworld/webpack-base/node_modules/html-webpack-plugin/lib/loader.js!/Users/caojunjie/workspace/helloworld/webpack-base/node_modules/html-webpack-plugin/default_index.ejs",
+              "module": "./node_modules/html-webpack-plugin/lib/loader.js!./node_modules/html-webpack-plugin/default_index.ejs",
+              "moduleName": "./node_modules/html-webpack-plugin/lib/loader.js!./node_modules/html-webpack-plugin/default_index.ejs",
+              "resolvedModuleIdentifier": "/Users/caojunjie/workspace/helloworld/webpack-base/node_modules/html-webpack-plugin/lib/loader.js!/Users/caojunjie/workspace/helloworld/webpack-base/node_modules/html-webpack-plugin/default_index.ejs",
+              "resolvedModule": "./node_modules/html-webpack-plugin/lib/loader.js!./node_modules/html-webpack-plugin/default_index.ejs",
+              "type": "cjs self exports reference",
+              "active": true,
+              "explanation": "",
+              "userRequest": null,
+              "loc": "1:116-130",
+              "moduleId": 893,
+              "resolvedModuleId": 893
+            },
+            {
+              "moduleIdentifier": null,
+              "module": null,
+              "moduleName": null,
+              "resolvedModuleIdentifier": null,
+              "resolvedModule": null,
+              "type": "entry",
+              "active": true,
+              "explanation": "",
+              "userRequest": "/Users/caojunjie/workspace/helloworld/webpack-base/node_modules/html-webpack-plugin/lib/loader.js!/Users/caojunjie/workspace/helloworld/webpack-base/node_modules/html-webpack-plugin/default_index.ejs",
+              "loc": "HtmlWebpackPlugin_0-0",
+              "moduleId": null,
+              "resolvedModuleId": null
+            },
+            {
+              "moduleIdentifier": null,
+              "module": null,
+              "moduleName": null,
+              "resolvedModuleIdentifier": null,
+              "resolvedModule": null,
+              "type": null,
+              "active": true,
+              "explanation": "used as library export",
+              "userRequest": null,
+              "moduleId": null,
+              "resolvedModuleId": null
+            }
+          ],
+          "usedExports": null,
+          "providedExports": null,
+          "optimizationBailout": [
+            "CommonJS bailout: module.exports is used directly at 1:116-130",
+            "Statement (VariableDeclaration) with side effects in source code at 1:0-116",
+            "ModuleConcatenation bailout: Module is not an ECMAScript module"
+          ],
+          "depth": 0
+        },
+        {
+          "type": "module",
+          "moduleType": "runtime",
+          "layer": null,
+          "size": 88,
+          "sizes": {
+            "runtime": 88
+          },
+          "built": false,
+          "codeGenerated": true,
+          "buildTimeExecuted": false,
+          "cached": false,
+          "identifier": "webpack/runtime/hasOwnProperty shorthand",
+          "name": "webpack/runtime/hasOwnProperty shorthand",
+          "nameForCondition": null,
+          "index": null,
+          "preOrderIndex": null,
+          "index2": null,
+          "postOrderIndex": null,
+          "optional": false,
+          "orphan": false,
+          "failed": false,
+          "errors": 0,
+          "warnings": 0,
+          "id": "",
+          "chunks": [
+            563
+          ],
+          "assets": [],
+          "reasons": [],
+          "usedExports": null,
+          "providedExports": [],
+          "optimizationBailout": [],
+          "depth": null
+        },
+        {
+          "type": "module",
+          "moduleType": "runtime",
+          "layer": null,
+          "size": 27,
+          "sizes": {
+            "runtime": 27
+          },
+          "built": false,
+          "codeGenerated": true,
+          "buildTimeExecuted": false,
+          "cached": false,
+          "identifier": "webpack/runtime/publicPath",
+          "name": "webpack/runtime/publicPath",
+          "nameForCondition": null,
+          "index": null,
+          "preOrderIndex": null,
+          "index2": null,
+          "postOrderIndex": null,
+          "optional": false,
+          "orphan": false,
+          "failed": false,
+          "errors": 0,
+          "warnings": 0,
+          "id": "",
+          "chunks": [
+            563
+          ],
+          "assets": [],
+          "reasons": [],
+          "usedExports": null,
+          "providedExports": [],
+          "optimizationBailout": [],
+          "depth": null
+        },
+        {
+          "type": "module",
+          "moduleType": "runtime",
+          "layer": null,
+          "size": 325,
+          "sizes": {
+            "runtime": 325
+          },
+          "built": false,
+          "codeGenerated": true,
+          "buildTimeExecuted": false,
+          "cached": false,
+          "identifier": "webpack/runtime/require chunk loading",
+          "name": "webpack/runtime/require chunk loading",
+          "nameForCondition": null,
+          "index": null,
+          "preOrderIndex": null,
+          "index2": null,
+          "postOrderIndex": null,
+          "optional": false,
+          "orphan": false,
+          "failed": false,
+          "errors": 0,
+          "warnings": 0,
+          "id": "",
+          "chunks": [
+            563
+          ],
+          "assets": [],
+          "reasons": [],
+          "usedExports": null,
+          "providedExports": [],
+          "optimizationBailout": [],
+          "depth": null
+        }
+      ],
+      "entrypoints": {
+        "HtmlWebpackPlugin_0-0": {
+          "name": "HtmlWebpackPlugin_0-0",
+          "chunks": [
+            563
+          ],
+          "assets": [],
+          "filteredAssets": 0,
+          "assetsSize": 0,
+          "auxiliaryAssets": [],
+          "filteredAuxiliaryAssets": 0,
+          "auxiliaryAssetsSize": 0,
+          "children": {},
+          "childAssets": {},
+          "isOverSizeLimit": false
+        }
+      },
+      "namedChunkGroups": {
+        "HtmlWebpackPlugin_0-0": {
+          "name": "HtmlWebpackPlugin_0-0",
+          "chunks": [
+            563
+          ],
+          "assets": [],
+          "filteredAssets": 0,
+          "assetsSize": 0,
+          "auxiliaryAssets": [],
+          "filteredAuxiliaryAssets": 0,
+          "auxiliaryAssetsSize": 0,
+          "children": {},
+          "childAssets": {},
+          "isOverSizeLimit": false
+        }
+      },
+      "errors": [],
+      "errorsCount": 0,
+      "warnings": [],
+      "warningsCount": 0,
+      "children": []
+    }
+  ]
+}
