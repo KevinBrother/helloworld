@@ -12,6 +12,9 @@
 
 ## 使用案例
 
+- [] echarts-test
+  - 基础的echarts操作
+
 - [] base-css
   - 基础的css学习案例如flex、grid等
 
