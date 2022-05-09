@@ -1,0 +1,114 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta http-equiv="X-UA-Compatible" content="IE=edge" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Document</title>
+    <script src="./lib/echarts/5.3.2/echarts.min.js"></script>
+  </head>
+  <body>
+    <div id="main"></div>
+    <script type="text/javascript">
+      option = {
+        color: [
+          '#c23531',
+          '#2f4554',
+          '#61a0a8',
+          '#d48265',
+          '#91c7ae',
+          '#749f83',
+          '#ca8622',
+          '#bda29a',
+          '#6e7074',
+          '#546570',
+          '#c4ccd3'
+        ],
+        title: {
+          text: '曹俊杰-工时统计 ',
+          left: 'center',
+          subtext: '2021-11-4/2022-04-29 1021.5'
+        },
+        tooltip: {
+          trigger: 'item'
+        },
+        legend: {
+          orient: 'vertical',
+          left: 'left'
+        },
+        series: [
+          {
+            type: 'pie',
+            radius: '50%',
+            data: [
+              { value: 129, name: '中原银行2期开发' },
+              { value: 298, name: '工时统计' },
+              { value: 116.5, name: 'studio' },
+              { value: 49, name: 'RPA文档历史版本功能' },
+              { value: 56, name: 'robot' },
+              { value: 97.5, name: '福建农信' },
+              { value: 175, name: '财务审核系统' },
+              { value: 165, name: 'console' }
+            ],
+            label: {
+              formatter: '{b}：{c}（{d}%）'
+            },
+            emphasis: {
+              itemStyle: {
+                shadowBlur: 10,
+                shadowOffsetX: 0,
+                shadowColor: 'rgba(0, 0, 0, 0.5)'
+              }
+            }
+          }
+        ]
+      };
+
+      var myChart = echarts.init(document.getElementById('main'), null, {
+        width: 800,
+        height: 400
+      });
+
+      myChart.setOption(option);
+
+      window.onresize = function () {
+        myChart.resize();
+      };
+
+      // 处理点击事件并且跳转到相应的百度搜索页面
+      myChart.on('click', function (params) {
+        console.log('[ params ] >', params);
+        /*   window.open(
+          'https://www.baidu.com/s?wd=' + encodeURIComponent(params.name)
+        ); */
+      });
+
+      myChart.getZr().on('click', function (event) {
+        // 没有 target 意味着鼠标/指针不在任何一个图形元素上，它是从“空白处”触发的。
+        if (!event.target) {
+          // 点击在了空白处，做些什么。
+          console.log('点击在了空白处');
+        }
+        console.log(
+          '%c [ event ]-93',
+          'font-size:13px; background:pink; color:#bf2c9f;',
+          event,
+          event.target
+        );
+      });
+
+      const baseData = [
+        { value: 129, name: '中原银行2期开发' },
+        { value: 52, name: '工时统计' },
+        { value: 116.5, name: 'studio' },
+        { value: 49, name: 'RPA文档历史版本功能' },
+        { value: 56, name: 'robot' },
+        { value: 122.5, name: 'DP-RPA' },
+        { value: 97.5, name: '福建农信' },
+        { value: 175, name: '财务审核系统' },
+        { value: 165, name: 'console' },
+        { value: 59, name: '其他' }
+      ];
+    </script>
+  </body>
+</html>
