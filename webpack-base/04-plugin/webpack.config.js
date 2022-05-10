@@ -3,6 +3,7 @@ const HtmlWebpackPlugin = require('html-webpack-plugin');
 const MiniCssExtractPlugin = require('mini-css-extract-plugin');
 const CopyPlugin = require('copy-webpack-plugin');
 const ZipPlugin = require('zip-webpack-plugin');
+const { CleanWebpackPlugin } = require('clean-webpack-plugin');
 
 // const webpack = require('webpack'); // 访问内置的插件
 module.exports = {
@@ -37,6 +38,7 @@ module.exports = {
     }), */
     new ZipPlugin({ filename: 'dist.zip' }),
     // new HtmlWebpackPlugin({ template: path.resolve(__dirname, './index.html') })
-    new HtmlWebpackPlugin()
+    new HtmlWebpackPlugin(),
+    new CleanWebpackPlugin()
   ]
 };
