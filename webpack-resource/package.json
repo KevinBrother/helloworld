@@ -1,0 +1,21 @@
+{
+  "name": "webpack-resource",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "dependencies": {},
+  "devDependencies": {
+    "loader-runner": "^4.3.0",
+    "loader-utils": "^2.0.0",
+    "webpack": "^5.72.1",
+    "webpack-cli": "^4.9.2"
+  },
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "test-row-loader": "node ./test/test-raw-loader.js",
+    "build": "webpack"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC"
+}
