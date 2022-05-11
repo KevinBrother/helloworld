@@ -28,6 +28,6 @@ module.exports = smp.wrap({
   },
   plugins: [
     new HtmlWebpackPlugin({ template: resolve(__dirname, './index.html') }),
-    new BundleAnalyzerPlugin()
+    new BundleAnalyzerPlugin({ analyzerPort: 'auto' })
   ]
 });
