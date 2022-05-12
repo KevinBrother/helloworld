@@ -1,14 +1,18 @@
 const { resolve } = require('path');
 const HtmlWebpackPlugin = require('html-webpack-plugin');
 
-module.exports = function (dirname) {
+module.exports = function () {
   return {
     mode: 'production',
-    entry: resolve(dirname, './src/index.tsx'),
+    entry: {
+      first: resolve(__dirname, './src/first.tsx'),
+      second: resolve(__dirname, './src/second.tsx')
+    },
     output: {
       filename: '[name].js',
       clean: true,
-      path: resolve(dirname, './dist')
+      // path: resolve(dirname, './dist')
+      path: resolve(__dirname, 'dist')
     },
     module: {
       rules: [
@@ -27,7 +31,14 @@ module.exports = function (dirname) {
 
     plugins: [
       new HtmlWebpackPlugin({
-        template: resolve(dirname, './index.html')
+        filename: 'first.html',
+        template: resolve(__dirname, './index.html'),
+        chunks: ['first']
+      }),
+      new HtmlWebpackPlugin({
+        filename: 'second.html',
+        template: resolve(__dirname, './index.html'),
+        chunks: ['second']
       })
     ]
   };
