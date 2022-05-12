@@ -6,7 +6,9 @@ runLoaders(
     resource: resolve(__dirname, './default.txt'),
     loaders: [
       {
-        loader: resolve(__dirname, '../loaders/raw-loader.js'),
+        // loader: resolve(__dirname, '../loaders/raw-loader.js'),
+        // loader: resolve(__dirname, '../loaders/raw-async-loader.js'),
+        loader: resolve(__dirname, '../loaders/emitFile-loader.js'),
         options: {
           name: 'option的名称'
         }
