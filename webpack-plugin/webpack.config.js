@@ -1,11 +1,12 @@
 const path = require('path');
-const MyPlugin = require('./plugins/my-plugin');
+const ZipPlugin = require('./plugins/zip-plugin');
 
 module.exports = {
   entry: './src/index.js',
   output: {
     path: path.resolve(__dirname, 'dist'),
+    clean: true,
     filename: 'main.js'
   },
-  plugins: [new MyPlugin({ name: 'my-plugin' })]
+  plugins: [new ZipPlugin({ filename: 'offline' })]
 };
