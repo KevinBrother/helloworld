@@ -7,7 +7,7 @@ function Foo() {
   return (
     <>
       <Bar />
-      <div className='div-border'>this is react 的jsx=====</div>
+      <div className='div-border'>this is first 的jsx=====</div>
     </>
   );
 }
