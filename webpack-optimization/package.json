@@ -7,6 +7,7 @@
     "minify": "webpack -c ./01-minify/webpack.config.js",
     "externals": "webpack -c ./02-externals/webpack.config.js",
     "splitChunk": "webpack -c ./03-splitChunk/webpack.config.js",
+    "split-externals": "webpack -c ./04-split-externals/webpack.config.js",
     "analysis": "ANALYSIS=true webpack -c ./03-splitChunk/webpack.config.js",
     "build": "webpack"
   },
