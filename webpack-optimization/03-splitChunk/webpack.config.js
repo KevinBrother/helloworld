@@ -21,19 +21,25 @@ module.exports = merge(getBaseConfig(__dirname), {
       minChunks: 1
     }
  */
-    /*  
+
     // 02 第三方模块的切分
-     splitChunks: {
+    splitChunks: {
       cacheGroups: {
         reactDom: {
-          test: /^react-dom/,
+          test: /react-dom/,
           name: 'react-dom',
           chunks: 'all',
           priority: -10
         },
         react: {
-          test: /^react\./,
+          test: /react/,
           name: 'react',
+          chunks: 'all',
+          priority: -20
+        },
+        echarts: {
+          test: /echarts/,
+          name: 'echarts',
           chunks: 'all',
           priority: -20
         },
@@ -45,8 +51,8 @@ module.exports = merge(getBaseConfig(__dirname), {
           priority: -30
         }
       }
-    } */
-    splitChunks: {
+    }
+    /*    splitChunks: {
       cacheGroups: {
         common: {
           name: 'common',
@@ -55,7 +61,7 @@ module.exports = merge(getBaseConfig(__dirname), {
           chunks: 'all'
         }
       }
-    }
+    } */
 
     /*  splitChunks: {
       minSize: 0,
