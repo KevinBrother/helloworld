@@ -7,7 +7,8 @@ const HtmlWebpackPlugin = require('html-webpack-plugin');
 module.exports = merge(getBaseConfig(__dirname), {
   entry: {
     first: resolve(__dirname, './src/first.tsx'),
-    second: resolve(__dirname, './src/second.tsx')
+    second: resolve(__dirname, './src/second.tsx'),
+    lodash: resolve(__dirname, './src/lodash.tsx')
   },
 
   optimization: {
@@ -27,6 +28,11 @@ module.exports = merge(getBaseConfig(__dirname), {
       template: resolve(__dirname, './index.html'),
       chunks: ['common', 'first'],
       filename: 'line.html'
+    }),
+    new HtmlWebpackPlugin({
+      template: resolve(__dirname, './index.html'),
+      chunks: ['common', 'lodash'],
+      filename: 'lodash.html'
     }),
     new HtmlWebpackExternalsPlugin({
       externals: [
