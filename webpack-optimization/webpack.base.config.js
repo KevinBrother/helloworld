@@ -6,7 +6,7 @@ module.exports = function (dirname) {
     mode: 'production',
     entry: resolve(dirname, './src/index.tsx'),
     output: {
-      filename: '[name].js',
+      filename: '[name].[contenthash:8].js',
       clean: true,
       path: resolve(dirname, './dist')
     },
