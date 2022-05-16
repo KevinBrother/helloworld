@@ -4,12 +4,25 @@ const { resolve } = require('path');
 
 module.exports = {
   mode: 'production',
+  devServer: {
+    open: true
+  },
   entry: resolve(__dirname, './src/index.tsx'),
+  output: {
+    path: resolve(__dirname, './dist'),
+    filename: '[name].[chunkhash:8].js',
+    clean: true
+  },
   module: {
     rules: [
       {
         test: /\.js|.ts|tsx$/,
-        use: 'babel-loader'
+        use: {
+          loader: 'babel-loader',
+          options: {
+            cacheDirectory: true
+          }
+        }
       },
       {
         test: /\.(c|le)ss$/i,
@@ -33,6 +46,9 @@ module.exports = {
   },
   resolve: {
     extensions: ['.ts', '.tsx', '.js', '.jsx']
+  },
+  performance: {
+    hints: false
   },
   optimization: {
     splitChunks: {
