@@ -25,7 +25,7 @@ module.exports = merge(getBaseConfig(__dirname), {
     new HtmlWebpackExternalsPlugin({
       externals: [
         // CDN的方式
-        {
+        /*  {
           module: 'react',
           entry: 'https://unpkg.com/react@17.0.1/umd/react.production.min.js',
           global: 'React'
@@ -35,10 +35,16 @@ module.exports = merge(getBaseConfig(__dirname), {
           entry:
             'https://unpkg.com/react-dom@17.0.1/umd/react-dom.production.min.js',
           global: 'ReactDOM'
+        },
+        {
+          module: 'echarts',
+          entry:
+            'https://cdnjs.cloudflare.com/ajax/libs/echarts/5.3.2/echarts.min.js',
+          global: 'echarts'
         }
-
+        */
         // 本地的方式
-        /*      {
+        {
           module: 'react',
           entry: 'umd/react.production.min.js',
           global: 'React'
@@ -47,7 +53,12 @@ module.exports = merge(getBaseConfig(__dirname), {
           module: 'react-dom',
           entry: 'umd/react-dom.production.min.js',
           global: 'ReactDOM'
-        } */
+        },
+        {
+          module: 'echarts',
+          entry: 'dist/echarts.min.js',
+          global: 'echarts'
+        }
       ]
     })
   ],
