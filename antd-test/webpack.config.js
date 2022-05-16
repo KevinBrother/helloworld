@@ -1,3 +1,4 @@
+const HtmlWebpackExternalsPlugin = require('html-webpack-externals-plugin');
 const { resolve } = require('path');
 
 module.exports = {
@@ -39,16 +40,6 @@ module.exports = {
       },
       { test: /\.(png|jpg|gif|svg)$/, use: ['file-loader'] },
       { test: /\.(woff|woff2|eot|ttf|otf)$/, use: ['file-loader'] }
-      /*   {
-        test: /\.(jpg|png|gif|jpeg)$/,
-        type: 'asset',
-        parser: {
-          dataUrlCondition: {
-            maxSize: 8 * 1024
-          }
-        },
-        generator: {}
-      } */
     ]
   },
   resolve: {
@@ -68,6 +59,39 @@ module.exports = {
       '@services': resolve(__dirname, 'src/services'),
       '@styles': resolve(__dirname, 'src/styles')
     },
-    extensions: ['.ts', '.tsx', '.js', '.jsx']
+    extensions: ['.ts', '.tsx', '.js', '.jsx'],
+    /*    optimization: {
+      splitChunks: {
+        cacheGroups: {
+          common: {
+            name: 'common',
+            minSize: 0,
+            minChunks: 1,
+            chunks: 'all'
+          }
+        }
+      }
+    }, */
+    plugins: [
+      new HtmlWebpackExternalsPlugin({
+        externals: [
+          // CDN的方式
+          {
+            module: 'react',
+            entry: 'https://unpkg.com/react@17.0.1/umd/react.production.min.js',
+            global: 'React'
+          },
+          {
+            module: 'react-dom',
+            entry:
+              'https://unpkg.com/react-dom@17.0.1/umd/react-dom.production.min.js',
+            global: 'ReactDOM'
+          }
+        ]
+      })
+    ]
+  },
+  stats: {
+    ids: true
   }
 };
