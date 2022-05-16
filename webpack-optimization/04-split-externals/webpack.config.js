@@ -25,8 +25,8 @@ module.exports = merge(getBaseConfig(__dirname), {
   plugins: [
     new HtmlWebpackPlugin({
       template: resolve(__dirname, './index.html'),
-      chunks: ['common', 'second'],
-      filename: 'second.html'
+      chunks: ['common', 'first'],
+      filename: 'line.html'
     }),
     new HtmlWebpackExternalsPlugin({
       externals: [
