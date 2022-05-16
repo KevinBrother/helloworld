@@ -2,6 +2,7 @@ const { resolve } = require('path');
 const getBaseConfig = require('../webpack.base.config');
 const { merge } = require('webpack-merge');
 const HtmlWebpackExternalsPlugin = require('html-webpack-externals-plugin');
+const HtmlWebpackPlugin = require('html-webpack-plugin');
 
 module.exports = merge(getBaseConfig(__dirname), {
   entry: {
@@ -22,6 +23,11 @@ module.exports = merge(getBaseConfig(__dirname), {
     }
   },
   plugins: [
+    new HtmlWebpackPlugin({
+      template: resolve(__dirname, './index.html'),
+      chunks: ['common', 'second'],
+      filename: 'second.html'
+    }),
     new HtmlWebpackExternalsPlugin({
       externals: [
         // CDN的方式
