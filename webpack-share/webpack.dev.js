@@ -28,12 +28,16 @@ module.exports = {
         ]
       },
       {
-        test: /\.js$/,
+        test: /\.(js|jsx|tsx)$/,
         exclude: /node_modules/,
         use: {
           loader: 'babel-loader',
           options: {
-            presets: [['@babel/preset-env']]
+            presets: [
+              '@babel/preset-env',
+              '@babel/preset-react',
+              '@babel/preset-typescript'
+            ]
           }
         }
       },
@@ -47,5 +51,11 @@ module.exports = {
     new HtmlWebpackPlugin({
       template: './public/index.html'
     })
-  ]
+  ],
+  resolve: {
+    extensions: ['.js', '.jsx', '.tsx'],
+    alias: {
+      '@utils': path.resolve(__dirname, 'src/utils')
+    }
+  }
 };

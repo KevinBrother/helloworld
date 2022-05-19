@@ -1,7 +1,8 @@
-import { sum } from './utils/sum';
+import { sum } from '@utils/sum';
 import './index.css';
 import './index.less';
-import './index.png';
+import './img.png';
+import './app';
 
 document.write(sum(1, 2));
 
