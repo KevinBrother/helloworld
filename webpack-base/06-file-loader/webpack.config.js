@@ -9,8 +9,10 @@ module.exports = {
     rules: [
       { test: /\.js|jsx$/, use: 'babel-loader' },
       { test: /\.less$/, use: ['style-loader', 'css-loader', 'less-loader'] },
-      { test: /\.(png|jpg|gif|svg)$/, use: ['file-loader'] },
-      { test: /\.(woff|woff2|eot|ttf|otf)$/, use: ['file-loader'] }
+      {
+        test: /\.png/,
+        type: 'asset/resource'
+      }
     ]
   },
   resolve: {
