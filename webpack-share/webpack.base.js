@@ -1,5 +1,7 @@
 const path = require('path');
 const HtmlWebpackPlugin = require('html-webpack-plugin');
+const MiniCssExtractPlugin = require('mini-css-extract-plugin');
+const CssMinimizerPlugin = require('css-minimizer-webpack-plugin');
 
 module.exports = {
   entry: {
@@ -18,41 +20,60 @@ module.exports = {
   module: {
     rules: [
       {
-        test: /\.css$/i,
-        use: ['style-loader', 'css-loader']
-      },
-      {
-        test: /\.less$/i,
-        use: [
-          // compiles Less to CSS
-          'style-loader',
-          'css-loader',
-          'less-loader'
-        ]
-      },
-      {
-        test: /\.(js|jsx|tsx)$/,
-        exclude: /node_modules/,
-        use: {
-          loader: 'babel-loader',
-          options: {
-            presets: [
-              '@babel/preset-env',
-              '@babel/preset-react',
-              '@babel/preset-typescript'
+        oneOf: [
+          {
+            test: /\.css$/i,
+            use: [MiniCssExtractPlugin.loader, 'css-loader']
+          },
+          {
+            test: /\.less$/i,
+            use: [
+              // compiles Less to CSS
+              MiniCssExtractPlugin.loader,
+              'css-loader',
+              'less-loader'
             ]
+          },
+          {
+            test: /\.(js|jsx|tsx)$/,
+            exclude: /node_modules/,
+            use: [
+              {
+                loader: 'thread-loader',
+                options: {
+                  workers: require('os').cpus().length - 1
+                }
+              },
+              {
+                loader: 'babel-loader',
+                options: {
+                  presets: [
+                    '@babel/preset-env',
+                    '@babel/preset-react',
+                    '@babel/preset-typescript'
+                  ]
+                }
+              }
+            ]
+          },
+          {
+            test: /\.(png|svg|jpg|jpeg|gif)$/i,
+            type: 'asset/resource'
           }
-        }
-      },
-      {
-        test: /\.(png|svg|jpg|jpeg|gif)$/i,
-        type: 'asset/resource'
+        ]
       }
     ]
   },
   optimization: {
+    minimizer: [new CssMinimizerPlugin()],
     splitChunks: {
-      chunks: 'all'
+      chunks: 'all',
+      cacheGroups: {
+        vendors: {
+          test: /(react|react-dom)/,
+          name: 'vendors'
+        }
+      }
     }
   },
   plugins: [
@@ -65,7 +86,8 @@ module.exports = {
       template: './public/index.html',
       chunks: ['second'],
       filename: 'second.html'
-    })
+    }),
+    new MiniCssExtractPlugin()
   ],
   resolve: {
     extensions: ['.js', '.jsx', '.tsx'],
