@@ -6,7 +6,7 @@ module.exports = {
   mode: 'production',
   output: {
     path: path.resolve(__dirname, 'dist'),
-    filename: 'main1.js',
+    filename: 'main.js',
     clean: true
   },
   devServer: {
@@ -33,6 +33,7 @@ module.exports = {
         use: {
           loader: 'babel-loader',
           options: {
+            cacheDirectory: true,
             presets: [
               '@babel/preset-env',
               '@babel/preset-react',

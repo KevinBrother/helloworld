@@ -2,11 +2,14 @@ const path = require('path');
 const HtmlWebpackPlugin = require('html-webpack-plugin');
 
 module.exports = {
-  entry: './src/index.js',
-  mode: 'development',
+  entry: {
+    first: './src/pages/first',
+    second: './src/pages/second'
+  },
+  mode: 'production',
   output: {
     path: path.resolve(__dirname, 'dist'),
-    filename: 'main1.js',
+    filename: '[name].[hash:8].js',
     clean: true
   },
   devServer: {
@@ -47,15 +50,28 @@ module.exports = {
       }
     ]
   },
+  optimization: {
+    splitChunks: {
+      chunks: 'all'
+    }
+  },
   plugins: [
     new HtmlWebpackPlugin({
-      template: './public/index.html'
+      template: './public/index.html',
+      chunks: ['first'],
+      filename: 'first.html'
+    }),
+    new HtmlWebpackPlugin({
+      template: './public/index.html',
+      chunks: ['second'],
+      filename: 'second.html'
     })
   ],
   resolve: {
     extensions: ['.js', '.jsx', '.tsx'],
     alias: {
-      '@utils': path.resolve(__dirname, 'src/utils')
+      '@utils': path.resolve(__dirname, 'src/utils'),
+      '@assert': path.resolve(__dirname, 'src/assert')
     }
   }
 };

@@ -1,3 +1,3 @@
-export const sum = (a, b) => {
-  return a + b + 1;
+export const commonA = () => {
+  console.log('来自 utils的common方法');
 };
