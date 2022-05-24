@@ -8,3 +8,21 @@ module.exports = {
     path: path.resolve(__dirname, 'dist') // 默认输出的地址
   }
 };
+
+const entry = {
+  first: {
+    path: './src/first.tsx',
+    moduleGraph: {
+      a: { path: './src/a.tsx', moduleGraph: {} },
+      utils: { path: './src/utils/index.ts', moduleGraph: {} },
+      async: { path: './src/async.ts', moduleGraph: {} }
+    }
+  },
+  second: {
+    path: './src/second.tsx',
+    moduleGraph: {
+      b: { path: './src/b.tsx', moduleGraph: {} },
+      utils: { path: './src/utils/index.ts', moduleGraph: {} }
+    }
+  }
+};

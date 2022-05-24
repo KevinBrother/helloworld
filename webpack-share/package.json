@@ -4,7 +4,8 @@
   "description": "",
   "main": "index.js",
   "scripts": {
-    "base": "webpack -c webpack.config.js"
+    "dev": "webpack server -c webpack.base.js",
+    "base": "webpack -c webpack.base.js"
   },
   "keywords": [],
   "author": "",

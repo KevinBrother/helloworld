@@ -2,6 +2,7 @@ const path = require('path');
 const HtmlWebpackPlugin = require('html-webpack-plugin');
 const MiniCssExtractPlugin = require('mini-css-extract-plugin');
 const CssMinimizerPlugin = require('css-minimizer-webpack-plugin');
+const fs = require('fs');
 
 module.exports = {
   entry: {
@@ -68,10 +69,22 @@ module.exports = {
     minimizer: [new CssMinimizerPlugin()],
     splitChunks: {
       chunks: 'all',
+      maxInitialRequests: Infinity,
       cacheGroups: {
-        vendors: {
+        /*       vendors: {
           test: /(react|react-dom)/,
           name: 'vendors'
+        } */
+        vendors: {
+          test: /node_modules/,
+          name(module) {
+            console.log('[ module =======================] >', module.context);
+            //  fs.writeFile(path.resolve(__dirname, 'a.txt'), module, (err) => {});
+            const packageName = module.context.match(
+              /[\\/]node_modules[\\/](.*?)([\\/]|$)/
+            )[1];
+            return `npm.${packageName.replace('@', '')}`;
+          }
         }
       }
     }
