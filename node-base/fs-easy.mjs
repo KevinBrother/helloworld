@@ -1,4 +1,4 @@
-import { writeFile } from 'node:fs/promises';
+import { writeFile } from 'fs/promises';
 
 writeFile('te1212st.txt', 'Hello, World!', {
   encoding: 'utf8'
