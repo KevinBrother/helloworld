@@ -1,3 +1,5 @@
+import { writeFile } from 'node:fs/promises';
+
 writeFile('te1212st.txt', 'Hello, World!', {
   encoding: 'utf8'
 }).then((rst) => {
