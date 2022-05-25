@@ -47,6 +47,14 @@
   - docker-compose的使用案例,docker-compose.yml的使用
 
 - [] webpack-study
+  - [x]基本配置
+  - [x]构建优化
+  - [x]加速配置
+  - [] [其他优化项](https://mubu.com/app/edit/recent/2GNsXmnlXXk)
+
+- [] grunt-study
+
+- [] gulp-study
 
 - [] nodejs-study
 
