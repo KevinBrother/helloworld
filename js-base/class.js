@@ -6,7 +6,7 @@ class User {
     this.name = name;
     this.message = message;
     // 每个对象的创建，方法都会被重新赋值
-    this.getNMessage = () => {
+    this.getMessage = () => {
       return this.message;
     };
   }
@@ -17,3 +17,17 @@ class User {
 }
 
 const user1 = new User('John', 'Hello');
+
+function Person(name, message) {
+  this.name = name.toString();
+  this.message = message.toString();
+  this.getMessage = function () {
+    return this.message;
+  };
+}
+
+Person.prototype.getName = function () {
+  return this.name;
+};
+
+const person1 = new Person('Lis', 'Hello');
