@@ -1,0 +1,17 @@
+{
+  "presets": [
+    [
+      "latest",
+      {
+        "es2015": {
+          "modules": false
+        }
+      }
+    ]
+  ],
+  "plugins": [
+    "module:@babel/preset-env",
+    "@babel/plugin-external-helpers"
+    // "external-helpers"
+  ]
+}
