@@ -1,9 +1,9 @@
-/* import { version } from '../package.json';
-import answer from 'the-answer';
-export default () => {
-  // console.log(foo);
-  console.log('answer ' + answer);
+import { version } from '../package.json';
+
+export default function () {
   console.log('version ' + version);
-};
- */
-export default {};
+
+  import('./foo.js').then(({ default: foo }) => {
+    console.log(foo());
+  });
+}
