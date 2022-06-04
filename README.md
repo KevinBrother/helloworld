@@ -67,3 +67,6 @@
 
 - [] ng-antd-test
 - [] angular
+
+- [] wx-config
+  - 微信公招平台相关的功能
