@@ -11,6 +11,7 @@ import PriceInput from './pages/PriceInput';
 import RenderProps from './pages/RenderProps';
 import Keyboard from './pages/Keyboard';
 import Summary from './pages/Summary';
+import MyState from './pages/MyState';
 
 const menuRouter = [
   {
@@ -32,6 +33,10 @@ const menuRouter = [
   {
     path: '/counter',
     element: <Counter />
+  },
+  {
+    path: '/MyState',
+    element: <MyState />
   },
   {
     path: '/asyncUsers',
