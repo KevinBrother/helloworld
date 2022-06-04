@@ -5,7 +5,7 @@ export const isWeixin = () => {
 };
 
 export const reqGetWxConfig = (url) => {
-  return fetch('http://localhost:8085', { url }).then((rep) => {
+  return fetch('http://localhost:8085/getWxConfig', { url }).then((rep) => {
     return rep.json();
   });
 };

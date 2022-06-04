@@ -8,6 +8,20 @@
     <script src="http://res2.wx.qq.com/open/js/jweixin-1.6.0.js"></script>
   </head>
   <body>
-    <script type="module" src="./WeChat.js"></script>
+    <button id="pay">去支付</button>
+
+    <script type="module">
+      import { wechat } from './WeChat.js';
+      console.log(
+        '%c [ wechat ]-16',
+        'font-size:13px; background:pink; color:#bf2c9f;',
+        wechat
+      );
+
+      document.getElementById('pay').addEventListener('click', function (e) {
+        var params = '从接口获取参数';
+        wechat.pay(params);
+      });
+    </script>
   </body>
 </html>
