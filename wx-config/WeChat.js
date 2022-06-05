@@ -1,8 +1,11 @@
 import { isWeixin, reqGetWxConfig } from './util.js';
+// import dispatcher from '@utils/Dispatcher';
 
+const readyCallbackMap = new Map(); // ready函数中要配置的方法的map对象
 const jsApiList = [
   'chooseImage',
-  'chooseWXPay'
+  'chooseWXPay',
+  'updateAppMessageShareData'
   // "wx-open-launch-app",
 ];
 
@@ -37,16 +40,19 @@ class WeChat {
   /**
    * 微信每次进入页面进行初始化
    */
-  ready() {
+  ready(callbackMap) {
     wx.ready(function () {
       console.log('------------------------ready------------------------');
       wx.checkJsApi({
         jsApiList, // 需要检测的JS接口列表，所有JS接口列表见附录2,
         success: function (res) {
           console.log('--------checkJsApi success---------------', res);
-          // dispatcher.publish('wxConfigSuccess', res);
         }
       });
+
+      for (const value of callbackMap.values()) {
+        value.func(...value.params);
+      }
     });
 
     wx.error(function (res) {
@@ -55,7 +61,60 @@ class WeChat {
     });
   }
 
-  // 支付的具体参数
+  /**
+   * @param link string 分享链接，该链接域名或路径必须与当前页面对应的公众号JS安全域名一致
+   * @param desc string 分享描述
+   * @param title? string 分享标题
+   * @param imgUrl? string 分享图标
+   * @param success? function 设置成功的回调
+   */
+  setUpdateShareData(link, desc, success, title, imgUrl) {
+    // this.updateShareData({link, desc, success, title, imgUrl})
+    readyCallbackMap.set('updateShareData', {
+      func: this.updateShareData,
+      params: [link, desc, success, title, imgUrl]
+    });
+
+    this.ready(readyCallbackMap);
+  }
+
+  /**
+   * 初始化ready方法
+   */
+  readyInit(link) {
+    // console.log("————————————————初始化了————————————————")
+    readyCallbackMap.set('updateShareData', {
+      func: this.updateShareData,
+      params: [link]
+    });
+    this.ready(readyCallbackMap);
+  }
+
+  /**
+   *  微信分享方法
+   * @param title
+   * @param desc
+   * @param link
+   * @param imgUrl
+   * @param success
+   */
+  updateShareData(
+    link,
+    desc = '分享描述',
+    success,
+    title = '分享标题',
+    imgUrl = 'https://developer.mozilla.org/favicon-48x48.cbbd161b.png'
+  ) {
+    // 需在用户可能点击分享按钮前就先调用
+    wx.updateAppMessageShareData({
+      title, // 分享标题
+      desc, // 分享描述
+      link, // 分享链接，该链接域名或路径必须与当前页面对应的公众号JS安全域名一致
+      imgUrl, // 分享图标
+      success // 设置成功的回调
+    });
+  }
+
   pay(params) {
     wx.chooseWXPay({
       timestamp: 0, // 支付签名时间戳，注意微信 jssdk 中的所有使用 timestamp 字段均为小写。但最新版的支付后台生成签名使用的 timeStamp 字段名需大写其中的 S 字符

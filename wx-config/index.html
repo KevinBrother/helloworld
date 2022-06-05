@@ -12,15 +12,21 @@
 
     <script type="module">
       import { wechat } from './WeChat.js';
-      console.log(
-        '%c [ wechat ]-16',
-        'font-size:13px; background:pink; color:#bf2c9f;',
-        wechat
-      );
 
       document.getElementById('pay').addEventListener('click', function (e) {
         var params = '从接口获取参数';
         wechat.pay(params);
+      });
+
+      window.onload(() => {
+        const link = location.href;
+        const desc = '分享吧！';
+        wechat.setUpdateShareData(link, desc, (data) => {
+          console.log(
+            '----------------分享成功的回调-------------------',
+            data
+          );
+        });
       });
     </script>
   </body>
