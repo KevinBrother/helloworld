@@ -11,3 +11,7 @@
 ## 前端
 
 - [JS-SDK](https://developers.weixin.qq.com/doc/offiaccount/OA_Web_Apps/JS-SDK.html#0)
+
+## 修改微信公众号的配置
+
+- appId、appSecret 在wx-config/server/src/weChatConfig.js文件中
