@@ -12,6 +12,7 @@ import RenderProps from './pages/RenderProps';
 import Keyboard from './pages/Keyboard';
 import Summary from './pages/Summary';
 import MyState from './pages/MyState';
+import ToRequest from './pages/ToRequest';
 
 const menuRouter = [
   {
@@ -69,6 +70,10 @@ const menuRouter = [
   {
     path: '/Summary',
     element: <Summary />
+  },
+  {
+    path: '/ToRequest',
+    element: <ToRequest />
   }
 ];
 
