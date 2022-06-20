@@ -73,3 +73,6 @@
 
 - [] npm-module-study
   - npm相关实验
+
+- vite-test
+  - vite的配置和相关功能案例
