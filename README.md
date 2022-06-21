@@ -76,3 +76,6 @@
 
 - vite-test
   - vite的配置和相关功能案例
+
+- electron-test
+  - vite的配置和相关功能案例
