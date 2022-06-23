@@ -74,8 +74,13 @@
 - [] npm-module-study
   - npm相关实验
 
-- vite-test
+- [] vite-test
   - vite的配置和相关功能案例
 
-- electron-test
+- [] electron-test
   - vite的配置和相关功能案例
+
+- [] monorepo-test
+  - [] npm link
+  - yarn workspace
+  - lerna
