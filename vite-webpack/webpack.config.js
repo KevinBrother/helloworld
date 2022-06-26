@@ -30,7 +30,7 @@ module.exports = {
   devtool: 'source-map',
   plugins: [
     new HtmlWebpackPlugin({
-      template: path.resolve(__dirname, './index.html')
+      template: path.resolve(__dirname, './webpack-template.html')
     })
   ]
 };
