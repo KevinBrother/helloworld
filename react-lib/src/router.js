@@ -6,6 +6,7 @@ import ToDoList from './pages/RxJS/04-todo-list';
 import { MotionBall } from './pages/RxJS/05-ball/index.tsx';
 import { PasswordLevel } from './pages/password-level';
 import UseRequest from './pages/AHooks/UseRequest';
+import DropAble from './pages/DropAble';
 
 const menuRouter = [
   {
@@ -39,6 +40,10 @@ const menuRouter = [
   {
     path: '/UseRequest',
     element: <UseRequest />
+  },
+  {
+    path: '/DropAble',
+    element: <DropAble />
   }
 ];
 

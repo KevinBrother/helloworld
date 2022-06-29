@@ -1,0 +1,14 @@
+.droppable-header {
+  display: flex;
+  justify-content: space-between;
+}
+
+.droppable-wrap {
+  border: 1px solid #dee2e6
+}
+
+.draggable-item {
+  display: flex;
+  justify-content: space-between;
+  border-bottom: 1px solid #dee2e6;
+}
