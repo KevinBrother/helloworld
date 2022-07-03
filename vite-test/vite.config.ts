@@ -5,6 +5,10 @@ import * as path from 'path'
 
 // https://vitejs.dev/config/
 export default defineConfig({
+  server: {
+
+  },
+  root: '',
   resolve: {
     alias: {
       App: path.resolve(__dirname, 'src/App.tsx')
