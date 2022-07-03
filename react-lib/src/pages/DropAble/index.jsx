@@ -67,7 +67,7 @@ export default function DropAble() {
                       </div>
                       <div>
                         first
-                        <div {...provided.dragHandleProps}>drag1</div>
+                        <div {...provided.dragHandleProps}>..</div>
                         end
                       </div>
                     </div>
