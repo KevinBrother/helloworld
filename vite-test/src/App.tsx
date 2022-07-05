@@ -15,6 +15,9 @@ function App() {
         <RpaIcon icon='copy'></RpaIcon>
         <p>Hello Vite +1 React!</p>
         <p>
+          <div className='border'>
+
+          </div>
           <button type="button" onClick={() => setCount((count) => count + 1)}>
             count is: {count}
           </button>
