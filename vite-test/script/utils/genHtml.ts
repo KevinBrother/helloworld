@@ -1,4 +1,8 @@
+import * as fs from 'fs';
+import * as path from 'path';
 
+export const template =
+  `
 <!DOCTYPE html>
 <html lang="en">
   <head>
@@ -12,3 +16,8 @@
     <script type="module" src="/src/main.tsx"></script>
   </body>
 </html>
+`;
+
+export const genHtml = () => {
+  fs.writeFileSync(path.resolve(process.cwd(), 'index.html'), template);
+}
