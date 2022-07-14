@@ -46,7 +46,6 @@
   - docker-compose up [-d] 是否后台运行
   - docker-compose的使用案例,docker-compose.yml的使用
 
-<<<<<<< Updated upstream
 - [] webpack-study
   - [x]基本配置
   - [x]构建优化
@@ -85,7 +84,6 @@
   - [] npm link
   - yarn workspace
   - lerna
-=======
+
 - [] code-collect
- - 工作中遇到的小功能需求，小公举
->>>>>>> Stashed changes
+  - 工作中遇到的小功能需求，小公举
