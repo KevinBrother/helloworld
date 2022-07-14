@@ -1,0 +1,34 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta http-equiv="X-UA-Compatible" content="IE=edge" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Document</title>
+  </head>
+  <body>
+    <p>需求：切换界面需要倒计时，30分钟后就退出该界面去登录界面</p>
+
+    <script>
+      function setSyncSign(sign) {
+        localStorage.setItem('visible', sign);
+      }
+
+      document.addEventListener('visibilitychange', function () {
+        let timer = '';
+        console.log('%c [ document.visibilityState ]-17', 'font-size:13px; background:pink; color:#bf2c9f;', document.visibilityState);
+        if (document.visibilityState === 'visible') {
+          setSyncSign(true);
+          // 关闭轮训
+          clearTimeout(timer);
+        } else if (document.visibilityState === 'hidden') {
+          setSyncSign(false);
+          // 开始轮训
+          timer = setTimeout(() => {
+            console.log('[ died ] >');
+          }, 1000 * 5);
+        }
+      });
+    </script>
+  </body>
+</html>
