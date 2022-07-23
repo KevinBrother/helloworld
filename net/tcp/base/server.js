@@ -16,12 +16,22 @@ server.on('listening', () => {
 
 // 开启连接
 server.on('connection', (socket) => {
+  console.log(
+    '%c [ socket ]-19',
+    'font-size:13px; background:pink; color:#bf2c9f;',
+    socket
+  );
+  socket.setNoDelay(true);
   socket.on('data', (buffer) => {
     const msg = buffer.toString();
     console.log('连接后接受到的消息', msg);
 
     // write方法写入数据，发送给客户端
     socket.write(Buffer.from('您好' + msg));
+  });
+
+  socket.on('close', (err) => {
+    console.log('[ 客户端连接断开了 ] >', err);
   });
 });
 

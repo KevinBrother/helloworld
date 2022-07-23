@@ -5,6 +5,11 @@ const PORT = 3000;
 // 创建连接客户端
 const client = net.createConnection(PORT, HOST, () => {
   console.log('客户端连接成功 日志1');
+  console.log(
+    '%c [ client ]-7',
+    'font-size:13px; background:pink; color:#bf2c9f;',
+    client
+  );
 });
 
 // 监听连接后开始发送数据
@@ -34,5 +39,5 @@ client.on('error', (err) => {
 });
 
 client.on('close', (err) => {
-  console.log('[ 客户端连接断开？ ] >', err);
+  console.log('[ 服务端连接断开了 ] >', err);
 });
