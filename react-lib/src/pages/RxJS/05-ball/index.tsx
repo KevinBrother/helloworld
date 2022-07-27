@@ -7,7 +7,7 @@ const XYFactor = {
   LEFT: [-1, 0],
   RIGHT: [1, 0],
 };
-type Action = keyof typeof XYFactor;
+type TAction = keyof typeof XYFactor;
 
 const step = 2;
 const MAX_LEN = 300;
@@ -22,7 +22,7 @@ export const MotionBall: React.FC<MotionBallProps> = () => {
   const delRef = useRef<HTMLDivElement>(null);
   const position = useRef<{ x: number; y: number }>({ x: 0, y: 0 });
 
-  const run = useCallback((action: Action) => {
+  const run = useCallback((action: TAction) => {
     console.log("run: ", action);
     const factor = XYFactor[action];
     let x = factor[0] * step + position.current.x;
@@ -40,7 +40,7 @@ export const MotionBall: React.FC<MotionBallProps> = () => {
 
   useEffect(() => {
     const move = (e: MouseEvent) => {
-      const action = (e.target as HTMLDivElement)?.dataset?.action as Action;
+      const action = (e.target as HTMLDivElement)?.dataset?.action as TAction;
       if (action) {
         run(action);
       }

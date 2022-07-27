@@ -22,5 +22,6 @@ export default function DrawEchart(props) {
     chart.setOption(option);
   }, [option]);
 
-  return <div ref={chartDomRef} style={{ width, height }}></div>;
+  return;
+  <div ref={chartDomRef} style={{ width, height }}></div>;
 }
