@@ -7,6 +7,7 @@ import { MotionBall } from './pages/RxJS/05-ball/index.tsx';
 import { PasswordLevel } from './pages/password-level';
 import UseRequest from './pages/AHooks/UseRequest';
 import DropAble from './pages/DropAble';
+import FormilyTest from './pages/formily';
 
 const menuRouter = [
   {
@@ -44,6 +45,10 @@ const menuRouter = [
   {
     path: '/DropAble',
     element: <DropAble />
+  },
+  {
+    path: '/FormilyTest',
+    element: <FormilyTest />
   }
 ];
 
