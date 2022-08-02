@@ -3,7 +3,6 @@ import FirstRX from './pages/RxJS/01-First.jsx';
 import RxJSHooks from './pages/RxJS/02-rxjs-hooks';
 import RxJSOperator from './pages/RxJS/03-operator';
 import ToDoList from './pages/RxJS/04-todo-list';
-import { MotionBall } from './pages/RxJS/05-ball/index.tsx';
 import { PasswordLevel } from './pages/password-level';
 import UseRequest from './pages/AHooks/UseRequest';
 import DropAble from './pages/DropAble';
@@ -29,10 +28,6 @@ const menuRouter = [
   {
     path: '/ToDoList',
     element: <ToDoList />
-  },
-  {
-    path: '/MotionBall',
-    element: <MotionBall />
   },
   {
     path: '/PasswordLevel',
