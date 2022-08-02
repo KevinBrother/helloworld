@@ -2,10 +2,18 @@ const HtmlWebpackPlugin = require('html-webpack-plugin');
 const MiniCssExtractPlugin = require('mini-css-extract-plugin');
 const CssMinimizerPlugin = require('css-minimizer-webpack-plugin');
 const TerserPlugin = require('terser-webpack-plugin');
+const ReactRefreshWebpackPlugin = require('@pmmmwh/react-refresh-webpack-plugin');
 const path = require('path');
 
+const isDevelopment = process.env.NODE_ENV !== 'production';
+console.log(
+  '%c [ process.env.NODE_ENV ]-8',
+  'font-size:13px; background:pink; color:#bf2c9f;',
+  process.env.NODE_ENV
+);
+
 module.exports = {
-  mode: 'production',
+  mode: isDevelopment ? 'development' : 'production',
   entry: {
     first: './src/pages/First/Index.tsx',
     second: './src/pages/Second/Index.tsx'
@@ -44,6 +52,9 @@ module.exports = {
               {
                 loader: 'babel-loader',
                 options: {
+                  plugins: [
+                    isDevelopment && require.resolve('react-refresh/babel')
+                  ].filter(Boolean),
                   cacheDirectory: true,
                   cacheCompression: false,
                   presets: [
@@ -70,8 +81,9 @@ module.exports = {
       filename: './second.html',
       chunks: ['second']
     }),
-    new MiniCssExtractPlugin()
-  ],
+    new MiniCssExtractPlugin(),
+    isDevelopment && new ReactRefreshWebpackPlugin()
+  ].filter(Boolean),
   resolve: {
     alias: {
       '@assert': path.resolve(__dirname, './src/assert'),
@@ -104,5 +116,8 @@ module.exports = {
         parallel: true
       })
     ]
+  },
+  performance: {
+    hints: false
   }
 };
