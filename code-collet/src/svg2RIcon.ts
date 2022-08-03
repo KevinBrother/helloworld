@@ -1,17 +1,5 @@
 import * as fs from 'fs';
-/*
-* 下划线转换驼峰
-*/
-export function underlineToHump(str: string) {
-  let upcase = str.replace(/(\w?)(?:[_-]+(\w))/g, function ($0, $1, $2) {
-    return $1 + $2.toUpperCase();
-  });
-
-  // 首字母大写
-  return upcase[0].toUpperCase() + upcase.slice(1);
-}
-
-// console.log(underlineToHump('a_ad_qe_dsa'));
+import { underlineToHump } from './utils/index';
 
 export function removeSuffix(name: string) {
   return name.split('.')[0];
@@ -61,7 +49,6 @@ export function genIconRFCByFileName(fileNames: string[]) {
 
 
 // 生成index.tsx文件
-
 export function getCodeTemplate() {
   return `import React, { ComponentProps } from 'react';
 import Icon from '@bixi-design/icons';`;
