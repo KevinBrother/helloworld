@@ -52,9 +52,6 @@ module.exports = {
               {
                 loader: 'babel-loader',
                 options: {
-                  plugins: [
-                    isDevelopment && require.resolve('react-refresh/babel')
-                  ].filter(Boolean),
                   cacheDirectory: true,
                   cacheCompression: false,
                   presets: [
@@ -76,6 +73,7 @@ module.exports = {
       filename: './first.html',
       chunks: ['first']
     }),
+
     new HtmlWebpackPlugin({
       template: './index.html',
       filename: './second.html',
@@ -83,7 +81,7 @@ module.exports = {
     }),
     new MiniCssExtractPlugin(),
     isDevelopment && new ReactRefreshWebpackPlugin()
-  ].filter(Boolean),
+  ],
   resolve: {
     alias: {
       '@assert': path.resolve(__dirname, './src/assert'),
