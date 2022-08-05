@@ -30,16 +30,31 @@ function humpIcon(underLine: string) {
 }
 
 // 2. 找到标签并替换
-function replaceTag(code: string) {
+/* function replaceTag(code: string) {
 
   return code.replace(/<(RpaIcon) (icon=\'(.*?)\')/g, function ($0, $1, $2, $3) {
 
     // console.log('%c [  ]-21', 'font-size:13px; background:pink; color:#bf2c9f;', $0, $1, $2, $3)
     return $0.replace($1, humpIcon($3)).replace($2, '');
   });
-}
+} */
 // const replacedCode = replaceTag(code);
 // console.log('%c [ replacedCode ]-26', 'font-size:13px; background:pink; color:#bf2c9f;', replacedCode);
+
+function replaceTag(code: string) {
+  // icon: 'jobs-status-exception'
+  // icon: <JobsStatusExceptionIcon/>
+  // 匹配所有 icon: 'aaa-bbb-ccc' 的字符串
+  const reg = /icon: (\'(.*)\')/g;
+
+  return code.replace(reg, function ($0, $1, $2) {
+    console.log('%c [ $0, $1, $2 ]-51', 'font-size:13px; background:pink; color:#bf2c9f;', $0, $1, $2)
+    const IconName = humpIcon($2);
+
+    return $0.replace($1, `<${IconName}/>`);
+  });
+}
+
 
 // 3. 写入文件
 function write(url: string, code: string) {
@@ -54,4 +69,4 @@ function run(url: string) {
   write(url, replacedCode);
 }
 
-run('./src/routers/menu-tree.tsx');
+run('./src/template/job.ts');

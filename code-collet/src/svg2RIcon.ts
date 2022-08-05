@@ -1,11 +1,22 @@
 import * as fs from 'fs';
-import { underlineToHump } from './utils/index';
 
 export function removeSuffix(name: string) {
   return name.split('.')[0];
 }
 
-// 获取改目录下的所有的svg文件
+/*
+* 下划线转换驼峰
+*/
+export function underlineToHump(str: string) {
+  let upcase = str.replace(/(\w?)(?:[_-]+(\w))/g, function ($0, $1, $2) {
+    return $1 + $2.toUpperCase();
+  });
+
+  // 首字母大写
+  return upcase[0].toUpperCase() + upcase.slice(1);
+}
+
+// 1. 获取改目录下的所有的svg文件
 export function getFilenamesByPathAndSuffix(uri: fs.PathLike, suffix = '.svg') {
 
   const files = fs.readdirSync(uri);
@@ -17,7 +28,7 @@ export function getFilenamesByPathAndSuffix(uri: fs.PathLike, suffix = '.svg') {
 // const filenames = getFilenamesByPathAndSuffix('./', '.json');
 // console.log('%c [ files ]-10', 'font-size:13px; background:pink; color:#bf2c9f;', filenames);
 
-// 生成import语句
+// 2. 生成import语句
 export function genImportGrammarByFileNames(filenames: string[]): string {
   let importGrammar = '';
   filenames.forEach(filename => {
@@ -31,7 +42,7 @@ export function genImportGrammarByFileNames(filenames: string[]): string {
 // const importGrammar = genImportGrammarByFileNames(filenames);
 // console.log('%c [ files ]-10', 'font-size:13px; background:pink; color:#bf2c9f;', importGrammar);
 
-// 生成rfc语句
+// 3. 生成rfc语句
 export function genIconRFCByFileName(fileNames: string[]) {
   let RRCGrammar = '';
   // const SideMenuAppIcon = (props: ComponentProps<typeof Icon>) => <Icon component={ SideMenuAppSvg } { ...props } />;
@@ -48,7 +59,7 @@ export function genIconRFCByFileName(fileNames: string[]) {
 // console.log('%c [ files ]-10', 'font-size:13px; background:pink; color:#bf2c9f;', iconRfc);
 
 
-// 生成index.tsx文件
+// 4. 生成index.tsx文件
 export function getCodeTemplate() {
   return `import React, { ComponentProps } from 'react';
 import Icon from '@bixi-design/icons';`;
