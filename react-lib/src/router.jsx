@@ -5,8 +5,8 @@ import RxJSOperator from './pages/RxJS/03-operator';
 import ToDoList from './pages/RxJS/04-todo-list';
 import { PasswordLevel } from './pages/password-level';
 import UseRequest from './pages/AHooks/UseRequest';
+import JsxVarTag from './pages/jsx-var-tag';
 import DropAble from './pages/DropAble';
-import FormilyTest from './pages/formily';
 
 const menuRouter = [
   {
@@ -42,8 +42,8 @@ const menuRouter = [
     element: <DropAble />
   },
   {
-    path: '/FormilyTest',
-    element: <FormilyTest />
+    path: '/JsxVarTag',
+    element: <JsxVarTag />
   }
 ];
 
