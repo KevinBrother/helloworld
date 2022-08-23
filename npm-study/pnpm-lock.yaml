@@ -1,0 +1,26 @@
+lockfileVersion: 5.4
+
+specifiers:
+  npm-test-demo-first: ^1.0.1
+  npm-test-demo-second: ^1.0.0
+
+dependencies:
+  npm-test-demo-first: 1.0.1
+  npm-test-demo-second: 1.0.0
+
+packages:
+
+  /npm-test-demo-first/1.0.1:
+    resolution: {integrity: sha512-YQTShGbd36MiLpx8eLJX1Ve8XVaILyjwbq50dOVf9OCXqsxQ18qpAjhTnldazTo41dtvnEOc/HsWcKX83QCipA==}
+    dependencies:
+      npm-test-demo-inner: 1.0.2
+    dev: false
+
+  /npm-test-demo-inner/1.0.2:
+    resolution: {integrity: sha512-qVxhscexrPl17q3QOPGirC3EaxVc271oE1bAkuLZPExiwv+ZANoqPe4FtXnqXrSP+O/94+yHTNvhCkMwlqcGBQ==}
+    hasBin: true
+    dev: false
+
+  /npm-test-demo-second/1.0.0:
+    resolution: {integrity: sha512-zh0KNxXpU6uJvmU7gYFu9xvjrnYLNrY9t4WtBhAe0uPCmVRVLPK5ReXa6zcAF6BqZ1/Ax6Xz+e9coK7u+S/2QA==}
+    dev: false
