@@ -15,6 +15,9 @@
 - [] node-study
   - node常用api文档的使用以及案例，比如child-process、fs、path、os、net、http等模块
 
+- [] npm-study
+  - 测试与学习npm的发布、下载、依赖、缓存等功能
+
 - [] echarts-test
   - 基础的echarts操作
 
