@@ -1,0 +1,15 @@
+{
+  "name": "npm-study",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "cache:ls": "node ./cli.js cache ls  "
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "nopt": "^6.0.0"
+  }
+}
