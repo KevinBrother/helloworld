@@ -2,19 +2,19 @@
 # yarn lockfile v1
 
 
-npm-test-demo-first@^1.0.1:
-  version "1.0.1"
-  resolved "https://mirrors.huaweicloud.com/repository/npm/npm-test-demo-first/-/npm-test-demo-first-1.0.1.tgz#6d2867dcbd5eb94b426bc09782a6055728c0997b"
-  integrity sha512-YQTShGbd36MiLpx8eLJX1Ve8XVaILyjwbq50dOVf9OCXqsxQ18qpAjhTnldazTo41dtvnEOc/HsWcKX83QCipA==
+"npm-test-demo-first@^1.0.1":
+  "integrity" "sha512-YQTShGbd36MiLpx8eLJX1Ve8XVaILyjwbq50dOVf9OCXqsxQ18qpAjhTnldazTo41dtvnEOc/HsWcKX83QCipA=="
+  "resolved" "https://registry.npmjs.org/npm-test-demo-first/-/npm-test-demo-first-1.0.1.tgz"
+  "version" "1.0.1"
   dependencies:
-    npm-test-demo-inner "^1.0.1"
+    "npm-test-demo-inner" "^1.0.1"
 
-npm-test-demo-inner@^1.0.1:
-  version "1.0.2"
-  resolved "https://mirrors.huaweicloud.com/repository/npm/npm-test-demo-inner/-/npm-test-demo-inner-1.0.2.tgz#99bfb95ac64afc84a9b7a11e942441c079341b3e"
-  integrity sha512-qVxhscexrPl17q3QOPGirC3EaxVc271oE1bAkuLZPExiwv+ZANoqPe4FtXnqXrSP+O/94+yHTNvhCkMwlqcGBQ==
+"npm-test-demo-inner@^1.0.1":
+  "integrity" "sha512-Uf/c7qWA7ACyVVvLp1CtTYtwe6O9lNR+YgZKYyOiTLuktRbiXcLXge8fKW95pLqdOm7TRxXcHyce+fIKYUIslA=="
+  "resolved" "https://registry.npmjs.org/npm-test-demo-inner/-/npm-test-demo-inner-1.0.1.tgz"
+  "version" "1.0.1"
 
-npm-test-demo-second@^1.0.0:
-  version "1.0.0"
-  resolved "https://mirrors.huaweicloud.com/repository/npm/npm-test-demo-second/-/npm-test-demo-second-1.0.0.tgz#c5c041802ec85a4c527d9444473eba0e81af1129"
-  integrity sha512-zh0KNxXpU6uJvmU7gYFu9xvjrnYLNrY9t4WtBhAe0uPCmVRVLPK5ReXa6zcAF6BqZ1/Ax6Xz+e9coK7u+S/2QA==
+"npm-test-demo-second@^1.0.0":
+  "integrity" "sha512-zh0KNxXpU6uJvmU7gYFu9xvjrnYLNrY9t4WtBhAe0uPCmVRVLPK5ReXa6zcAF6BqZ1/Ax6Xz+e9coK7u+S/2QA=="
+  "resolved" "https://registry.npmjs.org/npm-test-demo-second/-/npm-test-demo-second-1.0.0.tgz"
+  "version" "1.0.0"

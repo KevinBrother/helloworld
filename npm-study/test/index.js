@@ -2,6 +2,8 @@
 const fs = require('fs');
 const path = '~/.npm/_cacache/index-v5';
 
+console.log(process.argv);
+
 /* readdir(path)
   .then((rst) => {
     console.log('[ rst ] >', rst);

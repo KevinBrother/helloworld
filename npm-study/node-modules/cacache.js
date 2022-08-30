@@ -62,63 +62,19 @@ function lsStream(cache) {
 
     resolve(cachePaths);
   });
-
-  // Set all this up to run on the stream and then just return the stream
-  Promise.resolve()
-    .then(async () => {
-      const buckets = await readdirOrEmpty(indexDir);
-      await Promise.all(
-        buckets.map(async (bucket) => {
-          const bucketPath = path.join(indexDir, bucket);
-          const subbuckets = await readdirOrEmpty(bucketPath);
-          await Promise.all(
-            subbuckets.map(async (subbucket) => {
-              const subbucketPath = path.join(bucketPath, subbucket);
-
-              // "/cachename/<bucket 0xFF>/<bucket 0xFF>./*"
-              const subbucketEntries = await readdirOrEmpty(subbucketPath);
-              await Promise.all(
-                subbucketEntries.map(async (entry) => {
-                  const entryPath = path.join(subbucketPath, entry);
-                  try {
-                    const entries = await bucketEntries(entryPath);
-                    // using a Map here prevents duplicate keys from showing up
-                    // twice, I guess?
-                    const reduced = entries.reduce((acc, entry) => {
-                      acc.set(entry.key, entry);
-                      return acc;
-                    }, new Map());
-                    // reduced is a map of key => entry
-                    for (const entry of reduced.values()) {
-                      const formatted = formatEntry(cache, entry);
-                      if (formatted) {
-                        return formatted;
-                      }
-                    }
-                  } catch (err) {
-                    if (err.code === 'ENOENT') {
-                      return undefined;
-                    }
-                    throw err;
-                  }
-                })
-              );
-            })
-          );
-        })
-      );
-    })
-    .catch((err) => {
-      console.log('解析缓存路径失败！！！！', err);
-    });
 }
 
-async function ls(cache) {
+/* async function ls(cache) {
   const entries = await lsStream(cache);
   return entries.reduce((acc, xs) => {
     acc[xs.key] = xs;
     return acc;
   }, {});
+} */
+
+async function ls(cache) {
+  const entries = await lsStream(cache);
+  return entries.map((item) => item.key);
 }
 
 module.exports.ls = ls;
@@ -182,7 +138,8 @@ function formatEntry(cache, entry, keepAll) {
   return {
     key: entry.key,
     integrity: entry.integrity,
-    path: entry.integrity ? contentPath(cache, entry.integrity) : undefined,
+    // path: entry.integrity ? contentPath(cache, entry.integrity) : undefined,
+    path: entry.integrity,
     size: entry.size,
     time: entry.time,
     metadata: entry.metadata

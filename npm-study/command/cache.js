@@ -23,7 +23,8 @@ class Cache {
   async ls() {
     // 获取缓存路径
     const cachePath = path.join(this.npm.cache, '_cacache');
-    const cacheKeys = Object.keys(await cacache.ls(cachePath));
+    // const cacheKeys = Object.keys(await cacache.ls(cachePath));
+    const cacheKeys = await cacache.ls(cachePath);
     console.log(
       '%c [ cacheKeys ]-27',
       'font-size:13px; background:pink; color:#bf2c9f;',
