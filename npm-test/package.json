@@ -10,7 +10,6 @@
   "author": "",
   "license": "ISC",
   "dependencies": {
-    "npm-test-demo-first": "^1.0.1",
     "npm-test-demo-second": "^1.0.0"
   }
 }
