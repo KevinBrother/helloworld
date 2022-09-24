@@ -1,25 +1,29 @@
 const HtmlWebpackPlugin = require('html-webpack-plugin');
-const MiniCssExtractPlugin = require('mini-css-extract-plugin');
-const CssMinimizerPlugin = require('css-minimizer-webpack-plugin');
-const TerserPlugin = require('terser-webpack-plugin');
 const ReactRefreshWebpackPlugin = require('@pmmmwh/react-refresh-webpack-plugin');
 const { BundleAnalyzerPlugin } = require('webpack-bundle-analyzer');
 const webpackPaths = require('./webpack.paths');
+const SpeedMeasurePlugin = require('speed-measure-webpack-plugin');
+const smp = new SpeedMeasurePlugin();
 
 const path = require('path');
+const { NODE_ENV, ANALYZER } = process.env;
 
-const isDevelopment = process.env.NODE_ENV !== 'production';
+const isDevelopment = NODE_ENV !== 'production';
 console.log(
-  '%c [ process.env.NODE_ENV ]-8',
+  '%c [ process.env ]-8',
   'font-size:13px; background:pink; color:#bf2c9f;',
-  process.env.NODE_ENV
+  process.env.NODE_ENV,
+  process.env.ANALYZER
 );
 
-module.exports = {
+const options = {
   mode: isDevelopment ? 'development' : 'production',
   entry: {
     first: path.join(webpackPaths.srcPath, './pages/First/Index.tsx'),
     second: path.join(webpackPaths.srcPath, './pages/Second/Index.tsx')
+  },
+  devServer: {
+    open: true
   },
   output: {
     path: path.join(webpackPaths.rootPath, 'dist'),
@@ -32,11 +36,11 @@ module.exports = {
         oneOf: [
           {
             test: /\.css$/i,
-            use: [MiniCssExtractPlugin.loader, 'css-loader']
+            use: ['style-loader', 'css-loader']
           },
           {
             test: /\.less$/i,
-            use: [MiniCssExtractPlugin.loader, 'css-loader', 'less-loader']
+            use: ['style-loader', 'css-loader', 'less-loader']
           },
           {
             test: /\.(png|svg|jpg|jpeg|gif)$/i,
@@ -82,13 +86,13 @@ module.exports = {
       filename: './second.html',
       chunks: ['second']
     }),
-    new MiniCssExtractPlugin(),
-    new BundleAnalyzerPlugin({
-      analyzerMode: 'server',
-      analyzerPort: '50000'
-    }),
+    ANALYZER &&
+      new BundleAnalyzerPlugin({
+        analyzerMode: 'server',
+        analyzerPort: '50000'
+      }),
     isDevelopment && new ReactRefreshWebpackPlugin()
-  ],
+  ].filter(Boolean),
   resolve: {
     alias: {
       '@assert': path.join(webpackPaths.srcPath, './assert'),
@@ -96,33 +100,9 @@ module.exports = {
     },
     extensions: ['.js', '.jsx', '.tsx', '.ts']
   },
-  optimization: {
-    splitChunks: {
-      minSize: 0,
-      chunks: 'all',
-      cacheGroups: {
-        /*      vender: {
-          chunks: 'all',
-          test: /(react|react-dom)/,
-          priority: -10,
-          name: 'vender'
-        }, */
-
-        common: {
-          priority: -20,
-          name: 'common'
-        }
-      }
-    },
-    minimize: true,
-    minimizer: [
-      new CssMinimizerPlugin(),
-      new TerserPlugin({
-        parallel: true
-      })
-    ]
-  },
   performance: {
     hints: false
   }
 };
+
+module.exports = ANALYZER ? smp.wrap(options) : options;
