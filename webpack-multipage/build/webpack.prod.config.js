@@ -18,8 +18,8 @@ console.log(
 module.exports = {
   mode: isDevelopment ? 'development' : 'production',
   entry: {
-    first: path.join(webpackPaths.srcPath, './pages/First/Index.tsx'),
-    second: path.join(webpackPaths.srcPath, './pages/Second/Index.tsx')
+    first: path.join(webpackPaths.containerPath, './First/Index.tsx'),
+    second: path.join(webpackPaths.containerPath, './Second/Index.tsx')
   },
   output: {
     path: path.join(webpackPaths.rootPath, 'dist'),

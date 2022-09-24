@@ -4,6 +4,7 @@ const rootPath = path.join(__dirname, '..');
 const srcPath = path.join(rootPath, 'src');
 const srcNodeModulesPath = path.join(rootPath, 'node_modules');
 const distPath = path.join(rootPath, 'dist');
+const containerPath = path.join(srcPath, 'containers');
 
 // const dllPath = path.join(__dirname, '../dll');
 // const srcMainPath = path.join(srcPath, 'main');
@@ -24,5 +25,6 @@ module.exports = {
   rootPath,
   srcPath,
   srcNodeModulesPath,
-  distPath
+  distPath,
+  containerPath
 };
