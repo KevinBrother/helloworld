@@ -3,6 +3,7 @@ const MiniCssExtractPlugin = require('mini-css-extract-plugin');
 const CssMinimizerPlugin = require('css-minimizer-webpack-plugin');
 const TerserPlugin = require('terser-webpack-plugin');
 const ReactRefreshWebpackPlugin = require('@pmmmwh/react-refresh-webpack-plugin');
+const { BundleAnalyzerPlugin } = require('webpack-bundle-analyzer');
 const path = require('path');
 
 const isDevelopment = process.env.NODE_ENV !== 'production';
@@ -80,6 +81,10 @@ module.exports = {
       chunks: ['second']
     }),
     new MiniCssExtractPlugin(),
+    new BundleAnalyzerPlugin({
+      analyzerMode: 'server',
+      analyzerPort: '50000'
+    }),
     isDevelopment && new ReactRefreshWebpackPlugin()
   ],
   resolve: {
