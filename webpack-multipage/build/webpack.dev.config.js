@@ -4,6 +4,8 @@ const CssMinimizerPlugin = require('css-minimizer-webpack-plugin');
 const TerserPlugin = require('terser-webpack-plugin');
 const ReactRefreshWebpackPlugin = require('@pmmmwh/react-refresh-webpack-plugin');
 const { BundleAnalyzerPlugin } = require('webpack-bundle-analyzer');
+const webpackPaths = require('./webpack.paths');
+
 const path = require('path');
 
 const isDevelopment = process.env.NODE_ENV !== 'production';
@@ -16,11 +18,11 @@ console.log(
 module.exports = {
   mode: isDevelopment ? 'development' : 'production',
   entry: {
-    first: './src/pages/First/Index.tsx',
-    second: './src/pages/Second/Index.tsx'
+    first: path.join(webpackPaths.srcPath, './pages/First/Index.tsx'),
+    second: path.join(webpackPaths.srcPath, './pages/Second/Index.tsx')
   },
   output: {
-    path: path.resolve(__dirname, 'dist'),
+    path: path.join(webpackPaths.rootPath, 'dist'),
     filename: '[name].[hash:8].js',
     clean: true
   },
@@ -70,13 +72,13 @@ module.exports = {
   },
   plugins: [
     new HtmlWebpackPlugin({
-      template: './index.html',
+      template: path.join(webpackPaths.rootPath, './index.html'),
       filename: './first.html',
       chunks: ['first']
     }),
 
     new HtmlWebpackPlugin({
-      template: './index.html',
+      template: path.join(webpackPaths.rootPath, './index.html'),
       filename: './second.html',
       chunks: ['second']
     }),
@@ -89,8 +91,8 @@ module.exports = {
   ],
   resolve: {
     alias: {
-      '@assert': path.resolve(__dirname, './src/assert'),
-      '@utils': path.resolve(__dirname, './src/utils')
+      '@assert': path.join(webpackPaths.srcPath, './assert'),
+      '@utils': path.join(webpackPaths.srcPath, './utils')
     },
     extensions: ['.js', '.jsx', '.tsx', '.ts']
   },

@@ -21,6 +21,7 @@
   - [ ] antd
   - [ ] lodash
   - [ ] moment.js改为dayjs
+  - [ ] monaco-editor
 
 - [ ] 把config改为ts
 
