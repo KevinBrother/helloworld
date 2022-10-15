@@ -1,0 +1,174 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta http-equiv="X-UA-Compatible" content="IE=edge" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Document</title>
+    <script src="./lib/echarts-5.4.js"></script>
+    <style>
+      html {
+        overflow: hidden;
+      }
+      #main {
+        width: 700px;
+        height: 500px;
+      }
+
+      .tooltip {
+        width: 200px;
+        background-color: cyan !important;
+        border: 2px solid black !important;
+        border-radius: 4px !important;
+        padding: 6px !important;
+      }
+    </style>
+  </head>
+  <body>
+    <div id="main"></div>
+    <script>
+      // 基于准备好的dom，初始化echarts实例
+      var myChart = echarts.init(document.getElementById('main'));
+      // 绘制图表
+      myChart.setOption({
+        title: {
+          text: '机器人数量',
+          left: 'center',
+          subtext: '副标题',
+          textStyle: {
+            color: 'red',
+            fontSize: 32 // 默认就是px单位结尾
+          },
+          subtextStyle: {
+            color: 'black',
+            fontSize: 16 // 默认就是px单位结尾
+          }
+        },
+        legend: {
+          left: 'left',
+          orient: 'vertical'
+        },
+        tooltip: {
+          // trigger: 'item',
+          trigger: 'axis',
+          axisPointer: {
+            type: 'cross'
+          },
+          renderMode: 'html',
+          className: 'tooltip',
+          textStyle: {
+            color: 'pink'
+          },
+          confine: true,
+          showContent: true,
+          enterable: true,
+          position: (point, params, dom, rect, size) => {
+            return [point[0], 130];
+          }
+        },
+        toolbox: {
+          feature: {
+            saveAsImage: {},
+            restore: {},
+            dataView: {},
+            magicType: {
+              type: ['line', 'bar', 'stack']
+            }
+          },
+          tooltip: {
+            // 和 option.tooltip 的配置项相同
+            show: true,
+            formatter: function (param) {
+              return '<div>' + param.title + '</div>'; // 自定义的 DOM 结构
+            },
+            backgroundColor: '#222',
+            textStyle: {
+              fontSize: 12
+            },
+            extraCssText: 'box-shadow: 0 0 3px rgba(0, 0, 0, 0.3);' // 自定义的 CSS 样式
+          }
+        },
+        xAxis: {
+          name: '衣服',
+          data: ['衬衫', '羊毛衫', '雪纺衫', '裤子', '高跟鞋', '袜子']
+        },
+        yAxis: {
+          name: '数量',
+          // splitNumber: 20
+          minInterval: 10
+        },
+        series: [
+          {
+            name: '销量',
+            type: 'bar',
+            data: [5, 20, 36, 10, 10, 20],
+            markPoint: {
+              symbol: 'circle',
+              symbolOffset: [20, 20],
+              label: {
+                position: [10, 10]
+              },
+              data: [
+                {
+                  name: '最大值',
+                  type: 'max',
+                  symbolOffset: [20, 20]
+                },
+                {
+                  name: '某个坐标',
+                  coord: [3, 20]
+                },
+                {
+                  name: '固定 x 像素位置',
+                  yAxis: 10,
+                  x: '90%'
+                },
+
+                {
+                  name: '某个屏幕坐标',
+                  x: 100,
+                  y: 100,
+                  value: '自定义'
+                },
+                {
+                  coord: [4, 40],
+                  value: '40个'
+                }
+              ]
+            }
+          },
+          {
+            name: '销量2',
+            type: 'bar',
+            data: [15, 30, 6, 20, 30, 10],
+            markLine: {
+              data: [
+                {
+                  type: 'min'
+                },
+                {
+                  type: 'max'
+                },
+                {
+                  type: 'average'
+                },
+                [
+                  {
+                    coord: [0, 0]
+                  },
+                  {
+                    coord: [3, 30],
+                    value: '自定义标注线'
+                  }
+                ]
+              ]
+            }
+          }
+        ],
+        grid: {
+          top: 80
+        }
+      });
+    </script>
+  </body>
+</html>
