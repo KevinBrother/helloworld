@@ -106,7 +106,36 @@
           {
             name: '销量',
             type: 'bar',
-            data: [5, 20, 36, 10, 10, 20],
+            data: [
+              5,
+              20,
+              36,
+              10,
+              10,
+              {
+                value: 20,
+                itemStyle: {
+                  color: {
+                    type: 'linear',
+                    x: 0,
+                    y: 0,
+                    x2: 0,
+                    y2: 1,
+                    colorStops: [
+                      {
+                        offset: 0,
+                        color: 'red' // 0% 处的颜色
+                      },
+                      {
+                        offset: 1,
+                        color: 'blue' // 100% 处的颜色
+                      }
+                    ],
+                    global: false // 缺省为 false
+                  }
+                }
+              }
+            ],
             markPoint: {
               symbol: 'circle',
               symbolOffset: [20, 20],

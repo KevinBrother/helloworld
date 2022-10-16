@@ -1,0 +1,66 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta http-equiv="X-UA-Compatible" content="IE=edge" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Document</title>
+    <script src="./lib/echarts-5.4.js"></script>
+    <style>
+      #main {
+        width: 700px;
+        height: 500px;
+      }
+    </style>
+  </head>
+  <body>
+    <div id="main"></div>
+    <script>
+      // 基于准备好的dom，初始化echarts实例
+      var myChart = echarts.init(document.getElementById('main'));
+      // 绘制图表
+      myChart.setOption({
+        visualMap: {
+          min: 0,
+          max: 100,
+          inRange: {
+            colorLightness: [0, 1]
+          }
+        },
+        series: {
+          type: 'pie',
+          data: [
+            { name: '衬衫', value: 5 },
+            { name: '羊毛衫', value: 20 },
+            { name: '雪纺衫', value: 36 },
+            {
+              name: '裤子',
+              value: 10
+            },
+            { name: '高跟鞋', value: 10 }
+          ],
+          itemStyle: {
+            color: '#00acec'
+          },
+          roseType: 'radius',
+          radius: [150, 200],
+          label: {
+            position: 'inside',
+            lineHeight: 40,
+            fontSize: 20,
+            fontWeight: 'bold',
+            formatter(data) {
+              const { name, percent } = data;
+              console.log(
+                '%c [ data ]-51',
+                'font-size:13px; background:pink; color:#bf2c9f;',
+                data
+              );
+              return `${name}\n${Math.round(percent)}%`;
+            }
+          }
+        }
+      });
+    </script>
+  </body>
+</html>
