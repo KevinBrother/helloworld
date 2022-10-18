@@ -1,0 +1,102 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta http-equiv="X-UA-Compatible" content="IE=edge" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Document</title>
+    <script src="../lib/echarts-5.4.js"></script>
+    <style>
+      #main {
+        width: 700px;
+        height: 500px;
+      }
+    </style>
+  </head>
+  <body>
+    <div id="main"></div>
+    <script>
+      // 基于准备好的dom，初始化echarts实例
+      var myChart = echarts.init(document.getElementById('main'));
+      // 绘制图表
+      myChart.setOption({
+        title: {
+          text: ' 73,273\n总数',
+          top: 'middle',
+          left: 'center'
+        },
+        series: {
+          type: 'pie',
+          data: [
+            { name: '衬衫', value: 15 },
+            { name: '羊毛衫', value: 20 },
+            { name: '雪纺衫', value: 30 },
+            { name: '裤子', value: 15 },
+            { name: '高跟鞋', value: 10 }
+          ],
+          itemStyle: {
+            borderColor: '#fff',
+            borderWidth: 10
+          },
+          radius: [150, 200],
+          label: {
+            show: false
+          },
+          color: [
+            {
+              type: 'linear',
+              x: 0,
+              y: 0,
+              x2: 0,
+              y2: 1,
+              colorStops: [
+                {
+                  offset: 0,
+                  color: 'rgba(72, 99, 239, 0.4)' // 0% 处的颜色
+                },
+                {
+                  offset: 1,
+                  color: '#4863EF' // 100% 处的颜色
+                }
+              ]
+            },
+            {
+              type: 'linear',
+              x: 0,
+              y: 0,
+              x2: 0,
+              y2: 1,
+              colorStops: [
+                {
+                  offset: 0,
+                  color: 'rgba(119,139,243,0.4)' // 0% 处的颜色
+                },
+                {
+                  offset: 1,
+                  color: '#778BF3' // 100% 处的颜色
+                }
+              ]
+            },
+            {
+              type: 'linear',
+              x: 0,
+              y: 0,
+              x2: 0,
+              y2: 1,
+              colorStops: [
+                {
+                  offset: 0,
+                  color: 'rgba(218,171,81,0.4)' // 0% 处的颜色
+                },
+                {
+                  offset: 1,
+                  color: '#daab51' // 100% 处的颜色
+                }
+              ]
+            }
+          ]
+        }
+      });
+    </script>
+  </body>
+</html>
