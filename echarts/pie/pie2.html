@@ -7,15 +7,86 @@
     <title>Document</title>
     <script src="../lib/echarts-5.4.js"></script>
     <style>
+      body {
+        background-color: #18181d;
+      }
+
+      .tmp-border {
+        border: 1px solid cyan;
+      }
+      .outer {
+      }
+
+      .inner {
+        position: relative;
+        width: 430px;
+        height: 430px;
+        background: center/contain no-repeat url('../images/round.png');
+      }
+
+      .inner-bg {
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        position: absolute;
+        width: 290px;
+        height: 290px;
+        margin: auto;
+        background: center/contain no-repeat url('../images/shooting-star.png');
+        animation: inner-bg-animation 3s linear infinite;
+      }
+
+      @keyframes inner-bg-animation {
+        0% {
+          transform: rotate(0deg);
+        }
+        100% {
+          transform: rotate(360deg);
+        }
+      }
+
       #main {
-        width: 700px;
-        height: 500px;
+        width: 430px;
+        height: 430px;
       }
     </style>
   </head>
   <body>
-    <div id="main"></div>
+    <div class="inner tmp-border">
+      <div class="inner-bg inner-bg-rotate"></div>
+      <div id="main"></div>
+    </div>
     <script>
+      function getLinerColors() {
+        const colors = [
+          ['rgba(72, 99, 239, 0.4)', '#4863EF'],
+          ['rgba(119,139,243,0.4)', '#778BF3'],
+          ['rgba(218,171,81,0.4)', '#daab51'],
+          ['rgba(72, 99, 239, 0.4)', '#4863EF'],
+          ['rgba(72, 99, 239, 0.4)', '#4863EF'],
+          ['rgba(72, 99, 239, 0.4)', '#4863EF']
+        ];
+
+        return colors.map(([startColor, endColor]) => ({
+          type: 'linear',
+          x: 0,
+          y: 0,
+          x2: 0,
+          y2: 1,
+          colorStops: [
+            {
+              offset: 0,
+              color: startColor // 0% 处的颜色
+            },
+            {
+              offset: 1,
+              color: endColor // 100% 处的颜色
+            }
+          ]
+        }));
+      }
+
       // 基于准备好的dom，初始化echarts实例
       var myChart = echarts.init(document.getElementById('main'));
       // 绘制图表
@@ -35,66 +106,14 @@
             { name: '高跟鞋', value: 10 }
           ],
           itemStyle: {
-            borderColor: '#fff',
+            borderColor: '#18181d',
             borderWidth: 10
           },
           radius: [150, 200],
           label: {
             show: false
           },
-          color: [
-            {
-              type: 'linear',
-              x: 0,
-              y: 0,
-              x2: 0,
-              y2: 1,
-              colorStops: [
-                {
-                  offset: 0,
-                  color: 'rgba(72, 99, 239, 0.4)' // 0% 处的颜色
-                },
-                {
-                  offset: 1,
-                  color: '#4863EF' // 100% 处的颜色
-                }
-              ]
-            },
-            {
-              type: 'linear',
-              x: 0,
-              y: 0,
-              x2: 0,
-              y2: 1,
-              colorStops: [
-                {
-                  offset: 0,
-                  color: 'rgba(119,139,243,0.4)' // 0% 处的颜色
-                },
-                {
-                  offset: 1,
-                  color: '#778BF3' // 100% 处的颜色
-                }
-              ]
-            },
-            {
-              type: 'linear',
-              x: 0,
-              y: 0,
-              x2: 0,
-              y2: 1,
-              colorStops: [
-                {
-                  offset: 0,
-                  color: 'rgba(218,171,81,0.4)' // 0% 处的颜色
-                },
-                {
-                  offset: 1,
-                  color: '#daab51' // 100% 处的颜色
-                }
-              ]
-            }
-          ]
+          color: getLinerColors()
         }
       });
     </script>
