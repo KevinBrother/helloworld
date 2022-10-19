@@ -1,0 +1,122 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta http-equiv="X-UA-Compatible" content="IE=edge" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Document</title>
+    <script src="../lib/echarts-5.4.js"></script>
+    <style>
+      body {
+        background-color: #18181d;
+      }
+
+      #main {
+        width: 600px;
+        height: 260px;
+      }
+
+      .tooltip {
+        width: 200px;
+        background-color: cyan !important;
+        border: 2px solid black !important;
+        border-radius: 4px !important;
+        padding: 6px !important;
+      }
+    </style>
+  </head>
+  <body>
+    <div id="main"></div>
+    <script>
+      // 基于准备好的dom，初始化echarts实例
+      var myChart = echarts.init(document.getElementById('main'));
+      // 绘制图表
+      myChart.setOption({
+        tooltip: {
+          // formatter: '{value}',
+          extraCssText: `width: 159px;
+                          height: 44px;
+                          background: #141620;
+                          box-shadow: 0px 2px 12px 0px rgba(0,0,0,0.5);
+                          border-radius: 4px;
+                          border: 1px solid #232439;`
+        },
+        xAxis: {
+          axisTick: {
+            show: false
+          },
+          axisLabel: {
+            margin: 20
+          },
+          data: ['衬衫', '羊毛衫', '雪纺衫', '裤子', '高跟鞋', '袜子']
+        },
+        yAxis: [
+          {
+            type: 'value',
+            name: '作业次数',
+            position: 'left',
+            alignTicks: true
+          },
+          {
+            type: 'value',
+            name: '工作时长',
+            position: 'right',
+            alignTicks: true,
+            axisLabel: {
+              formatter: '{value} h'
+            }
+          }
+        ],
+        series: [
+          {
+            type: 'bar',
+            data: [17, 30, 6, 50, 40, 10],
+            itemStyle: {
+              color: {
+                type: 'linear',
+                x: 0,
+                y: 0,
+                x2: 0,
+                y2: 1,
+                colorStops: [
+                  {
+                    offset: 0,
+                    color: '#58A6FF' // 0% 处的颜色
+                  },
+                  {
+                    offset: 1,
+                    color: '#6E5BFF' // 100% 处的颜色
+                  }
+                ]
+              }
+            }
+          },
+          {
+            type: 'bar',
+            data: [115, 140, 116, 120, 130, 120],
+            yAxisIndex: 1,
+            itemStyle: {
+              color: {
+                type: 'linear',
+                x: 0,
+                y: 0,
+                x2: 0,
+                y2: 1,
+                colorStops: [
+                  {
+                    offset: 0,
+                    color: '#3EC7CD' // 0% 处的颜色
+                  },
+                  {
+                    offset: 1,
+                    color: '#3E6CCD ' // 100% 处的颜色
+                  }
+                ]
+              }
+            }
+          }
+        ]
+      });
+    </script>
+  </body>
+</html>
