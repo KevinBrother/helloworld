@@ -1,0 +1,42 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta http-equiv="X-UA-Compatible" content="IE=edge" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Document</title>
+    <style>
+      /*     body {
+        margin: 0;
+        overflow: hidden;
+      } */
+
+      #canvas {
+        height: 500px;
+        width: 500px;
+        background-color: antiquewhite;
+      }
+    </style>
+  </head>
+  <body>
+    <!-- // 1. 定义canvas -->
+    <!-- <canvas style="width: 100%; height: 600px" id="canvas"></canvas> -->
+    <canvas id="canvas"></canvas>
+    <script>
+      const canvas = document.querySelector('#canvas');
+      /*      
+      // TODO 2022年10月22日 15:14:06 要想宽高起作用，不能用css的样式，需要用操作dom的相关属性，这样才能和webgl有联动效果?
+      // 试了三种方式都可以呀？
+      canvas.width = window.innerWidth;
+      canvas.height = window.innerHeight; 
+      */
+      // 2. 获取3维画笔
+      // const gl = canvas.getContext('2')
+      const gl = canvas.getContext('webgl');
+      // 3. 设置刷底色的颜色(类似css的rgba，区别是css的值域为0～255，这儿是0～1)
+      gl.clearColor(0.0, 0.0, 0.0, 1);
+      // 4. 使用上一步设置在颜色缓冲区中的颜色刷一下底色
+      gl.clear(gl.COLOR_BUFFER_BIT);
+    </script>
+  </body>
+</html>
