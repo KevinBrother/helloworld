@@ -20,8 +20,9 @@
   </head>
   <body>
     <canvas id="canvas"></canvas>
+    <script src="../lib/three.js"></script>
     <script type="module">
-      import 'https://unpkg.com/three@0.145.0/build/three.min.js';
+      // import 'https://unpkg.com/three@0.145.0/build/three.min.js';
       // 直接注册到global中了，所以不能用官网的 import * as Three
       const canvas = document.querySelector('#canvas');
       const gl = canvas.getContext('webgl');
