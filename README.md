@@ -12,12 +12,14 @@
 
 ## 使用案例
 
-- [] node-study
+- [ ] node-study
   - node常用api文档的使用以及案例，比如child-process、fs、path、os、net、http等模块
-
-- [] echarts-test
-  - 基础的echarts操作
-
+- 图形学
+  - [ ] echarts-test
+    - 基础的echarts操作
+  - [ ] webgl-study
+  - [ ] threejs-study
+  
 - [] base-css
   - 基础的css学习案例如flex、grid等
 
