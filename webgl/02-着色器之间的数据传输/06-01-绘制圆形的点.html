@@ -12,8 +12,6 @@
       } */
 
       #canvas {
-        height: 500px;
-        width: 500px;
         background-color: antiquewhite;
       }
     </style>
@@ -52,6 +50,8 @@
       import getWebglOrigin from '../utils/getWebglOrigin.js';
 
       const canvas = document.querySelector('#canvas');
+      canvas.width = 500;
+      canvas.height = 500;
 
       // 获取着色器文本（源文件）// 可以不写在script里，只要是符合glsl es语言的字符串就行
       const vsSource = document.querySelector('#vertexShader').innerHTML;
