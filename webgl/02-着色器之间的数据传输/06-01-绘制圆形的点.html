@@ -1,0 +1,132 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta http-equiv="X-UA-Compatible" content="IE=edge" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Document</title>
+    <style>
+      /*     body {
+        margin: 0;
+        overflow: hidden;
+      } */
+
+      #canvas {
+        height: 500px;
+        width: 500px;
+        background-color: antiquewhite;
+      }
+    </style>
+  </head>
+  <body>
+    <canvas id="canvas"></canvas>
+    <script src="../lib/three.js"></script>
+    <!-- <script id="vertexShader" type="顶点着色器"></script> -->
+    <script id="vertexShader" type="x-shader/x-vertex">
+      attribute vec4 a_Position;
+      attribute float a_PointSize;
+      void main() {
+        // gl_Position = vec4(0.0, 0.0, 0.0, 1.0);
+        gl_Position = a_Position;
+        gl_PointSize = a_PointSize;
+      }
+    </script>
+    <script id="fragmentShader" type="x-shader/x-fragment">
+      precision mediump float;
+      uniform vec4 u_FragColor;
+      void main() {
+        // 计算两个点位的距离
+        // gl_PointCoord 片元在一个点中的位置，此位置是被归一化的
+        // discard 丢弃，不会对一个片元进行渲染
+
+        float dist = distance(gl_PointCoord, vec2(0.5,0.5));
+        if(dist < 0.5) {
+          gl_FragColor = u_FragColor;
+        } else {
+          discard;
+        }
+      }
+    </script>
+    <script type="module">
+      import { initShaders } from '../utils/shaders.js';
+      import getWebglOrigin from '../utils/getWebglOrigin.js';
+
+      const canvas = document.querySelector('#canvas');
+
+      // 获取着色器文本（源文件）// 可以不写在script里，只要是符合glsl es语言的字符串就行
+      const vsSource = document.querySelector('#vertexShader').innerHTML;
+      const fsSource = document.querySelector('#fragmentShader').innerHTML;
+
+      // 三维画笔
+      const gl = canvas.getContext('webgl');
+
+      //初始化着色器
+      //功能：解析作色器文本，整合到程序对象里，管理webgl上下文对象，实现两种语言的相互通信
+      initShaders(gl, vsSource, fsSource);
+
+      // 获取顶点着色器中 变量‘a_Position’ 的指针
+      const a_Position = gl.getAttribLocation(gl.program, 'a_Position');
+      const a_PointSize = gl.getAttribLocation(gl.program, 'a_PointSize');
+      const u_FragColor = gl.getUniformLocation(gl.program, 'u_FragColor');
+
+      const a_Points = [
+        { x: 0, y: 0, size: 10, color: { r: 1, g: 0, b: 0, a: 1 } }
+      ];
+
+      // 刷底色
+      gl.clearColor(0.0, 0.0, 0.0, 1);
+
+      render();
+
+      window.addEventListener('click', (event) => {
+        // 获取css坐标系的点位
+        const { clientX, clientY } = event;
+
+        // 获取webgl 的坐标系原点
+        const { left, top, width, height } = canvas.getBoundingClientRect();
+
+        const [cssX, cssY] = [clientX - left, clientY - top];
+
+        // 解决坐标系原点位置的差异
+        const [halfWidth, halfHeight] = [width / 2, height / 2];
+        const [xBaseCenter, yBaseCenter] = [cssX - halfWidth, cssY - halfWidth];
+
+        // 解决y方向上的差异
+        const yBaseCenterTop = -yBaseCenter;
+
+        // 解决坐标基地的差异
+        const [x, y] = [xBaseCenter / halfWidth, yBaseCenterTop / halfHeight];
+
+        const size = Math.random() * 10 + 5;
+        /*         const n = Math.random();
+        a_Points.push({ x, y, size, color: { r: n, g: n, b: n, a: 1 } }); */
+        a_Points.push({
+          x,
+          y,
+          size,
+          color: { r: Math.random(), g: Math.random(), b: Math.random(), a: 1 }
+        });
+        render();
+      });
+
+      function render() {
+        // 刷底色
+        gl.clear(gl.COLOR_BUFFER_BIT);
+        a_Points.forEach(({ x, y, size, color: { r, g, b, a } }) => {
+          // 绘制顶点
+          gl.vertexAttrib2f(a_Position, x, y);
+          gl.vertexAttrib1f(a_PointSize, size);
+          // gl.uniform4f(u_FragColor, r, g, b, a);
+          const arr = new Float32Array([r, g, b, a]);
+          console.log(
+            '%c [ arr ]-112',
+            'font-size:13px; background:pink; color:#bf2c9f;',
+            arr
+          );
+          gl.uniform4fv(u_FragColor, arr);
+          gl.drawArrays(gl.POINTS, 0, 1);
+        });
+      }
+    </script>
+  </body>
+</html>
