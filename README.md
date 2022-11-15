@@ -16,6 +16,7 @@
   - node常用api文档的使用以及案例，比如child-process、fs、path、os、net、http等模块
 - 图形学
   - [ ] echarts-test
+  - [ ] canvas-study
     - 基础的echarts操作
   - [ ] webgl-study
   - [ ] threejs-study
