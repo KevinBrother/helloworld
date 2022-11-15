@@ -11,14 +11,15 @@
       border: 1px solid;
     }
   </style>
-  <body>
-    <canvas id="tutorial"></canvas>
-
-    <script>
+  <script>
+    function draw() {
       const canvas = document.getElementById('tutorial');
       if (canvas.getContext) {
         const ctx = canvas.getContext('2d');
       }
-    </script>
+    }
+  </script>
+  <body onload="draw()">
+    <canvas id="tutorial"></canvas>
   </body>
 </html>
