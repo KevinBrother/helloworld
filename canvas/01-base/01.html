@@ -1,0 +1,32 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta http-equiv="X-UA-Compatible" content="IE=edge" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Document</title>
+  </head>
+  <style>
+    canvas {
+      border: 1px solid;
+    }
+  </style>
+  <body>
+    <!-- Canvas 的默认大小为 300 像素 ×150 像素 -->
+    <canvas id="tutorial" width="150" height="150"></canvas>
+
+    <script>
+      var canvas = document.getElementById('tutorial');
+      var ctx = canvas.getContext('2d');
+      var ctx2 = canvas.getContext('2d');
+      var webgl = canvas.getContext('webgl');
+      console.log(
+        '%c [ ctx ]-16',
+        'font-size:13px; background:pink; color:#bf2c9f;',
+        ctx,
+        ctx2,
+        webgl
+      );
+    </script>
+  </body>
+</html>
