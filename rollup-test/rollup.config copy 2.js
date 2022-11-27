@@ -10,23 +10,20 @@ export default {
     dir: './dist'
   }, */
   output: [
+    { dir: './dist', file: './dist/index.js', format: 'cjs' },
     {
-      file: './dist/index.js',
-      format: 'cjs',
-      inlineDynamicImports: true
-    },
-    {
+      dir: './dist',
       file: './dist/index.esm.js',
-      format: 'esm',
-      inlineDynamicImports: true
+      format: 'esm'
     },
     {
+      dir: './dist',
       file: './dist/index.min.js',
-      inlineDynamicImports: true,
-      format: 'iife',
+      format: 'iife', // iife模式编译问题  https://github.com/henriquehbr/svelte-typewriter/issues/21
       name: 'version',
+      // inlineDynamicImports: true,
       plugins: [terser()]
     }
   ],
-  plugins: [json(), del({ targets: ['dist/*'] })]
+  plugins: [del({ targets: 'dist/*' }), json()]
 };
