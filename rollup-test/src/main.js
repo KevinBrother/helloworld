@@ -1,4 +1,5 @@
 import { version } from '../package.json';
+// import './styles/first.less';
 import './styles/first.css';
 
 export default function () {
