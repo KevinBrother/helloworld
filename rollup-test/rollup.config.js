@@ -5,6 +5,7 @@ import del from 'rollup-plugin-delete';
 // import del from './plugins/rollup-plugin-delete';
 import commonjs from '@rollup/plugin-commonjs';
 import css2 from './plugins/rollup-plugin-css2';
+import generateHtmlPlugin from './plugins/rollup-plugin-generate-html';
 // import postcss from 'rollup-plugin-postcss';
 
 export default {
@@ -36,7 +37,8 @@ export default {
     json(),
     del({ targets: ['dist/*'] }),
     commonjs(),
-    css2()
+    css2(),
+    generateHtmlPlugin()
     // postcss({
     //   extract: true,
     //   use: [['less', { javascriptEnabled: true }]]

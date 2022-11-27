@@ -42,14 +42,14 @@ export default function pluginGenerator(customOptions = {}) {
     async transform(code, id) {
       // 不符合过滤规则的，不处理
       if (!filter(id)) return;
-      console.log(
+      /*     console.log(
         '%c [ transform =======]-43',
         'font-size:13px; background:pink; color:#bf2c9f;',
         'code',
         code,
         'id',
         id
-      );
+      ); */
 
       // 去除 CSS 转换器的选项
       const { minify, targets, drafts } = options.transformOptions;
@@ -80,19 +80,19 @@ export default function pluginGenerator(customOptions = {}) {
 
     // generateBundle 钩子
     generateBundle(opts) {
-      console.log(
+      /*      console.log(
         '%c [ opts ]-83',
         'font-size:13px; background:pink; color:#bf2c9f;',
         opts
-      );
+      ); */
       // 合并 CSS 代码
       let css = '';
       orders.forEach((id) => {
-        console.log(
+        /*     console.log(
           '%c [ id ]-86',
           'font-size:13px; background:pink; color:#bf2c9f;',
           id
-        );
+        ); */
         css += styles.get(id) ?? '';
       });
 
@@ -104,23 +104,22 @@ export default function pluginGenerator(customOptions = {}) {
         return;
       }
 
-      console.log(
+      /*     console.log(
         '%c [ css ]-103',
         'font-size:13px; background:pink; color:#bf2c9f;',
         css,
         output
-      );
+      ); */
       // if (css.length <= 0 || !output) return;
 
       // 解析文件名称
       const name = isString(output) ? output.trim() : opts.file ?? 'bundle.js';
-
       const dest = path.basename(name, path.extname(name));
-      console.log(
+      /*    console.log(
         '%c [ dest ]-114',
         'font-size:13px; background:pink; color:#bf2c9f;',
         dest
-      );
+      ); */
       if (dest) {
         // 调用 rollup 暴露给钩子函数的函数，生成静态文件
         this.emitFile({ type: 'asset', source: css, fileName: `${dest}.css` });
