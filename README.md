@@ -12,9 +12,15 @@
 
 ## 使用案例
 
-- [] echarts-test
-  - 基础的echarts操作
-
+- [ ] node-study
+  - node常用api文档的使用以及案例，比如child-process、fs、path、os、net、http等模块
+- 图形学
+  - [ ] echarts-test
+  - [ ] canvas-study
+    - 基础的echarts操作
+  - [ ] webgl-study
+  - [ ] threejs-study
+  
 - [] base-css
   - 基础的css学习案例如flex、grid等
 
@@ -45,6 +51,8 @@
   - docker-compose down 卸载所有容器
   - docker-compose up [-d] 是否后台运行
   - docker-compose的使用案例,docker-compose.yml的使用
+  
+- [ ] echarts-study
 
 - [] webpack-study
   - [x]基本配置
@@ -67,3 +75,26 @@
 
 - [] ng-antd-test
 - [] angular
+
+- [] wx-config
+  - 微信公招平台相关的功能
+
+- [] npm-module-study
+  - npm相关实验
+
+- [] electron-study
+  - electron相关的案例
+
+- [] vite-test
+  - vite的配置和相关功能案例
+
+- [] electron-test
+  - vite的配置和相关功能案例
+
+- [] monorepo-test
+  - [] npm link
+  - yarn workspace
+  - lerna
+
+- [] code-collect
+  - 工作中遇到的小功能需求，小工具
