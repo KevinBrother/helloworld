@@ -21,7 +21,7 @@
   - [ ] webgl-study
   - [ ] threejs-study
   
-- [] base-css
+- [] css-style
   - 基础的css学习案例如flex、grid等
 
 - [x] react-study
@@ -63,6 +63,8 @@
 - [] grunt-study
 
 - [] gulp-study
+
+- [] tsup-study
 
 - [] nodejs-study
 
