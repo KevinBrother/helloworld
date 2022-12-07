@@ -12,12 +12,13 @@
       }
 
       body {
-        background: url('./images/map.png') #1e2029;
+        background: #1e2029;
       }
 
       #main {
         width: 700px;
         height: 500px;
+        border: 1px solid white;
       }
     </style>
   </head>
@@ -36,22 +37,10 @@
           r
         },
         style: {
-          fill: '',
-          stroke: '#F00'
+          fill: 'pink',
+          stroke: 'red'
         }
       });
-      var circle2 = new zrender.Circle({
-        shape: {
-          cx: r,
-          cy: h / 2 + 40,
-          r
-        },
-        style: {
-          fill: '',
-          stroke: '#F00'
-        }
-      });
-
       circle
         .animate('shape', true)
         .when(5000, {
@@ -59,18 +48,9 @@
         })
         .when(10000, {
           cx: r
-        });
-      // .start();
-
-      circle2
-        .animate('shape', true)
-        .when(5000, {
-          cx: w - r
         })
-        .when(10000, {
-          cx: r
-        });
-      // .start();
+        .start();
+      zr.add(circle);
     </script>
   </body>
 </html>
