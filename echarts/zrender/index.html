@@ -1,0 +1,76 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta http-equiv="X-UA-Compatible" content="IE=edge" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Document</title>
+    <script src="../lib/zrender-5.4.1.js"></script>
+    <style>
+      html {
+        overflow: hidden;
+      }
+
+      body {
+        background: url('./images/map.png') #1e2029;
+      }
+
+      #main {
+        width: 700px;
+        height: 500px;
+      }
+    </style>
+  </head>
+  <body>
+    <div id="main"></div>
+    <script>
+      var zr = zrender.init(document.getElementById('main'));
+
+      var w = zr.getWidth();
+      var h = zr.getHeight();
+      var r = 30;
+      var circle = new zrender.Circle({
+        shape: {
+          cx: r,
+          cy: h / 2,
+          r
+        },
+        style: {
+          fill: '',
+          stroke: '#F00'
+        }
+      });
+      var circle2 = new zrender.Circle({
+        shape: {
+          cx: r,
+          cy: h / 2 + 40,
+          r
+        },
+        style: {
+          fill: '',
+          stroke: '#F00'
+        }
+      });
+
+      circle
+        .animate('shape', true)
+        .when(5000, {
+          cx: w - r
+        })
+        .when(10000, {
+          cx: r
+        });
+      // .start();
+
+      circle2
+        .animate('shape', true)
+        .when(5000, {
+          cx: w - r
+        })
+        .when(10000, {
+          cx: r
+        });
+      // .start();
+    </script>
+  </body>
+</html>
