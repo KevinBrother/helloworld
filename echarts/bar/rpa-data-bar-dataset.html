@@ -32,6 +32,42 @@
       var myChart = echarts.init(document.getElementById('main'));
       // 绘制图表
       myChart.setOption({
+        color: [
+          {
+            type: 'linear',
+            x: 0,
+            y: 0,
+            x2: 0,
+            y2: 1,
+            colorStops: [
+              {
+                offset: 0,
+                color: '#58A6FF' // 0% 处的颜色
+              },
+              {
+                offset: 1,
+                color: '#6E5BFF' // 100% 处的颜色
+              }
+            ]
+          },
+          {
+            type: 'linear',
+            x: 0,
+            y: 0,
+            x2: 0,
+            y2: 1,
+            colorStops: [
+              {
+                offset: 0,
+                color: '#3EC7CD' // 0% 处的颜色
+              },
+              {
+                offset: 1,
+                color: '#3E6CCD ' // 100% 处的颜色
+              }
+            ]
+          }
+        ],
         tooltip: {
           // formatter: '{value}',
           extraCssText: `width: 159px;
@@ -41,22 +77,29 @@
                           border-radius: 4px;
                           border: 1px solid #232439;`
         },
+        dataset: {
+          source: [
+            [
+              '20201101',
+              '20201102',
+              '20201103',
+              '20201104',
+              '20201105',
+              '20201106',
+              '20201107'
+            ],
+            [17, 30, 6, 50, 40, 10, 30],
+            [115, 140, 116, 120, 130, 120, 20]
+          ]
+        },
         xAxis: {
+          type: 'category',
           axisTick: {
             show: false
           },
           axisLabel: {
             margin: 20
-          },
-          data: [
-            '20201101',
-            '20201102',
-            '20201103',
-            '20201104',
-            '20201105',
-            '20201106',
-            '20201107'
-          ]
+          }
         },
         yAxis: [
           {
@@ -78,50 +121,12 @@
         series: [
           {
             type: 'bar',
-            data: [17, 30, 6, 50, 40, 10, 30],
-            itemStyle: {
-              color: {
-                type: 'linear',
-                x: 0,
-                y: 0,
-                x2: 0,
-                y2: 1,
-                colorStops: [
-                  {
-                    offset: 0,
-                    color: '#58A6FF' // 0% 处的颜色
-                  },
-                  {
-                    offset: 1,
-                    color: '#6E5BFF' // 100% 处的颜色
-                  }
-                ]
-              }
-            }
+            seriesLayoutBy: 'row'
           },
           {
             type: 'bar',
-            data: [115, 140, 116, 120, 130, 120, 20],
             yAxisIndex: 1,
-            itemStyle: {
-              color: {
-                type: 'linear',
-                x: 0,
-                y: 0,
-                x2: 0,
-                y2: 1,
-                colorStops: [
-                  {
-                    offset: 0,
-                    color: '#3EC7CD' // 0% 处的颜色
-                  },
-                  {
-                    offset: 1,
-                    color: '#3E6CCD ' // 100% 处的颜色
-                  }
-                ]
-              }
-            }
+            seriesLayoutBy: 'row'
           }
         ]
       });
