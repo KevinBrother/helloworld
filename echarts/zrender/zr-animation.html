@@ -38,9 +38,10 @@
         },
         style: {
           fill: 'pink',
-          stroke: 'red'
+          stroke: '#F00'
         }
       });
+
       circle
         .animate('shape', true)
         .when(5000, {
@@ -50,6 +51,7 @@
           cx: r
         })
         .start();
+
       zr.add(circle);
     </script>
   </body>

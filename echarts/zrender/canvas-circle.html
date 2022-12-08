@@ -1,0 +1,55 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta http-equiv="X-UA-Compatible" content="IE=edge" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Document</title>
+    <style>
+      html {
+        overflow: hidden;
+      }
+
+      body {
+        background: #1e2029;
+      }
+
+      #main {
+        border: 1px solid white;
+      }
+    </style>
+  </head>
+  <body>
+    <canvas id="main" width="700" height="500" id="main"></canvas>
+    <script>
+      var canvas = document.getElementById('main');
+      var ctx = canvas.getContext('2d');
+
+      function getCircle(ctx, option) {
+        const { shape, style } = option;
+        const { cx, cy, r } = shape;
+        const { fill, stroke: border } = style;
+
+        ctx.beginPath();
+        ctx.arc(cx, cy, r, r, 0, Math.PI / 2, true);
+        ctx.closePath();
+        ctx.fillStyle = fill;
+        ctx.strokeStyle = border;
+        ctx.fill();
+        ctx.stroke();
+      }
+
+      getCircle(ctx, {
+        shape: {
+          cx: 150,
+          cy: 50,
+          r: 30
+        },
+        style: {
+          fill: 'pink',
+          stroke: '#F00'
+        }
+      });
+    </script>
+  </body>
+</html>
