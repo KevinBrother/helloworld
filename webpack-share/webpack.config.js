@@ -14,6 +14,9 @@ console.log(
 
 module.exports = {
   mode: isDevelopment ? 'development' : 'production',
+  devServer: {
+    static: false
+  },
   entry: {
     first: './src/pages/First/Index.tsx',
     second: './src/pages/Second/Index.tsx'
