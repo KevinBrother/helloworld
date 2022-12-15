@@ -1,0 +1,33 @@
+{
+  "name": "bixi-design",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "start": "npm run dev",
+    "dev": "bixi dev",
+    "build": "bixi build --ignore-versions-validate",
+    "analysis": "bixi analysis",
+    "lint": "bixi lint",
+    "lint:fix": "bixi lint --fix"
+  },
+  "dependencies": {
+    "@bixi-design/builder": "2.2.6-alpha.19",
+    "@bixi-design/cli": "^2.2.4",
+    "@bixi-design/lint": "2.2.6-alpha.19",
+    "@bixi-rpa/core": "2.0.3-alpha.51",
+    "antd": "4.21.5",
+    "dayjs": "1.10.7",
+    "moment": "2.29.3",
+    "react": "17.0.1",
+    "react-dom": "17.0.1",
+    "react-router-dom": "6.2.1"
+  },
+  "devDependencies": {
+    "@types/react": "17.0.3",
+    "@types/react-dom": "17.0.2",
+    "typescript": "4.6.4"
+  },
+  "author": "",
+  "license": "ISC"
+}
