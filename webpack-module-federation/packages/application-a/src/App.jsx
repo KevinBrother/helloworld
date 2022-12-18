@@ -5,6 +5,7 @@ import React from 'react';
 const Example1 = React.lazy(() => import('application_b/Example'));
 const Example2 = React.lazy(() => import('application_b/Example2'));
 const AppFromB = React.lazy(() => import('application_b/App'));
+
 function App() {
   return (
     <div>

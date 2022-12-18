@@ -2,7 +2,7 @@ const path = require('path');
 const webpack = require('webpack');
 const HtmlWebpackPlugin = require('html-webpack-plugin');
 const ModuleFederationPlugin = require('webpack/lib/container/ModuleFederationPlugin');
-const { dependencies } = require("./package.json");
+const { dependencies } = require('./package.json');
 
 module.exports = {
   mode: 'development',
@@ -13,7 +13,7 @@ module.exports = {
     filename: '[name].bundle.js'
   },
   resolve: {
-    extensions: ['.jsx', '.js', '.json'],
+    extensions: ['.jsx', '.js', '.json']
   },
   module: {
     rules: [
@@ -32,23 +32,23 @@ module.exports = {
       library: { type: 'var', name: 'application_a' },
       filename: 'remoteEntry.js',
       exposes: {
-        './Example': './src/compments/Example',
-        './Example1': './src/compments/Example1',
+        './Example': './src/components/Example',
+        './Example1': './src/components/Example1'
       },
 
       remotes: {
-        'application_b': 'application_b'
+        application_b: 'application_b'
       },
       shared: {
         ...dependencies,
         react: {
           singleton: true,
-          requiredVersion: dependencies["react"],
+          requiredVersion: dependencies['react']
         },
-        "react-dom": {
+        'react-dom': {
           singleton: true,
-          requiredVersion: dependencies["react-dom"],
-        },
+          requiredVersion: dependencies['react-dom']
+        }
       }
       // shared: ['react', 'react-dom'],
     }),

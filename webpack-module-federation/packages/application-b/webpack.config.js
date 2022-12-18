@@ -3,7 +3,7 @@ const webpack = require('webpack');
 const HtmlWebpackPlugin = require('html-webpack-plugin');
 // 引入moduleFederation
 const ModuleFederationPlugin = require('webpack/lib/container/ModuleFederationPlugin');
-const { dependencies } = require("./package.json");
+const { dependencies } = require('./package.json');
 
 module.exports = {
   mode: 'development',
@@ -24,7 +24,7 @@ module.exports = {
     ]
   },
   resolve: {
-    extensions: ['.jsx', '.js', '.json'],
+    extensions: ['.jsx', '.js', '.json']
   },
   plugins: [
     new ModuleFederationPlugin({
@@ -32,24 +32,24 @@ module.exports = {
       library: { type: 'var', name: 'application_b' },
       filename: 'remoteEntry.js',
       exposes: {
-        './Example': './src/compments/Example',
-        './Example2': './src/compments/Example2',
+        './Example': './src/components/Example',
+        './Example2': './src/components/Example2',
         './App': './src/App'
       },
       remotes: {
-        'application_a': 'application_a',
+        application_a: 'application_a'
       },
       shared: {
         ...dependencies,
         react: {
           singleton: true,
-          requiredVersion: dependencies["react"],
+          requiredVersion: dependencies['react']
         },
-        "react-dom": {
+        'react-dom': {
           singleton: true,
-          requiredVersion: dependencies["react-dom"],
-        },
-      },
+          requiredVersion: dependencies['react-dom']
+        }
+      }
       // shared: ['react', 'react-dom'],
     }),
     new HtmlWebpackPlugin({
