@@ -9,6 +9,7 @@ module.exports = {
   entry: './index.js',
 
   output: {
+    clean: true,
     path: path.resolve(__dirname, 'dist'),
     filename: '[name].bundle.js'
   },
@@ -35,7 +36,6 @@ module.exports = {
         './Example': './src/components/Example',
         './Example1': './src/components/Example1'
       },
-
       remotes: {
         application_b: 'application_b'
       },
