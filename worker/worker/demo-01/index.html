@@ -1,0 +1,44 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>main</title>
+</head>
+<body>
+    <script>
+        // 1. 创建 webworker 获取worker实例
+        const worker = new Worker('./worker.js');
+        
+        // 2. 发送消息给worker实例
+        worker.postMessage('来自主线程的消息11');
+        
+        setTimeout(() => {
+            console.log('before close',worker);
+            // worker.terminate();
+            console.log('ready to send msg');
+            console.log('after close', worker);
+            // worker.start();
+            worker.postMessage('来自主线程的消息222');
+        }, 5000);
+
+        // 3. 监听worker实例发送的消息
+        worker.addEventListener('error', (error) => console.log(error));
+        worker.addEventListener('message', (message) => console.log('接到worker发来的消息： ',message));
+        worker.addEventListener('messageerror', (messageerror) => console.log(messageerror));
+
+/*         setTimeout(() => {
+            console.log('before close',worker);
+            worker.terminate();
+            console.log('ready to send msg');
+            console.log('after close', worker);
+            // worker.start();
+            worker.postMessage('来自主线程的消息222');
+        }, 5000);
+
+ */
+
+    </script>
+</body>
+</html>

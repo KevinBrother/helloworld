@@ -1,0 +1,23 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Document</title>
+
+</head>
+<body>
+    <script>
+        // 只能在worker中使用
+        // importScripts('./varB.js');
+
+        console.log(location.origin)
+        const worker = new Worker('worker.js');
+
+        worker.addEventListener('error', (error) => console.log(error));
+        worker.addEventListener('message', (message) => console.log('接到worker发来的消息： ',message));
+        worker.addEventListener('messageerror', (messageerror) => console.log(messageerror));
+    </script>
+</body>
+</html>

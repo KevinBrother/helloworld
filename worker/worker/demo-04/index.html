@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Document</title>
+</head>
+<body>
+
+    <p> hello world </p>
+    <script>
+        let primes = [];
+
+        const min = 2;
+        const max = 1e7;
+        let numCPUs = navigator.hardwareConcurrency;
+        const range = Math.ceil((max - min) / numCPUs)
+        start = min;
+
+        console.time('Main');
+        for (var i = 0; i < navigator.hardwareConcurrency-1; i++) {
+
+            const worker = new Worker('./worker.js');
+
+            worker.postMessage({ start, range ,key: `index-${i}`})
+            start += range
+
+            worker.onmessage = (msg) => {
+                // console.log('data----', msg.data);
+
+                primes = primes.concat(msg.data);
+                console.log('length-------',primes.length);
+            }
+        }
+        console.timeEnd('Main');
+    </script>
+</body>
+</html>

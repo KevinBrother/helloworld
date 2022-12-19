@@ -1,0 +1,37 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Document</title>
+
+</head>
+<body>
+    <script>
+
+        function fibonacci(n) {
+            
+            return n < 1 ? 0 
+                : n <= 2 ? 1
+                : fibonacci(n -1) + fibonacci(n - 2);
+        }
+
+        const workerScript = `
+            self.name = '3 号打工人';
+            self.postMessage(
+                ${fibonacci.toString()}(9)
+            )`;
+
+        const worker = new Worker(URL.createObjectURL(new Blob([workerScript])));
+
+        worker.addEventListener('message', (message) => console.log('接到worker发来的消息： ',message));
+
+        setInterval(() => {
+            console.log(1);
+        }, 2000);
+
+    </script>
+</body>
+</html>
