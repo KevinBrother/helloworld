@@ -24,6 +24,9 @@
 
 ## 使用案例
 
+- [x] worker
+  工作者线程
+
 - [ ] node-study
   - node常用api文档的使用以及案例，比如child-process、fs、path、os、net、http等模块
 - 图形学
@@ -112,6 +115,7 @@
 
 - [] code-collect
   - 工作中遇到的小功能需求，小工具
+
 
 ## C语言
 
