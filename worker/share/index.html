@@ -1,0 +1,43 @@
+<body>
+    <input type="text" id="input">
+    <button id="submit">提交</button>
+    <p id="news"></p>
+</body>
+<script>
+
+
+    const work = new SharedWorker('./worker.js');
+    const port = work.port;
+    const userId = Math.floor(Math.random()*100);
+    //开启
+    port.start();
+
+    //通知所有人
+    setTimeout(()=> {
+        port.postMessage({ type: "start" });
+    }, 5000)
+
+    //点击触发事件
+    submit.onclick = function (e) {
+        port.postMessage({
+            type: "msg",
+            userId,
+            value: input.value
+        });
+        input.value = "";
+    };
+
+    //接收数据
+    port.onmessage = function (e) {
+        console.log(e.data)
+        if (Array.isArray(e.data)) {
+            let html = "";
+            e.data.forEach(msg => {
+                html += `<p>${msg}</p>`;
+            });
+            news.innerHTML = html;
+        } else {
+            news.innerHTML = e.data;
+        }
+    };
+</script>
