@@ -1,7 +1,8 @@
 const path = require('path');
 const webpack = require('webpack');
 const HtmlWebpackPlugin = require('html-webpack-plugin');
-const ModuleFederationPlugin = require('webpack/lib/container/ModuleFederationPlugin');
+// const ModuleFederationPlugin = require('webpack/lib/container/ModuleFederationPlugin');
+const { ModuleFederationPlugin } = require('webpack').container;
 const { dependencies } = require('./package.json');
 
 module.exports = {
@@ -10,7 +11,8 @@ module.exports = {
 
   output: {
     clean: true,
-    path: path.resolve(__dirname, 'dist'),
+    // path: path.resolve(__dirname, 'dist'),
+    // publicPath: 'http://localhost:8081/',
     filename: '[name].bundle.js'
   },
   resolve: {
@@ -19,25 +21,27 @@ module.exports = {
   module: {
     rules: [
       {
-        test: /\.(js|jsx)$/,
+        test: /\.jsx?$/,
         loader: 'babel-loader',
+        exclude: /node_modules/,
         options: {
-          presets: ['@babel/env']
+          presets: ['@babel/preset-react']
         }
       }
     ]
   },
   plugins: [
     new ModuleFederationPlugin({
-      name: 'application_a',
-      library: { type: 'var', name: 'application_a' },
+      name: 'mainApp',
+      // library: { type: 'var', name: 'main-app' },
       filename: 'remoteEntry.js',
       exposes: {
-        './Example': './src/components/Example',
-        './Example1': './src/components/Example1'
+        './Example': './src/components/Example.jsx',
+        './Example1': './src/components/Example1.jsx'
       },
       remotes: {
-        application_b: 'application_b'
+        // 'component-app': 'component_app@http://localhost:8082/remoteEntry.js'
+        'component-app': 'componentApp@http://localhost:8082/remoteEntry.js'
       },
       shared: {
         ...dependencies,
