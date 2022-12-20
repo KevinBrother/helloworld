@@ -1,0 +1,41 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta http-equiv="X-UA-Compatible" content="IE=edge" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>main</title>
+  </head>
+  <body>
+    <script>
+      // 1. 创建 webworker 获取worker实例
+      const worker = new Worker('./worker.js');
+
+      const url = 'http://100.200.26.250:8000/';
+
+      const run = () => {
+        return fetch(url + '?' + Math.random().toString()).then((response) => response.json());
+      };
+
+      /*     let count = 10;
+
+      while (count > 0) {
+        run().then((data) => console.log('%c [ data ]-17', 'font-size:13px; background:pink; color:#bf2c9f;', data));
+        count--;
+      }
+ */
+      setInterval(() => {
+        run().then((data) => console.log('%c [ data ]-17', 'font-size:13px; background:pink; color:#bf2c9f;', data));
+        run().then((data) => console.log('%c [ data ]-17', 'font-size:13px; background:pink; color:#bf2c9f;', data));
+        run().then((data) => console.log('%c [ data ]-17', 'font-size:13px; background:pink; color:#bf2c9f;', data));
+        run().then((data) => console.log('%c [ data ]-17', 'font-size:13px; background:pink; color:#bf2c9f;', data));
+        run().then((data) => console.log('%c [ data ]-17', 'font-size:13px; background:pink; color:#bf2c9f;', data));
+        run().then((data) => console.log('%c [ data ]-17', 'font-size:13px; background:pink; color:#bf2c9f;', data));
+        run().then((data) => console.log('%c [ data ]-17', 'font-size:13px; background:pink; color:#bf2c9f;', data));
+        run().then((data) => console.log('%c [ data ]-17', 'font-size:13px; background:pink; color:#bf2c9f;', data));
+        run().then((data) => console.log('%c [ data ]-17', 'font-size:13px; background:pink; color:#bf2c9f;', data));
+        run().then((data) => console.log('%c [ data ]-17', 'font-size:13px; background:pink; color:#bf2c9f;', data));
+      }, 1000);
+    </script>
+  </body>
+</html>
