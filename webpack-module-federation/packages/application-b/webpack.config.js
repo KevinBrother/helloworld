@@ -38,7 +38,7 @@ module.exports = {
         './App': './src/App'
       },
       remotes: {
-        application_a: 'application_a'
+        application_a: 'application_a@http://localhost:8081/remoteEntry.js'
       },
       shared: {
         ...dependencies,
