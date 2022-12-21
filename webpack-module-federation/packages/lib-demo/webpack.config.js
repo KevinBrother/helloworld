@@ -13,7 +13,8 @@ module.exports = {
       name: 'lib_demo',
       filename: 'remoteEntry.js',
       exposes: {
-        './add': './src/add.js'
+        // './add': './src/add',
+        './index': './index'
       }
     })
   ]
