@@ -41,7 +41,8 @@ module.exports = {
       },
       remotes: {
         // 'component-app': 'component_app@http://localhost:8082/remoteEntry.js'
-        'component-app': 'componentApp@http://localhost:8082/remoteEntry.js'
+        'component-app': 'componentApp@http://localhost:8082/remoteEntry.js',
+        'lib-demo': 'lib_demo@http://localhost:8083/remoteEntry.js'
       },
       shared: {
         ...dependencies,
