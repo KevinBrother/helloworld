@@ -27,10 +27,12 @@
 - [x] worker
   工作者线程
 
+- [ ] graphQL
+
 - [ ] node-study
   - node常用api文档的使用以及案例，比如child-process、fs、path、os、net、http等模块
 - 图形学
-  - [ ] echarts-test
+  - [x] echarts-test
   - [ ] canvas-study
     - 基础的echarts操作
   - [ ] webgl-study
@@ -66,9 +68,7 @@
   - docker-compose down 卸载所有容器
   - docker-compose up [-d] 是否后台运行
   - docker-compose的使用案例,docker-compose.yml的使用
-  
-- [ ] echarts-study
-
+ 
 - [] webpack-study
   - [x]基本配置
   - [x]构建优化
