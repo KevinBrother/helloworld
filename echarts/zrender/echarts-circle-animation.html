@@ -1,0 +1,77 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta http-equiv="X-UA-Compatible" content="IE=edge" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Document</title>
+    <script src="../lib/echarts-5.4.js"></script>
+    <style>
+      html {
+        overflow: hidden;
+      }
+
+      body {
+        background: #1e2029;
+      }
+      #main {
+        width: 700px;
+        height: 500px;
+        border: 1px solid white;
+      }
+    </style>
+  </head>
+  <body>
+    <div id="main"></div>
+    <script>
+      // 基于准备好的dom，初始化echarts实例
+      var myChart = echarts.init(document.getElementById('main'));
+      const w = myChart.getWidth();
+      const h = myChart.getHeight();
+      const r = 30;
+      const step = 4;
+      let flag = true;
+
+      const opt = {
+        series: {
+          type: 'pie',
+          center: [r, '50%'],
+          data: [5],
+          itemStyle: {
+            color: 'pink',
+            borderWidth: 1,
+            borderColor: 'red'
+          },
+          radius: r,
+          label: {
+            show: false
+          }
+        },
+        animation: false
+      };
+
+      myChart.setOption(opt);
+
+      function start() {
+        let cx = opt.series.center[0];
+        if (cx >= w) {
+          flag = false;
+        }
+
+        if (cx <= 0) {
+          flag = true;
+        }
+
+        if (flag) {
+          opt.series.center[0] += 4;
+        } else {
+          opt.series.center[0] -= 4;
+        }
+        myChart.setOption(opt);
+        window.requestAnimationFrame(start);
+      }
+
+      start();
+    </script>
+  </body>
+</html>
