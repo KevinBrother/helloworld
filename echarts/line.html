@@ -56,6 +56,14 @@
           textStyle: {
             color: 'pink'
           },
+          formatter: (params) => {
+            console.log('[ params ] >', params);
+            var tooltipHtml =
+              '<div style="width:150px;max-height:200px;overflow-y:auto">' +
+              params.name +
+              '</div>';
+            return tooltipHtml;
+          },
           confine: true,
           showContent: true,
           enterable: true,
