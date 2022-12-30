@@ -33,6 +33,8 @@
 
 - [ ] vue3.0
 
+- [ ] babel-study
+
 - [ ] node-study
   - node常用api文档的使用以及案例，比如child-process、fs、path、os、net、http等模块
 - 图形学
