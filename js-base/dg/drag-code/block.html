@@ -1,0 +1,102 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta http-equiv="X-UA-Compatible" content="IE=edge" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Document</title>
+    <!--
+       1,整体布局
+       2. item样式
+       3. 可拖动
+       4. 拖动效果优化
+    -->
+    <style>
+      body {
+        display: flex;
+      }
+
+      .list-item {
+        width: 240px;
+        margin-top: 3px;
+        border-radius: 4px;
+        height: 30px;
+        background: linear-gradient(90deg, #e66465, #9198e5);
+      }
+
+      .list-item.moving {
+        background: transparent;
+        color: transparent;
+        border: 1px dashed #ccc;
+      }
+    </style>
+  </head>
+  <body>
+    <div>
+      <div>leftBar</div>
+      <div class="list-item">1</div>
+      <div class="list-item">2</div>
+      <div class="list-item">3</div>
+      <div class="list-item">4</div>
+      <div class="list-item">5</div>
+    </div>
+    <div class="list">
+      <div draggable="true" class="list-item">1</div>
+      <div draggable="true" class="list-item">2</div>
+      <div draggable="true" class="list-item">3</div>
+      <div draggable="true" class="list-item">4</div>
+      <div draggable="true" class="list-item">5</div>
+    </div>
+
+    <script>
+      const list = document.querySelector('.list');
+      let sourceNode; // movingNode
+      // let flip;
+      list.ondragstart = (e) => {
+        // setTimeout 异步 为了解决被拖动的元素样式，会是原来的元素被拖动瞬间的样式
+        setTimeout(() => {
+          e.target.classList.add('moving');
+        }, 0);
+        sourceNode = e.target;
+        e.dataTransfer.effectAllowed = true;
+
+        // flip = new Flip(list.children, 0.3);
+      };
+
+      list.ondragover = (e) => {
+        e.preventDefault();
+      };
+
+      list.ondragenter = (e) => {
+        e.preventDefault();
+
+        const target = e.target;
+        if (target === list || target === sourceNode) {
+          // TODO opt 只有list里的其他元素才往下走
+          return;
+        }
+
+        const children = Array.from(list.children);
+        const targetIndex = children.indexOf(target);
+        const sourceIndex = children.indexOf(sourceNode);
+
+        if (sourceIndex < targetIndex) {
+          // 向下移动
+          console.log('%c [ 向下移动 ]-74', 'font-size:13px; background:pink; color:#bf2c9f;');
+          list.insertBefore(sourceNode, target.nextElementSibling);
+        } else {
+          // 向上移动
+          console.log('%c [ 向上移动 ]-74', 'font-size:13px; background:pink; color:#bf2c9f;');
+          list.insertBefore(sourceNode, target);
+        }
+
+        // flip.play();
+      };
+
+      list.ondragend = (e) => {
+        console.log('%c [ ondragend ]-85', 'font-size:13px; background:pink; color:#bf2c9f;');
+        e.target.classList.remove('moving');
+      };
+    </script>
+  </body>
+</html>
