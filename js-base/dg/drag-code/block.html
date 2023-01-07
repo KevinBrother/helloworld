@@ -60,7 +60,6 @@
       const list = document.querySelector('.list');
       let sourceNode; // movingNode
       let targetNode; //
-      let children, sourceIndex;
 
       list.ondragstart = (e) => {
         console.log('%c [ e ]-54', 'font-size:13px; background:pink; color:#bf2c9f;', e);
@@ -70,8 +69,6 @@
         }, 0);
         sourceNode = e.target;
         e.dataTransfer.effectAllowed = 'move';
-        children = Array.from(list.children);
-        sourceIndex = children.indexOf(sourceNode);
       };
 
       list.ondragover = (e) => {
@@ -85,6 +82,17 @@
           return;
         }
 
+        const children = Array.from(list.children);
+        const sourceIndex = children.indexOf(sourceNode);
+        if (target === sourceNode) {
+          targetNode = sourceNode;
+          if (children.includes(insertFlag)) {
+            list.removeChild(insertFlag);
+          }
+
+          return;
+        }
+
         const targetIndex = children.indexOf(target);
         if (sourceIndex < targetIndex) {
           // 向下移动
@@ -94,13 +102,16 @@
           targetNode = target;
         }
         list.insertBefore(insertFlag, targetNode);
-        console.log('%c [ targetNode ]-97', 'font-size:13px; background:pink; color:#bf2c9f;', targetNode);
       };
 
       list.ondragend = (e) => {
+        e.target.classList.remove('moving');
+        if (sourceNode === targetNode) {
+          return;
+        }
+
         list.removeChild(insertFlag);
         list.insertBefore(sourceNode, targetNode);
-        e.target.classList.remove('moving');
       };
     </script>
 
