@@ -6,10 +6,9 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Document</title>
     <!--
-       1,整体布局
-       2. item样式
-       3. 可拖动
-       4. 拖动效果优化
+      1. ondragstart 
+      2. ondragenter 比对位置，判断是在上面还是下面，添加样式
+      3. ondragend 移动
     -->
     <style>
       body {
@@ -18,7 +17,7 @@
 
       .list-item {
         width: 240px;
-        margin-top: 3px;
+        margin-top: 4px;
         border-radius: 4px;
         height: 30px;
         background: linear-gradient(90deg, #e66465, #9198e5);
@@ -28,6 +27,11 @@
         background: transparent;
         color: transparent;
         border: 1px dashed #ccc;
+      }
+
+      .insert-flag {
+        margin: 3px;
+        border: 3px solid pink;
       }
     </style>
   </head>
@@ -42,6 +46,7 @@
     </div>
     <div class="list">
       <div draggable="true" class="list-item">1</div>
+      <!-- <div class="insert-flag"></div> -->
       <div draggable="true" class="list-item">2</div>
       <div draggable="true" class="list-item">3</div>
       <div draggable="true" class="list-item">4</div>
@@ -49,18 +54,24 @@
     </div>
 
     <script>
+      const insertFlag = document.createElement('div');
+      insertFlag.classList.add('insert-flag');
+
       const list = document.querySelector('.list');
       let sourceNode; // movingNode
-      // let flip;
+      let targetNode; //
+      let children, sourceIndex;
+
       list.ondragstart = (e) => {
+        console.log('%c [ e ]-54', 'font-size:13px; background:pink; color:#bf2c9f;', e);
         // setTimeout 异步 为了解决被拖动的元素样式，会是原来的元素被拖动瞬间的样式
         setTimeout(() => {
           e.target.classList.add('moving');
         }, 0);
         sourceNode = e.target;
         e.dataTransfer.effectAllowed = 'move';
-
-        // flip = new Flip(list.children, 0.3);
+        children = Array.from(list.children);
+        sourceIndex = children.indexOf(sourceNode);
       };
 
       list.ondragover = (e) => {
@@ -69,37 +80,26 @@
 
       list.ondragenter = (e) => {
         e.preventDefault();
-
         const target = e.target;
-        if (target === list || target === sourceNode) {
-          // TODO opt 只有list里的其他元素才往下走
+        if (target === list || target === insertFlag) {
           return;
         }
 
-        const children = Array.from(list.children);
         const targetIndex = children.indexOf(target);
-        const sourceIndex = children.indexOf(sourceNode);
-
         if (sourceIndex < targetIndex) {
           // 向下移动
-          console.log(
-            '%c [ sourceNode, target.nextElementSibling ]-87',
-            'font-size:13px; background:pink; color:#bf2c9f;',
-            sourceNode,
-            target.nextElementSibling
-          );
-          list.insertBefore(sourceNode, target.nextElementSibling);
+          targetNode = target.nextElementSibling;
         } else {
           // 向上移动
-          console.log('%c [ sourceNode, target ]-91', 'font-size:13px; background:pink; color:#bf2c9f;', sourceNode, target);
-          list.insertBefore(sourceNode, target);
+          targetNode = target;
         }
-
-        // flip.play();
+        list.insertBefore(insertFlag, targetNode);
+        console.log('%c [ targetNode ]-97', 'font-size:13px; background:pink; color:#bf2c9f;', targetNode);
       };
 
       list.ondragend = (e) => {
-        console.log('%c [ ondragend ]-85', 'font-size:13px; background:pink; color:#bf2c9f;');
+        list.removeChild(insertFlag);
+        list.insertBefore(sourceNode, targetNode);
         e.target.classList.remove('moving');
       };
     </script>
