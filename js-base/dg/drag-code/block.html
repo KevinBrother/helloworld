@@ -4,20 +4,26 @@
     <meta charset="UTF-8" />
     <meta http-equiv="X-UA-Compatible" content="IE=edge" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <script src="https://cdn.bootcdn.net/ajax/libs/lodash.js/4.17.21/lodash.js"></script>
     <title>Document</title>
     <!--
       1. ondragstart 
+      2. ondrag
       2. ondragenter 比对位置，判断是在上面还是下面，添加样式
       3. ondragend 移动
     -->
     <style>
+      * {
+        box-sizing: border-box;
+      }
+
       body {
         display: flex;
       }
 
       .list-item {
         width: 240px;
-        margin-top: 4px;
+        margin-top: 24px;
         border-radius: 4px;
         height: 30px;
         background: linear-gradient(90deg, #e66465, #9198e5);
@@ -54,22 +60,74 @@
     </div>
 
     <script>
+      function getPosition(sourceEvent, targetEvent) {
+        let position = {
+          x: '',
+          y: 'top'
+        };
+
+        if (!targetEvent) {
+          return position;
+        }
+
+        // 1. 判断两个节点的pageY，如果只大于目标节点，则是下面
+        const { pageY: sourcePageY } = sourceEvent;
+        const { pageY: targetPageY } = targetEvent;
+        const { offsetHeight } = targetEvent.target;
+
+        console.log('position', sourceEvent, targetEvent, sourceEvent.target, targetEvent.target, {
+          sourcePageY,
+          targetPageY,
+          offsetHeight,
+          abs: Math.abs(sourcePageY - targetPageY) > offsetHeight / 2
+        });
+
+        if (Math.abs(sourcePageY - targetPageY) > offsetHeight / 2) {
+          position.y = 'bottom';
+        } else {
+          position.y = 'top';
+        }
+
+        return position;
+      }
+
+      // TODO 注册到原型上去
+      function insertAfter(newElement, targetElement) {
+        var parent = targetElement.parentNode;
+        if (parent.lastChild == targetElement) {
+          parent.appendChild(newElement);
+        } else {
+          parent.insertBefore(newElement, targetElement.nextSibling);
+        }
+      }
+
       const insertFlag = document.createElement('div');
       insertFlag.classList.add('insert-flag');
 
       const list = document.querySelector('.list');
       let sourceNode; // movingNode
-      let targetNode; //
+      let targetNode; // movingNode
+      let sourceEvent; // movingNode
+      let targetEvent; // movingNode
 
       list.ondragstart = (e) => {
-        console.log('%c [ e ]-54', 'font-size:13px; background:pink; color:#bf2c9f;', e);
+        console.log('%c [ e ]-54', 'font-size:13px; background:pink; color:#bf2c9f;', e, e.target);
         // setTimeout 异步 为了解决被拖动的元素样式，会是原来的元素被拖动瞬间的样式
         setTimeout(() => {
           e.target.classList.add('moving');
         }, 0);
-        sourceNode = e.target;
+        // sourceNode = e.target;
         e.dataTransfer.effectAllowed = 'move';
       };
+
+      list.ondrag = _.throttle((e) => {
+        // console.log('ondrag==', e, e.target);
+        sourceEvent = e;
+
+        // 1. 判断两个节点的pageY，如果只大于目标节点，则是下面
+        const { x, y } = getPosition(sourceEvent, targetEvent);
+        console.log('%c [ x, y  ]-122', 'font-size:13px; background:pink; color:#bf2c9f;', x, y);
+      }, 1000);
 
       list.ondragover = (e) => {
         e.preventDefault();
@@ -82,36 +140,29 @@
           return;
         }
 
-        const children = Array.from(list.children);
-        const sourceIndex = children.indexOf(sourceNode);
-        if (target === sourceNode) {
-          targetNode = sourceNode;
-          if (children.includes(insertFlag)) {
-            list.removeChild(insertFlag);
-          }
+        targetEvent = e;
+        targetNode = target;
 
-          return;
-        }
-
-        const targetIndex = children.indexOf(target);
-        if (sourceIndex < targetIndex) {
-          // 向下移动
-          targetNode = target.nextElementSibling;
+        /*     if (targetPageY < sourcePageY) {
+          // 目标下面
+          console.log('%c [ 目标下面 ]-108', 'font-size:13px; background:pink; color:#bf2c9f;', target);
+          insertAfter(insertFlag, target);
         } else {
-          // 向上移动
-          targetNode = target;
-        }
-        list.insertBefore(insertFlag, targetNode);
+          // 目标上面
+          console.log('%c [ 目标上面 ]-108', 'font-size:13px; background:pink; color:#bf2c9f;', target);
+          list.insertBefore(insertFlag, target);
+        } */
       };
 
       list.ondragend = (e) => {
+        //2. 用 sourceNode 替换掉占位的提示
         e.target.classList.remove('moving');
-        if (sourceNode === targetNode) {
+        list.removeChild(insertFlag);
+        /*  if (sourceNode === targetNode) {
           return;
         }
 
-        list.removeChild(insertFlag);
-        list.insertBefore(sourceNode, targetNode);
+        list.insertBefore(sourceNode, targetNode); */
       };
     </script>
 

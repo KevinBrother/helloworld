@@ -1,0 +1,132 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta http-equiv="X-UA-Compatible" content="IE=edge" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Document</title>
+    <script src="https://cdn.bootcdn.net/ajax/libs/lodash.js/4.17.21/lodash.js"></script>
+    <style>
+      * {
+        box-sizing: border-box;
+      }
+
+      body {
+        display: flex;
+      }
+
+      .item,
+      .self {
+        width: 240px;
+        margin-top: 4px;
+        border-radius: 4px;
+        height: 30px;
+        background: linear-gradient(90deg, #e66465, #9198e5);
+      }
+
+      .self {
+        height: 60px;
+      }
+
+      .item.moving {
+        background: transparent;
+        color: transparent;
+        border: 1px dashed #ccc;
+      }
+
+      .insert-flag {
+        margin: 3px;
+        border: 3px solid pink;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="list">
+      <div draggable="true" class="item">1</div>
+    </div>
+    <div draggable="true" class="self">5</div>
+
+    <script>
+      const insertFlag = document.createElement('div');
+      insertFlag.classList.add('insert-flag');
+      const targetNode = document.querySelector('.item');
+      const listNode = document.querySelector('.list');
+      const sourceNode = document.querySelector('.self');
+      let position = 'top';
+      const { offsetHeight: targetNodeOffsetHeight, offsetTop: targetNodeOffsetTop } = targetNode;
+
+      sourceNode.ondrag = _.throttle((e) => {
+        const { offsetTop: sourceNodeOffsetTop } = e.target;
+        const { pageX, pageY } = e;
+        // fix鼠标放开时的bug
+        if (pageX === 0 && pageY === 0) {
+          return;
+        }
+        const { offsetTop: eOffsetTop } = e.target;
+        // 1. 判断两个节点的pageY，如果只大于目标节点，则是下面
+        console.log('%c [ item ,self]-39', 'font-size:13px; background:pink; color:#bf2c9f;', e, {
+          sourceNodeOffsetTop,
+          targetNodeOffsetTop,
+          pageX,
+          pageY,
+          eOffsetTop
+        });
+
+        const targetTop = targetNodeOffsetTop + targetNodeOffsetHeight / 2;
+        const sourceTop = pageY;
+        position = getPosition(targetTop, sourceTop);
+        // console.log('%c [ position ]-72', 'font-size:13px; background:pink; color:#bf2c9f;', position);
+
+        if (position === 'bottom') {
+          insertAfter(insertFlag, targetNode);
+        } else {
+          insertBefore(insertFlag, targetNode);
+        }
+      }, 200);
+
+      sourceNode.ondragover = (e) => {
+        e.preventDefault();
+      };
+      sourceNode.ondragenter = (e) => {
+        e.preventDefault();
+        console.log('%c [ e ]-86', 'font-size:13px; background:pink; color:#bf2c9f;', e);
+      };
+
+      sourceNode.ondragend = (e) => {
+        listNode.removeChild(insertFlag);
+        if (position === 'bottom') {
+          insertAfter(sourceNode, targetNode);
+        } else {
+          insertBefore(sourceNode, targetNode);
+        }
+      };
+
+      function getPosition(targetTop, sourceTop) {
+        // console.log('%c [ targetTop, sourceTop ]-73', 'font-size:13px; background:pink; color:#bf2c9f;', targetTop, sourceTop);
+        if (sourceTop > targetTop) {
+          return 'bottom';
+        } else {
+          return 'top';
+        }
+      }
+
+      function insertAfter(newElement, targetElement) {
+        var parent = targetElement.parentNode;
+        if (parent.lastChild == targetElement) {
+          parent.appendChild(newElement);
+        } else {
+          parent.insertBefore(newElement, targetElement.nextSibling);
+        }
+      }
+
+      function insertBefore(newElement, targetElement) {
+        var parent = targetElement.parentNode;
+        if (parent.lastChild == targetElement) {
+          parent.appendChild(newElement);
+        } else {
+          parent.insertBefore(newElement, targetElement);
+        }
+      }
+    </script>
+  </body>
+</html>
