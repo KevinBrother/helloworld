@@ -4,8 +4,7 @@
   "description": "",
   "main": "index.js",
   "scripts": {
-    "go": "yarn clean && tsc && node ./dist/index.js",
-    "clean": "zx ./clean.mjs"
+    "clean": "zx ./build.mjs"
   },
   "keywords": [],
   "author": "",
