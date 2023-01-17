@@ -18,9 +18,9 @@ export class Meal {
   showItems() {
     this.items.forEach(({ name, packing, price }) => {
       console.log({
-        name,
-        packing,
-        price
+        name: name(),
+        packing: packing().pack(),
+        price: price()
       });
     });
   }
