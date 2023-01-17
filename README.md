@@ -27,6 +27,9 @@
 - [x] worker
   工作者线程
 
+- [] design-pattern
+  设计模式
+
 - [ ] graphQL
   - [x] 基础api
   - [ ] 实际项目的使用
