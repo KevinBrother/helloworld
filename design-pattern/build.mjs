@@ -3,7 +3,8 @@
 const { tag } = argv;
 
 const distMap = {
-  builder: '建造者模式'
+  builder: '建造者模式',
+  decorator: '装饰器模式'
 };
 
 const distValue = distMap[tag];

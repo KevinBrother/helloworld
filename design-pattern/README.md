@@ -2,13 +2,31 @@
 
 ## 命令
 
-``` bash 
+``` bash
 npm i -g zx
 ```
 
 ```bash
+# builder 为建造者模式
 yarn go --tag=builder
 ```
+
 ## doc
 
-[菜鸟教程](https://www.runoob.com/design-pattern/design-pattern-tutorial.html)
+### 创建型模式
+
+- 建造者模式
+  - 意图：将一个复杂的构建与其表示相分离，使得同样的构建过程可以创建不同的表示。
+  - 主要解决：主要解决在软件系统中，有时候面临着"一个复杂对象"的创建工作，其通常由各个部分的子对象用一定的算法构成；由于需求的变化，这个复杂对象的各个部分经常面临着剧烈的变化，但是将它们组合在一起的算法却相对稳定。
+  - 何时使用：一些基本部件不会变，而其组合经常变化的时候。
+
+### 结构型模式
+
+- 装饰器模式
+  - 意图：动态地给一个对象添加一些额外的职责。就增加功能来说，装饰器模式相比生成子类更为灵活。
+  - 主要解决：一般的，我们为了扩展一个类经常使用继承方式实现，由于继承为类引入静态特征，并且随着扩展功能的增多，子类会很膨胀。
+  - 何时使用：在不想增加很多子类的情况下扩展类。
+
+[菜鸟教程 设计模式](https://www.runoob.com/design-pattern/design-pattern-tutorial.html)
+
+[装饰器](https://www.bookstack.cn/read/es6-3rd/spilt.2.docs-decorator.md)
