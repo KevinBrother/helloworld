@@ -7,7 +7,8 @@ const distMap = {
   abstractFactory: '创建型/抽象工厂模式',
   singleton: '创建型/单例模式',
   builder: '创建型/建造者模式',
-  decorator: '结构型/装饰器模式'
+  decorator: '结构型/装饰器模式',
+  adapter: '结构型/适配器模式'
 };
 
 const distValue = distMap[tag];
