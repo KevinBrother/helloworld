@@ -12,6 +12,6 @@
     "experimentalDecorators": true
   },
   "include": [
-    "./src/结构型/组合模式"
+    "./src/结构型/代理模式"
   ]
 }
