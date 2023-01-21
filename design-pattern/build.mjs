@@ -8,7 +8,8 @@ const distMap = {
   singleton: '创建型/单例模式',
   builder: '创建型/建造者模式',
   decorator: '结构型/装饰器模式',
-  adapter: '结构型/适配器模式'
+  adapter: '结构型/适配器模式',
+  bridge: '结构型/桥模式'
 };
 
 const distValue = distMap[tag];
