@@ -13,7 +13,9 @@ const distMap = {
   bridge: '结构型/桥模式',
   composite: '结构型/组合模式',
   flyweight: '结构型/享元模式',
-  proxy: '结构型/代理模式'
+  proxy: '结构型/代理模式',
+  // ===
+  chain: '行为型/责任链模式'
 };
 
 const distValue = distMap[tag];

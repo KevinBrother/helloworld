@@ -12,6 +12,6 @@
     "experimentalDecorators": true
   },
   "include": [
-    "./src/结构型/享元模式"
+    "./src/行为型/责任链模式"
   ]
 }
