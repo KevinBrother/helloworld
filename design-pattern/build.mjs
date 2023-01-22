@@ -15,7 +15,8 @@ const distMap = {
   flyweight: '结构型/享元模式',
   proxy: '结构型/代理模式',
   // ===
-  chain: '行为型/责任链模式'
+  chain: '行为型/责任链模式',
+  command: '行为型/命令模式'
 };
 
 const distValue = distMap[tag];
