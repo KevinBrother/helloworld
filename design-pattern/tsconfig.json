@@ -12,6 +12,6 @@
     "experimentalDecorators": true
   },
   "include": [
-    "./src/结构型/代理模式"
+    "./src/结构型/享元模式"
   ]
 }
