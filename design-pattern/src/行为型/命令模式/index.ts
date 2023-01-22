@@ -29,10 +29,9 @@ class Invoker {
   }
 }
 
-const invoker = new Invoker();
-invoker.setOnStart(new SimpleCommand('simpleCommand payload '));
-invoker.setOnFinish(new ComplexCommand(new Receiver(), 'something a', 'something b'));
-
 (() => {
+  const invoker = new Invoker();
+  invoker.setOnStart(new SimpleCommand('simpleCommand payload '));
+  invoker.setOnFinish(new ComplexCommand(new Receiver(), 'something a', 'something b'));
   invoker.doSomethingImportant();
 })();
