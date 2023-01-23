@@ -12,6 +12,6 @@
     "experimentalDecorators": true
   },
   "include": [
-    "./src/行为型/状态模式"
+    "./src/行为型/访问者模式"
   ]
 }
