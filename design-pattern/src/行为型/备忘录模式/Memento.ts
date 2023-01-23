@@ -1,5 +1,5 @@
 export class Originator {
-  state: string;
+  private state: string;
 
   constructor(state: string) {
     this.state = state;
@@ -65,7 +65,12 @@ export class Caretaker {
   }
 
   backup() {
-    this.mementos.push(this.originator.save());
+    // // NOT Good
+    // const store = this.originator.state;
+    // const memento = new ConcreteMemento(store);
+    // this.mementos.push(memento);
+
+    this.originator.save();
   }
 
   undo() {
