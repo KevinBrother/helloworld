@@ -52,6 +52,9 @@ yarn go --tag=builder
 
 > 行为模式负责对象间的高效沟通和职责委派。
 
+- 中介模式
+  - 案例： 聊天用户和聊天室。中介者模式比较常见的应用比如聊天室，聊天室里面的人之间并不能直接对话，而是通过聊天室这一媒介进行转发
+
 
 
 [菜鸟教程 设计模式](https://www.runoob.com/design-pattern/design-pattern-tutorial.html)
