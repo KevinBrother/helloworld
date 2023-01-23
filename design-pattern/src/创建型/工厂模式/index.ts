@@ -1,6 +1,6 @@
 // 1, 定义接口
 
-interface Shape {
+export interface Shape {
   draw(): string;
 }
 

@@ -12,6 +12,6 @@
     "experimentalDecorators": true
   },
   "include": [
-    "./src/行为型/迭代器模式"
+    "./src/行为型/模板方法模式"
   ]
 }
