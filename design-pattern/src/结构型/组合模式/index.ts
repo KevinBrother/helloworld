@@ -1,10 +1,10 @@
 import { Folder, File } from './folder';
 
 const folder = new Folder('学习资料');
-const folder1 = new Folder('JS');
+const folder1 = new Folder('JavaScript');
 const folder2 = new Folder('JQuery');
 
-const file1 = new File('JS设计模式');
+const file1 = new File('JavaScript设计模式');
 const file2 = new File('精通JQuery');
 const file3 = new File('重构');
 
@@ -15,6 +15,12 @@ folder.add(folder1);
 folder.add(folder2);
 folder.add(file3);
 
+folder.scan();
+
+console.log('// start remove self //');
+
+// folder2.removeSelf();
+file3.removeSelf();
 folder.scan();
 
 /* import { Composite, Leaf } from './base';

@@ -1,24 +1,47 @@
-interface IFile {
-  name: string;
-  add(file: File): void;
-  remove(file: File): void;
+abstract class IFile {
+  protected name: string = '';
+  parent: IFile | null = null;
+  files: IFile[] | null = null;
 
-  scan(): void;
+  abstract add(file: IFile): void;
+
+  // 这个方法是通用的，所以才把IFile改为抽象类
+  removeSelf() {
+    if (!this.parent) {
+      // 不在节点中
+      return;
+    }
+
+    const parentChildren = this.parent.files;
+    parentChildren?.splice(parentChildren.indexOf(this), 1);
+  }
+
+  abstract removeByName(name: string): void;
+  abstract scan(): void;
 }
 
-export class Folder implements IFile {
-  name: string;
+export class Folder extends IFile {
   files: IFile[] = [];
 
   constructor(name: string) {
+    super();
     this.name = name;
   }
+
   add(file: IFile) {
+    file.parent = this;
     this.files.push(file);
   }
 
-  remove(file: IFile) {
-    this.files.splice(this.files.indexOf(file), 1);
+  removeByName(name: string) {
+    if (this.name === name) {
+      this.removeSelf();
+      return;
+    }
+
+    this.files.forEach((file) => {
+      file.removeByName(name);
+    });
   }
 
   scan() {
@@ -29,18 +52,22 @@ export class Folder implements IFile {
   }
 }
 
-export class File implements IFile {
-  name: string;
-
+export class File extends IFile {
   constructor(name: string) {
+    super();
     this.name = name;
   }
 
   add() {
     throw new Error('文件下不能添加文件');
   }
+
   remove() {
     throw new Error('文件下不能添加文件');
+  }
+
+  removeByName(name: string) {
+    throw new Error('文件下不能删除其他文件');
   }
 
   scan() {
