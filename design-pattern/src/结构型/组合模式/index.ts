@@ -1,4 +1,23 @@
-import { Composite, Leaf } from './Composite';
+import { Folder, File } from './folder';
+
+const folder = new Folder('学习资料');
+const folder1 = new Folder('JS');
+const folder2 = new Folder('JQuery');
+
+const file1 = new File('JS设计模式');
+const file2 = new File('精通JQuery');
+const file3 = new File('重构');
+
+folder1.add(file1);
+folder2.add(file2);
+
+folder.add(folder1);
+folder.add(folder2);
+folder.add(file3);
+
+folder.scan();
+
+/* import { Composite, Leaf } from './base';
 
 const tree = new Composite();
 
@@ -16,3 +35,4 @@ tree.add(branch2);
 
 tree.operation();
 console.log('%c [ tree.operation() ]-70', 'font-size:13px; background:pink; color:#bf2c9f;', tree.operation());
+ */
