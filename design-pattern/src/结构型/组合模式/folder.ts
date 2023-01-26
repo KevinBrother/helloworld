@@ -1,7 +1,7 @@
 abstract class IFile {
   protected name: string = '';
   parent: IFile | null = null;
-  files: IFile[] | null = null;
+  nodes: IFile[] = [];
 
   abstract add(file: IFile): void;
 
@@ -12,16 +12,18 @@ abstract class IFile {
       return;
     }
 
-    const parentChildren = this.parent.files;
+    const parentChildren = this.parent.nodes;
     parentChildren?.splice(parentChildren.indexOf(this), 1);
   }
+
+  abstract getChildrenByName(name: string): IFile | null;
 
   abstract removeByName(name: string): void;
   abstract scan(): void;
 }
 
 export class Folder extends IFile {
-  files: IFile[] = [];
+  nodes: IFile[] = [];
 
   constructor(name: string) {
     super();
@@ -30,7 +32,27 @@ export class Folder extends IFile {
 
   add(file: IFile) {
     file.parent = this;
-    this.files.push(file);
+    this.nodes.push(file);
+  }
+
+  getChildrenByName(name: string) {
+    // 如果是当前的名字相等，则返回自己
+    // 如果，没有子节点，则返回null
+    // 否则遍历子节点，（结果正确则返回，否则不返回）
+    if (this.name === name) {
+      return this;
+    } else {
+      if (this.nodes.length !== 0) {
+        for (const file of this.nodes) {
+          const temp = file.getChildrenByName(name);
+          if (temp != null) {
+            return temp;
+          }
+        }
+      }
+    }
+
+    return null;
   }
 
   removeByName(name: string) {
@@ -39,14 +61,14 @@ export class Folder extends IFile {
       return;
     }
 
-    this.files.forEach((file) => {
+    this.nodes.forEach((file) => {
       file.removeByName(name);
     });
   }
 
   scan() {
     console.log('folder name: ' + this.name);
-    this.files.forEach((file) => {
+    this.nodes.forEach((file) => {
       file.scan();
     });
   }
@@ -66,8 +88,16 @@ export class File extends IFile {
     throw new Error('文件下不能添加文件');
   }
 
+  getChildrenByName() {
+    // throw new Error('文件下没有子文件');
+    return null;
+  }
+
   removeByName(name: string) {
-    throw new Error('文件下不能删除其他文件');
+    if (this.name === name) {
+      this.removeSelf();
+      return;
+    }
   }
 
   scan() {

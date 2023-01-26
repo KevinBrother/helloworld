@@ -17,11 +17,21 @@ folder.add(file3);
 
 folder.scan();
 
+/* 
 console.log('// start remove self //');
-
-// folder2.removeSelf();
+folder2.removeSelf();
 file3.removeSelf();
 folder.scan();
+ */
+
+/* 
+console.log('// start remove by name //')j;
+folder.removeByName('JQuery');
+folder.removeByName('重构');
+folder.scan(); 
+*/
+
+console.log('%c [ folder.getChildrenByName("JQuery"); ]-35', 'font-size:13px; background:pink; color:#bf2c9f;', folder.getChildrenByName('JQuery'));
 
 /* import { Composite, Leaf } from './base';
 
