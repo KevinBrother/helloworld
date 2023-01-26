@@ -31,7 +31,11 @@ folder.removeByName('重构');
 folder.scan(); 
 */
 
-console.log('%c [ folder.getChildrenByName("JQuery"); ]-35', 'font-size:13px; background:pink; color:#bf2c9f;', folder.getChildrenByName('JQuery'));
+console.log(
+  '%c [ folder.getChildrenByName("JQuery"); ]-35',
+  'font-size:13px; background:pink; color:#bf2c9f;',
+  folder.getNodeByKey('name', 'JQuery')
+);
 
 /* import { Composite, Leaf } from './base';
 

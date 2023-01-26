@@ -1,33 +1,36 @@
-interface ITree {
-  name: string;
-  id: string;
-  parent: ITree | null;
-  nodes: ITree[];
+export abstract class ITree {
+  protected nodes: ITree[] = [];
+  protected name = '';
+  protected id = this.genId();
+  protected parent: ITree | null = null;
+  protected isLeaf = false;
 
-  getNodeByKey(keyword: string, value: string | number): ITree | null;
-}
+  add(node: ITree) {
+    node.parent = this;
+    this.nodes.push(node);
+  }
 
-export class Tree implements ITree {
-  nodes: ITree[] = [];
-  name = '';
-  id = '';
-  parent: ITree | null = null;
+  removeSelf() {
+    if (!this.parent) {
+      // 不在节点中
+      return;
+    }
 
-  constructor(tree: ITree) {
-    const { name, nodes, id, parent } = tree;
-    this.name = name;
-    this.nodes = nodes;
-    this.id = id;
+    const parentNodes = this.parent.nodes;
+    parentNodes?.splice(parentNodes.indexOf(this), 1);
+  }
+
+  setParent(parent: ITree) {
     this.parent = parent;
   }
 
-  getNodeByKey(name: 'name' | 'id', value: string | number): ITree | null {
-    if (this.name === name) {
+  getNodeByKey(keyword: 'name' | 'id', value: string | number): ITree | null {
+    if (this[keyword] === value) {
       return this;
     } else {
       if (this.nodes.length !== 0) {
         for (const file of this.nodes) {
-          const temp = file.getNodeByKey(name, value);
+          const temp = file.getNodeByKey(keyword, value);
           if (temp != null) {
             return temp;
           }
@@ -37,23 +40,41 @@ export class Tree implements ITree {
 
     return null;
   }
-}
 
-export class Leaf implements ITree {
-  nodes: ITree[] = [];
-  name = '';
-  id = '';
-  parent: ITree | null = null;
-
-  constructor(tree: ITree) {
-    const { name, nodes, id, parent } = tree;
-    this.name = name;
-    this.nodes = nodes;
-    this.id = id;
-    this.parent = parent;
+  scan() {
+    console.log('folder name: ' + this.name);
+    this.nodes.forEach((node) => {
+      node.scan();
+    });
   }
 
-  getNodeByKey() {
-    return this;
+  genId() {
+    return Math.random().toString(5);
+  }
+}
+
+export class Leaf extends ITree {
+  constructor(name: string) {
+    super();
+    this.name = name;
+    this.isLeaf = true;
+  }
+
+  add(node: ITree) {
+    node.setParent(this);
+    this.isLeaf = false;
+    this.nodes.push(node);
+  }
+
+  getNodeByKey(keyword: 'name' | 'id', value: string | number) {
+    if (this[keyword] === value) {
+      return this;
+    }
+
+    return null;
+  }
+
+  scan() {
+    console.log('file name ' + this.name);
   }
 }
