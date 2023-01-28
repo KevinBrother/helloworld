@@ -1,9 +1,29 @@
 import { ITree, Leaf } from './tree';
 
-export class Folder extends ITree {
-  constructor(name: string) {
+interface IFolder {
+  name: string;
+  desc: string;
+  stat: string;
+  size: string;
+  status: string;
+}
+
+interface ITreeParams {
+  name: string;
+  id?: string;
+}
+
+export class Folder<T extends ITreeParams> extends ITree {
+  component: T;
+
+  constructor(component: T) {
     super();
-    this.name = name;
+    this.name = component.name;
+    if (component.id) {
+      this.id = component.id;
+    }
+
+    this.component = component;
   }
 }
 

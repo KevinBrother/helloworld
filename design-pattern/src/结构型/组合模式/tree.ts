@@ -1,7 +1,7 @@
 export abstract class ITree {
   protected nodes: ITree[] = [];
-  protected name = '';
-  protected id = this.genId();
+  name = '';
+  id = this.genId();
   protected parent: ITree | null = null;
   protected isLeaf = false;
 
