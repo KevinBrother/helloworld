@@ -4,6 +4,8 @@ export abstract class ITree {
   id = this.genId();
   protected parent: ITree | null = null;
   protected isLeaf = false;
+  // TODO 设置是否子节点自动变更类型
+  protected treeModel: 'a' | 'b' = 'a';
 
   add(node: ITree) {
     node.parent = this;
@@ -18,6 +20,9 @@ export abstract class ITree {
 
     const parentNodes = this.parent.nodes;
     parentNodes?.splice(parentNodes.indexOf(this), 1);
+    if (this.treeModel === 'a' && parentNodes.length === 0) {
+      this.parent.isLeaf = true;
+    }
   }
 
   setParent(parent: ITree) {
@@ -53,12 +58,12 @@ export abstract class ITree {
   }
 }
 
-export class Leaf extends ITree {
-  constructor(name: string) {
+export class ILeaf extends ITree {
+  /*   constructor(name: string) {
     super();
     this.name = name;
     this.isLeaf = true;
-  }
+  } */
 
   add(node: ITree) {
     node.setParent(this);

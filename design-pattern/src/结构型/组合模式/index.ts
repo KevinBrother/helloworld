@@ -1,8 +1,8 @@
 import { Folder, File } from './folder';
 
-const folder = new Folder({ name: '学习资料' });
-const folder1 = new Folder({ name: 'JavaScript' });
-const folder2 = new Folder({ name: 'JQuery' });
+const folder = new Folder({ name: '学习资料', desc: '学习资料啦' });
+const folder1 = new Folder({ name: 'JavaScript', desc: 'JavaScript 的学习资料' });
+const folder2 = new Folder({ name: 'JQuery', desc: 'JavaScript 的学习资料' });
 
 const file1 = new File('JavaScript设计模式');
 const file2 = new File('精通JQuery');

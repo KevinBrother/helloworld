@@ -1,21 +1,13 @@
 import { ITree, ILeaf } from './tree';
 
-interface IFolder {
-  name: string;
-  desc: string;
-  stat?: string;
-  size?: string;
-  status?: string;
-}
-
 interface ITreeParams {
   name: string;
   id?: string;
 }
 
-export class Folder<T extends ITreeParams> extends ITree {
+export class TreeImp<T extends ITreeParams> extends ITree {
   // @ts-ignore
-  component: T;
+  private component: T;
 
   constructor(component: T) {
     super();
@@ -31,7 +23,7 @@ export class Folder<T extends ITreeParams> extends ITree {
   }
 }
 
-export class File<T> extends ILeaf {
+export class LeafImp<T extends ITreeParams> extends ILeaf {
   private component: T;
   constructor(component: T) {
     super();
@@ -41,21 +33,5 @@ export class File<T> extends ILeaf {
 
   modify(component: T) {
     this.component = component;
-  }
-
-  add() {
-    throw new Error('文件下不能添加文件');
-  }
-
-  getNodeByKey(keyword: 'name' | 'id', value: string | number) {
-    if (this[keyword] === value) {
-      return this;
-    }
-
-    return null;
-  }
-
-  scan() {
-    console.log('file name ' + this.name);
   }
 }
