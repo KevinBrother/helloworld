@@ -32,13 +32,13 @@ export abstract class ITree {
   getNodeByKey(keyword: 'name' | 'id', value: string | number): ITree | null {
     if (this[keyword] === value) {
       return this;
-    } else {
-      if (this.nodes.length !== 0) {
-        for (const file of this.nodes) {
-          const temp = file.getNodeByKey(keyword, value);
-          if (temp != null) {
-            return temp;
-          }
+    }
+
+    if (this.nodes.length !== 0) {
+      for (const file of this.nodes) {
+        const temp = file.getNodeByKey(keyword, value);
+        if (temp != null) {
+          return temp;
         }
       }
     }
