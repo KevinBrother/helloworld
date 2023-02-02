@@ -12,6 +12,15 @@
 
 ## 使用案例
 
+- [] node-study
+  - node常用api文档的使用以及案例，比如child-process、fs、path、os、net、http等模块
+
+- [] echarts-test
+  - 基础的echarts操作
+
+- [] base-css
+  - 基础的css学习案例如flex、grid等
+
 - [x] react-study
   - react的基础使用包括三大属性、生命周期等
   - react-router-dom v5与v6的路由
@@ -41,9 +50,46 @@
   - docker-compose的使用案例,docker-compose.yml的使用
 
 - [] webpack-study
+  - [x]基本配置
+  - [x]构建优化
+  - [x]加速配置
+  - [] [其他优化项](https://mubu.com/app/edit/recent/2GNsXmnlXXk)
 
-- [] ng-antd-test
+- [] grunt-study
 
+- [] gulp-study
+
+- [] nodejs-study
+
+- [] rxjs
 - []typescript-study
 
+- [] antd-test
+  - antd
+  - react
+
+- [] ng-antd-test
 - [] angular
+
+- [] wx-config
+  - 微信公招平台相关的功能
+
+- [] npm-module-study
+  - npm相关实验
+
+- [] electron-study
+  - electron相关的案例
+
+- [] vite-test
+  - vite的配置和相关功能案例
+
+- [] electron-test
+  - vite的配置和相关功能案例
+
+- [] monorepo-test
+  - [] npm link
+  - yarn workspace
+  - lerna
+
+- [] code-collect
+  - 工作中遇到的小功能需求，小工具
