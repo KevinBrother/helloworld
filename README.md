@@ -8,17 +8,46 @@
   - 主要做了什么
   - 文档链接
 
+## 新建文件夹下新增的文档需要只要要包含两个主题：作用、目的。如
+
+```
+# 文档
+
+## 作用
+
+## 目的
+
+## 参考链接
+```
+
 ## master 分支主要作用是编写统一文档与全局控制作用
 
 ## 使用案例
 
-- [] node-study
+- [x] worker
+  工作者线程
+
+- [] design-pattern
+  设计模式
+
+- [ ] graphQL
+  - [x] 基础api
+  - [ ] 实际项目的使用
+
+- [ ] vue3.0
+
+- [ ] babel-study
+
+- [ ] node-study
   - node常用api文档的使用以及案例，比如child-process、fs、path、os、net、http等模块
-
-- [] echarts-test
-  - 基础的echarts操作
-
-- [] base-css
+- 图形学
+  - [x] echarts-test
+  - [ ] canvas-study
+    - 基础的echarts操作
+  - [ ] webgl-study
+  - [ ] threejs-study
+  
+- [] css-style
   - 基础的css学习案例如flex、grid等
 
 - [x] react-study
@@ -59,6 +88,8 @@
 
 - [] gulp-study
 
+- [] tsup-study
+
 - [] nodejs-study
 
 - [] rxjs
@@ -93,3 +124,7 @@
 
 - [] code-collect
   - 工作中遇到的小功能需求，小工具
+
+## C语言
+
+- [] makefile
