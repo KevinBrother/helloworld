@@ -18,16 +18,19 @@ export default {
     {
       file: './dist/index.js',
       format: 'cjs',
-      inlineDynamicImports: true
+      inlineDynamicImports: true,
+      sourcemap: true
     },
     {
       file: './dist/index.esm.js',
       format: 'esm',
+      sourcemap: true,
       inlineDynamicImports: true
     },
     {
       file: './dist/index.min.js',
       inlineDynamicImports: true,
+      sourcemap: true,
       format: 'iife',
       name: 'version',
       plugins: [terser()]
