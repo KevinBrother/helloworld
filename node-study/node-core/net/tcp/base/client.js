@@ -5,12 +5,12 @@ process.title = 'net tcp client';
 console.log('client :', process.pid);
 // 创建连接客户端
 const client = net.createConnection(PORT, HOST, () => {
-  console.log('客户端连接成功 日志1');
+  console.log('客户端连接成功 传递数据的方法1');
 });
 
 // 监听连接后开始发送数据
 client.on('connect', () => {
-  console.log('客户端连接成功 日志2');
+  console.log('客户端连接成功 传递数据的方法2');
   client.write('客户端发送的第一条数据');
 
   setTimeout(() => {

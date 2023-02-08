@@ -16,11 +16,6 @@ server.on('listening', () => {
 
 // 开启连接
 server.on('connection', (socket) => {
-  console.log(
-    '%c [ socket ]-19',
-    'font-size:13px; background:pink; color:#bf2c9f;',
-    socket
-  );
   socket.setNoDelay(true);
   socket.on('data', (buffer) => {
     const msg = buffer.toString();
