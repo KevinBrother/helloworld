@@ -2,42 +2,49 @@ const net = require('net');
 const HOST = '127.0.0.1';
 const PORT = 3000;
 
-// 创建连接客户端
-const client = net.createConnection(PORT, HOST, () => {
-  console.log('客户端连接成功 日志1');
-  console.log(
-    '%c [ client ]-7',
-    'font-size:13px; background:pink; color:#bf2c9f;',
-    client
-  );
+// 创建TCP服务实例
+const server = net.createServer();
+
+// 监听端口
+server.listen(PORT, HOST, () => {
+  console.log(`服务器开启在 ${HOST}:${PORT} 回调日志`);
 });
 
-// 监听连接后开始发送数据
-client.on('connect', () => {
-  console.log('客户端连接成功 日志2');
-  client.write('客户端发送的第一条数据');
-
-  setTimeout(() => {
-    client.write('客户端发送的第二条数据');
-    client.write('客户端发送的第三条数据');
-    client.write('客户端发送的第四条数据');
-    client.write('客户端发送的第五条数据');
-  }, 1000);
+server.on('listening', () => {
+  console.log(`服务器开启在 ${HOST}:${PORT} 监听日志`);
 });
 
-// 监听服务端数据
-client.on('data', (buffer) => {
-  console.log('接受到服务端的消息', buffer.toString());
+// 开启连接
+server.on('connection', (socket) => {
+  socket.setNoDelay(true);
+  socket.on('data', (buffer) => {
+    const msg = buffer.toString();
+    console.log('连接后接受到的消息', msg);
+
+    // write方法写入数据，发送给客户端
+    socket.write(Buffer.from('您好' + msg));
+  });
+
+  socket.on('close', (err) => {
+    console.log('[ 客户端连接断开了 ] >', err);
+  });
 });
 
-client.on('error', (err) => {
-  console.error(
-    '%c [ err ]-29',
-    'font-size:13px; background:pink; color:#bf2c9f;',
-    err
-  );
+server.on('close', () => {
+  console.log('[ server close ] >');
 });
 
-client.on('close', (err) => {
-  console.log('[ 服务端连接断开了 ] >', err);
+server.on('error', (err) => {
+  console.error(err);
+
+  if (err.code === 'EADDRINUSE') {
+    console.log('地址正在使用，重试中。。。');
+
+    setTimeout(() => {
+      server.close();
+      server.listen(PORT, HOST);
+    }, 1000);
+  } else {
+    console.error('服务器异常', err);
+  }
 });

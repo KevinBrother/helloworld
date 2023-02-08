@@ -4,6 +4,8 @@ const PORT = 3000;
 
 // 创建TCP服务实例
 const server = net.createServer();
+process.title = 'net tcp server';
+console.log('server :', process.pid);
 
 // 监听端口
 server.listen(PORT, HOST, () => {

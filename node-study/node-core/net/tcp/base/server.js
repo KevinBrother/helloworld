@@ -16,20 +16,9 @@ server.on('listening', () => {
   console.log(`服务器开启在 ${HOST}:${PORT} 监听日志`);
 });
 
-// 开启连接
+// 监听连接
 server.on('connection', (socket) => {
-  socket.setNoDelay(true);
-  socket.on('data', (buffer) => {
-    const msg = buffer.toString();
-    console.log('连接后接受到的消息', msg);
-
-    // write方法写入数据，发送给客户端
-    socket.write(Buffer.from('您好' + msg));
-  });
-
-  socket.on('close', (err) => {
-    console.log('[ 客户端连接断开了 ] >', err);
-  });
+  console.log('被链接了');
 });
 
 server.on('close', () => {
