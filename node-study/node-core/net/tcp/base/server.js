@@ -4,6 +4,8 @@ const PORT = 3000;
 
 // 创建TCP服务实例
 const server = net.createServer();
+process.title = 'net tcp server';
+console.log('server :', process.pid);
 
 // 监听端口
 server.listen(PORT, HOST, () => {
@@ -14,25 +16,9 @@ server.on('listening', () => {
   console.log(`服务器开启在 ${HOST}:${PORT} 监听日志`);
 });
 
-// 开启连接
+// 监听连接
 server.on('connection', (socket) => {
-  console.log(
-    '%c [ socket ]-19',
-    'font-size:13px; background:pink; color:#bf2c9f;',
-    socket
-  );
-  socket.setNoDelay(true);
-  socket.on('data', (buffer) => {
-    const msg = buffer.toString();
-    console.log('连接后接受到的消息', msg);
-
-    // write方法写入数据，发送给客户端
-    socket.write(Buffer.from('您好' + msg));
-  });
-
-  socket.on('close', (err) => {
-    console.log('[ 客户端连接断开了 ] >', err);
-  });
+  console.log('被链接了');
 });
 
 server.on('close', () => {

@@ -4,6 +4,8 @@ const PORT = 3000;
 
 // 创建TCP服务实例
 const server = net.createServer();
+process.title = 'net tcp server';
+console.log('server :', process.pid);
 
 // 监听端口
 server.listen(PORT, HOST, () => {
@@ -16,11 +18,6 @@ server.on('listening', () => {
 
 // 开启连接
 server.on('connection', (socket) => {
-  console.log(
-    '%c [ socket ]-19',
-    'font-size:13px; background:pink; color:#bf2c9f;',
-    socket
-  );
   socket.setNoDelay(true);
   socket.on('data', (buffer) => {
     const msg = buffer.toString();
