@@ -2,8 +2,6 @@ import React from 'react';
 import Example1 from 'component-app/Example';
 import Example2 from 'component-app/Example2';
 import { add } from 'lib-demo/index';
-import { DefaultFolders } from 'studio-local-lib/utils';
-console.log('%c [ add ]-5', 'font-size:13px; background:pink; color:#bf2c9f;', add, DefaultFolders);
 // or
 // const Example1 = React.lazy(() => import('component-app/Example'));
 // const Example2 = React.lazy(() => import('component-app/Example2'));

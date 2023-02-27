@@ -11,7 +11,6 @@
     "test": "echo \"Error: no test specified\" && exit 1",
     "start": "wsrun --parallel start",
     "build": "yarn workspaces run build",
-    "dev": "wsrun --parallel dev",
     "start:all": "npm workspaces run start"
   },
   "keywords": [],
