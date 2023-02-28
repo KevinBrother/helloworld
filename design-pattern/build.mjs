@@ -19,6 +19,7 @@ const distMap = {
   command: '行为型/命令模式',
   template: '行为型/模板方法模式',
   memento: '行为型/备忘录模式',
+  strategy: '行为型/策略模式',
   state: '行为型/状态模式',
   visit: '行为型/访问者模式',
   iterator: '行为型/迭代器模式'

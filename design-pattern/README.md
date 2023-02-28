@@ -8,7 +8,7 @@ npm i -g zx
 
 ```bash
 # builder 为建造者模式
-yarn go --tag=builder
+yarn build --tag=builder
 ```
 
 ## doc
