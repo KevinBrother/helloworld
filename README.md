@@ -86,6 +86,8 @@
 
 - [] grunt-study
 
+- [] animejs-study
+
 - [] gulp-study
 
 - [] tsup-study
