@@ -1,0 +1,62 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta http-equiv="X-UA-Compatible" content="IE=edge" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Document</title>
+
+    <style>
+      .container {
+        margin: 300px 0 0 300px;
+      }
+
+      .wrapper {
+        border: 1px solid black;
+        width: 200px;
+        height: 100px;
+        position: relative;
+        overflow: scroll;
+      }
+
+      .inner {
+        width: 100%;
+        position: absolute;
+      }
+
+      .item {
+        border: 1px solid pink;
+        border-radius: 4px;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="container">
+      <div class="wrapper">
+        <div class="inner">
+          <div class="item">121</div>
+          <div class="item">1asd21</div>
+          <div class="item">12asd1</div>
+          <div class="item">12fds1</div>
+          <div class="item">dfa121</div>
+          <div class="item">fwer121</div>
+          <div class="item">sfhsd121</div>
+          <div class="item">1123dg21</div>
+        </div>
+      </div>
+    </div>
+
+    <script>
+      const innerEle = document.querySelector('.inner');
+      setInterval(() => {
+        const wrapperEle = document.querySelector('.wrapper');
+        const scrollHeight = wrapperEle.scrollHeight;
+        const div = document.createElement('div');
+        div.classList.add('item');
+        div.innerHTML = Math.random() + 'adsf';
+        innerEle.appendChild(div);
+        wrapperEle.scrollTo({ top: scrollHeight, behavior: 'smooth' });
+      }, 1000);
+    </script>
+  </body>
+</html>
