@@ -1,6 +1,6 @@
-import { Context, LiftState } from './service';
+import { Context, EnumLiftState } from './service';
 
-const liftConntext = new Context(Context.operationOpen, LiftState.open);
+const liftConntext = new Context(Context.operationOpen, EnumLiftState.open);
 
 liftConntext.close();
 liftConntext.run();

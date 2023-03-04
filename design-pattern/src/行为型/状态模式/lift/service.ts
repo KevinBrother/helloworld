@@ -1,4 +1,4 @@
-abstract class ALift {
+abstract class LiftState {
   context!: Context;
 
   setContext(context: Context) {
@@ -19,10 +19,10 @@ abstract class ALift {
   };
 }
 
-class OpeningState extends ALift {
+class OpeningState extends LiftState {
   open = () => {
     console.log('电梯门打开中。。。');
-    this.context.setState(LiftState.open);
+    this.context.setState(EnumLiftState.open);
   };
 
   close = () => {
@@ -30,10 +30,10 @@ class OpeningState extends ALift {
     this.context.getOperation().close();
   };
 }
-class RuningState extends ALift {
+class RuningState extends LiftState {
   run = () => {
     console.log('电梯运行中。。。');
-    this.context.setState(LiftState.run);
+    this.context.setState(EnumLiftState.run);
   };
 
   stop = () => {
@@ -41,10 +41,10 @@ class RuningState extends ALift {
     this.context.getOperation().stop();
   };
 }
-class CloseingState extends ALift {
+class CloseingState extends LiftState {
   close = () => {
     console.log('电梯门关闭中。。。');
-    this.context.setState(LiftState.closed);
+    this.context.setState(EnumLiftState.closed);
   };
 
   open = () => {
@@ -58,10 +58,10 @@ class CloseingState extends ALift {
   };
 }
 
-class StopingState extends ALift {
+class StopingState extends LiftState {
   stop = () => {
     console.log('电梯停止中');
-    this.context.setState(LiftState.stop);
+    this.context.setState(EnumLiftState.stop);
   };
 
   open = () => {
@@ -74,7 +74,7 @@ class StopingState extends ALift {
   };
 }
 
-export enum LiftState {
+export enum EnumLiftState {
   open = 'open',
   closed = 'closed',
   run = 'run',
@@ -87,10 +87,10 @@ export class Context {
   static operationStop = new StopingState();
   static operationClose = new CloseingState();
 
-  private state!: LiftState;
-  private operation!: ALift;
+  private state!: EnumLiftState;
+  private operation!: LiftState;
 
-  constructor(operation: ALift, state: LiftState) {
+  constructor(operation: LiftState, state: EnumLiftState) {
     this.setState(state);
     this.setOperation(operation);
   }
@@ -99,11 +99,11 @@ export class Context {
     return this.state;
   }
 
-  setState(state: LiftState) {
+  setState(state: EnumLiftState) {
     this.state = state;
   }
 
-  setOperation(operation: ALift) {
+  setOperation(operation: LiftState) {
     this.operation = operation;
     this.operation.setContext(this);
   }
