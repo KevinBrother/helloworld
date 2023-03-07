@@ -17,9 +17,9 @@ class Square implements Shape {
   }
 }
 
-// 3. 定义工厂类
+// 3. 定义工厂类 // 简单工厂（静态工厂模式）
 class ShapeFactory {
-  getShape<T extends Shape>(shpae: new (...args: any[]) => T) {
+  static getShape<T extends Shape>(shpae: new (...args: any[]) => T) {
     return new shpae();
   }
 }
@@ -29,11 +29,9 @@ function createInstance<T>(ctor: new (...args: any[]) => T, ...args: any[]): T {
   return new ctor(...args);
 }
 
-const shapeFactory = new ShapeFactory();
-
-const circleShape = shapeFactory.getShape(Circle);
+const circleShape = ShapeFactory.getShape(Circle);
 console.log('%c [ circleShape ]-36', 'font-size:13px; background:pink; color:#bf2c9f;', circleShape?.draw());
-const squareShape = shapeFactory.getShape(Square);
+const squareShape = ShapeFactory.getShape(Square);
 console.log('%c [ squareShape ]-38', 'font-size:13px; background:pink; color:#bf2c9f;', squareShape?.draw());
 
 export {};
