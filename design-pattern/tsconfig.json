@@ -12,6 +12,6 @@
     "experimentalDecorators": true
   },
   "include": [
-    "./src/创建型/单例模式"
+    "./src/创建型/工厂模式"
   ]
 }
