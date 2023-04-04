@@ -46,6 +46,7 @@
     - 基础的echarts操作
   - [ ] webgl-study
   - [ ] threejs-study
+  - [ ] cesiumjs-study
   
 - [] css-style
   - 基础的css学习案例如flex、grid等
@@ -71,7 +72,10 @@
   - egg-demo
   - node、后端
   - js的后端服务框架
-  
+
+- [ ] browser-plugin
+  - [ ] extension-study 简单的浏览器插件功能
+
 - [x] docker-compose
   <!-- - docker-compose build ： 暂时理解为 会触发compose 中的build命令 ， 构建镜像-->
   - docker-compose down 卸载所有容器
