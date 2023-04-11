@@ -36,7 +36,8 @@ module.exports = {
       filename: 'remoteEntry.js',
       exposes: {
         './Example': './src/components/Example.jsx',
-        './Example2': './src/components/Example2.jsx'
+        './Example2': './src/components/Example2.jsx',
+        './TransferParams': './src/components/transfer-params.jsx'
         // './App': './src/App'
       },
       remotes: {
