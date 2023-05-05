@@ -1,0 +1,172 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta http-equiv="X-UA-Compatible" content="IE=edge" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Document</title>
+  </head>
+  <body>
+    <!-- HTML -->
+    <canvas id="myCanvas" width="1400" height="1300"></canvas>
+    <script>
+      // JavaScript
+      var canvas = document.getElementById('myCanvas');
+      var ctx = canvas.getContext('2d');
+
+      // 定义表格的行和列数
+      var numRows = 10;
+      var numCols = 10;
+
+      // 定义单元格的初始大小和位置
+      var cellWidth = canvas.width / numCols;
+      var cellHeight = canvas.height / numRows;
+      var cellX = 0;
+      var cellY = 0;
+
+      // 定义每条线的初始位置
+      var rowLines = [];
+      var colLines = [];
+      for (var i = 0; i <= numRows; i++) {
+        rowLines.push(cellY + i * cellHeight);
+      }
+      for (var j = 0; j <= numCols; j++) {
+        colLines.push(cellX + j * cellWidth);
+      }
+
+      // 定义表格的缩放比例
+      var scale = 1.0;
+
+      // 定义当前拖动的行或列
+      var currentLine = null;
+
+      // 绘制表格
+      function drawTable() {
+        // 清除Canvas
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+        // 绘制表格行和列
+        for (var i = 1; i < numRows; i++) {
+          ctx.beginPath();
+          ctx.moveTo(cellX, rowLines[i]);
+          ctx.lineTo(canvas.width, rowLines[i]);
+          ctx.stroke();
+        }
+        for (var j = 1; j < numCols; j++) {
+          ctx.beginPath();
+          ctx.moveTo(colLines[j], cellY);
+          ctx.lineTo(colLines[j], canvas.height);
+          ctx.stroke();
+        }
+
+        // 填充表格内容
+        ctx.font = '14px Arial';
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'middle';
+        for (var i = 1; i <= numRows; i++) {
+          for (var j = 1; j <= numCols; j++) {
+            var x = colLines[j - 1] + (cellWidth * scale) / 2;
+            var y = rowLines[i - 1] + (cellHeight * scale) / 2;
+            ctx.fillText('Row ' + i + ', Column ' + j, x, y);
+          }
+        }
+      }
+
+      // 获取鼠标相对Canvas的坐标
+      function getMousePos(event) {
+        var rect = canvas.getBoundingClientRect();
+        return {
+          x: event.clientX - rect.left,
+          y: event.clientY - rect.top
+        };
+      }
+
+      // 检查鼠标是否在行或列上
+      function checkLine(mouseX, mouseY) {
+        for (var i = 1; i < numRows; i++) {
+          if (mouseY >= rowLines[i] - 5 && mouseY <= rowLines[i] + 5) {
+            return { type: 'row', index: i };
+          }
+        }
+        for (var j = 1; j < numCols; j++) {
+          if (mouseX >= colLines[j] - 5 && mouseX <= colLines[j] + 5) {
+            return { type: 'col', index: j };
+          }
+        }
+        return null;
+      }
+
+      // 处理鼠标移动事件
+      canvas.addEventListener('mousemove', function (event) {
+        var mousePos = getMousePos(event);
+        var line = checkLine(mousePos.x, mousePos.y);
+        if (line) {
+          canvas.style.cursor = line.type + '-resize';
+        } else {
+          canvas.style.cursor = 'default';
+        }
+        if (currentLine) {
+          if (currentLine.type == 'row') {
+            var index = currentLine.index;
+            var y = mousePos.y;
+            if (y < rowLines[index - 1]) {
+              y = rowLines[index - 1];
+            } else if (y > rowLines[index + 1]) {
+              y = rowLines[index + 1];
+            }
+            rowLines[index] = y;
+            cellHeight = (canvas.height / numRows) * scale;
+            drawTable();
+          } else if (currentLine.type == 'col') {
+            var index = currentLine.index;
+            var x = mousePos.x;
+            if (x < colLines[index - 1]) {
+              x = colLines[index - 1];
+            } else if (x > colLines[index + 1]) {
+              x = colLines[index + 1];
+            }
+            colLines[index] = x;
+            cellWidth = (canvas.width / numCols) * scale;
+            drawTable();
+          }
+        }
+      });
+
+      // 处理鼠标释放事件
+      canvas.addEventListener('mouseup', function (event) {
+        currentLine = null;
+        canvas.style.cursor = 'default';
+      });
+
+      // 处理鼠标滚轮事件
+      canvas.addEventListener('wheel', function (event) {
+        var mousePos = getMousePos(event);
+        var delta = Math.max(-1, Math.min(1, event.deltaY));
+        var oldScale = scale;
+        scale += delta * 0.1;
+        if (scale < 0.1) {
+          scale = 0.1;
+        }
+        var ratio = scale / oldScale;
+        cellWidth = (canvas.width / numCols) * scale;
+        cellHeight = (canvas.height / numRows) * scale;
+        for (var i = 1; i <= numRows; i++) {
+          rowLines[i] = rowLines[i] * ratio;
+        }
+        for (var j = 1; j <= numCols; j++) {
+          colLines[j] = colLines[j] * ratio;
+        }
+        drawTable();
+      });
+
+      // 处理鼠标按下事件
+      canvas.addEventListener('mousedown', function (event) {
+        var mousePos = getMousePos(event);
+        currentLine = checkLine(mousePos.x, mousePos.y);
+      });
+
+      // 初始化表格
+      drawTable();
+    </script>
+  </body>
+</html>
