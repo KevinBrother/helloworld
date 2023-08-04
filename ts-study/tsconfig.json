@@ -2,7 +2,7 @@
   "compilerOptions": {
     /* 基本选项 */
     "target": "es5", // 指定 ECMAScript 目标版本: 'ES3' (default), 'ES5', 'ES6'/'ES2015', 'ES2016', 'ES2017', or 'ESNEXT'
-    // "module": "commonjs", // 指定使用模块: 'commonjs', 'amd', 'system', 'umd' or 'es2015'
+    "module": "commonjs", // 指定使用模块: 'commonjs', 'amd', 'system', 'umd' or 'es2015'
     "lib": [
       "ESNext",
       "DOM"
@@ -16,7 +16,7 @@
     "outDir": "./dist", // 指定输出目录
     "rootDir": "./", // 用来控制输出目录结构 --outDir.
     "removeComments": true, // 删除编译后的所有的注释
-    "noEmit": true, // 不生成输出文件
+    // "noEmit": true, // 不生成输出文件
     "importHelpers": true, // 从 tslib 导入辅助工具函数
     // "isolatedModules": true, // 将每个文件作为单独的模块 （与 'ts.transpileModule' 类似）.
     /* 严格的类型检查选项 */
