@@ -51,6 +51,9 @@
 - [] css-style
   - 基础的css学习案例如flex、grid等
 
+- ts-study
+  - (深入理解typescript)[https://jkchao.github.io/typescript-book-chinese/]
+
 - [x] react-study
   - react的基础使用包括三大属性、生命周期等
   - react-router-dom v5与v6的路由
