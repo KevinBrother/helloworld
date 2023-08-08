@@ -37,6 +37,18 @@
         "./js/content-bd.js"
       ],
       "run_at": "document_start"
+    },
+    {
+      "matches": [
+        "<all_urls>"
+      ],
+      "js": [
+        "./js/content-inject.js"
+      ],
+      "css": [
+        "./css/style.css"
+      ],
+      "run_at": "document_end"
     }
   ]
 }
