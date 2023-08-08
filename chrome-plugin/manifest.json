@@ -10,5 +10,33 @@
     "default_icon": "./icon/ball.png",
     "default_title": "我的插件",
     "default_popup": "./html/popup.html"
-  }
+  },
+  "background": {
+    "scripts": [
+      "./js/background.js"
+    ]
+  },
+  "content_scripts": [
+    {
+      "matches": [
+        "<all_urls>"
+      ],
+      "js": [
+        "./js/content-all.js"
+      ],
+      "css": [
+        "./css/style.css"
+      ],
+      "run_at": "document_start"
+    },
+    {
+      "matches": [
+        "https://www.baidu.com/"
+      ],
+      "js": [
+        "./js/content-bd.js"
+      ],
+      "run_at": "document_start"
+    }
+  ]
 }
