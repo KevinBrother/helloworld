@@ -1,18 +1,18 @@
 {
-  "manifest_version": 2,
+  "manifest_version": 3,
   "name": "my-plugin",
   "version": "0.1.1",
   "description": "这是一段描述",
   "icons": {
     "84": "./icon/ball.png"
   },
-  "browser_action": {
+  "action": {
     "default_icon": "./icon/ball.png",
     "default_title": "我的插件",
     "default_popup": "./html/popup.html"
   },
   "background": {
-    "scripts": [
+    "service_worker": [
       "./js/background.js"
     ]
   },
