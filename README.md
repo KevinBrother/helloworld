@@ -134,6 +134,9 @@
 - [] code-collect
   - 工作中遇到的小功能需求，小工具
 
+- [] DEEP LEARNING
+  - [深度学习的入门](https://zh.d2l.ai/chapter_preliminaries/probability.html)
+
 ## C语言
 
 - [] makefile
