@@ -1,0 +1,38 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Document</title>
+    <style>
+        #animatedElement {
+            width: 100px;
+            height: 100px;
+        }
+    </style>
+</head>
+<body>
+    <div id="animatedElement" ></div>
+    <script>
+        const element = document.getElementById("animatedElement");
+        let startTime;
+
+        function animateBackground(timestamp) {
+        if (!startTime) {
+            startTime = timestamp;
+        }
+
+        const elapsed = timestamp - startTime;
+        const hue = Math.floor(elapsed / 10); // 根据时间计算色调
+
+        element.style.backgroundColor = `hsl(${hue}, 100%, 50%)`;
+
+        if (elapsed < 5000) { // 5 秒之后停止动画
+            requestAnimationFrame(animateBackground);
+        }
+        }
+
+        requestAnimationFrame(animateBackground);
+    </script>
+</body>
+</html>
