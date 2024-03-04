@@ -90,13 +90,20 @@
       <figure>
         <div>viewBox 1</div>
         <svg width="200" height="200" viewBox="-100 -100 200 200">
-          <circle cx="100" cy="100" r="50" />
+          <circle cx="0" cy="0" r="50" />
         </svg>
       </figure>
       <figure>
         <div>viewBox 2</div>
-        <svg width="200" height="200" viewBox="-100 -100 200 200">
+        <!-- // TODO 按照比例 不应该是33？ -->
+        <svg width="200" height="200" viewBox="-100 -100 200 200" >
           <circle cx="0" cy="0" r="50" />
+        </svg>
+      </figure>
+      <figure>
+        <div>viewBox 3</div>
+        <svg width="200" height="200">
+          <circle cx="100" cy="100" r="33" />
         </svg>
       </figure>
     </div>
