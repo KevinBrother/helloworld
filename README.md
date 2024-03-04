@@ -137,6 +137,9 @@
 - [] DEEP LEARNING
   - [深度学习的入门](https://zh.d2l.ai/chapter_preliminaries/probability.html)
 
+- [] svg-study
+  - [文档](https://svg-tutorial.com/)
+
 ## C语言
 
 - [] makefile
