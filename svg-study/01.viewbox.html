@@ -15,7 +15,39 @@
     </style>
   </head>
   <body>
+    <h1>坐标系原点</h1>
     <div class="flex">
+      <figure>
+        <div>坐标系默认原点在左上角（0，0）</div>
+        <svg width="300" height="300" style="border: 1px solid steelblue">
+          <circle r="100" fill="darkorange"></circle>
+        </svg>
+      </figure>
+      <figure>
+        <div>viewBox 1</div>
+        <svg width="300" height="300" style="border: 1px solid steelblue">
+          <rect x="10" y="10" width="200" height="100" fill="skyblue"></rect>
+        </svg>
+      </figure>
+      <figure>
+        <div>viewBox 2</div>
+        <svg
+          width="300"
+          height="300"
+          style="border: 1px solid steelblue"
+          viewBox="105 55 60 60"
+        >
+          <rect x="10" y="10" width="200" height="100" fill="skyblue"></rect>
+        </svg>
+      </figure>
+    </div>
+    <div class="flex">
+      <figure>
+        <div>坐标系默认原点在左上角（0，0）</div>
+        <svg width="300" height="300" style="border: 1px solid steelblue">
+          <circle r="100" fill="darkorange"></circle>
+        </svg>
+      </figure>
       <figure>
         <div>viewBox 1</div>
         <svg width="300" height="300" style="border: 1px solid steelblue">
@@ -96,7 +128,7 @@
       <figure>
         <div>viewBox 2</div>
         <!-- // TODO 按照比例 不应该是33？ -->
-        <svg width="200" height="200" viewBox="-100 -100 200 200" >
+        <svg width="200" height="200" viewBox="-100 -100 200 200">
           <circle cx="0" cy="0" r="50" />
         </svg>
       </figure>
