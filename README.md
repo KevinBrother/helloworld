@@ -142,6 +142,8 @@
 
 - [ ] network-study
 
+- [ ] sql-study
+
 ## C语言
 
 - [] makefile
