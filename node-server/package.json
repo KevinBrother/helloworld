@@ -4,7 +4,7 @@
   "description": "",
   "main": "index.js",
   "scripts": {
-    "jwt": "ts-node ./jwt.ts",
+    "jwt": "ts-node ./jwt/index.ts",
     "test": "vitest"
   },
   "keywords": [],
