@@ -2,7 +2,7 @@
 
 [x] jwt
 
-[ ] grpc
+[x] grpc
 
 [ ] 文件上传
 

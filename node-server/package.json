@@ -5,15 +5,20 @@
   "main": "index.js",
   "scripts": {
     "jwt": "ts-node ./jwt/index.ts",
+    "grpc-server": "ts-node ./grpc/server.ts",
+    "grpc-client": "ts-node ./grpc/client.ts",
     "test": "vitest"
   },
   "keywords": [],
   "author": "",
   "license": "ISC",
   "dependencies": {
+    "@grpc/grpc-js": "^1.10.6",
+    "@grpc/proto-loader": "^0.7.12",
     "express": "^4.19.2",
     "grpc": "^1.24.11",
     "jsonwebtoken": "^9.0.2",
+    "minimist": "^1.2.8",
     "ts-node": "^10.9.2",
     "typescript": "^5.4.4"
   },
