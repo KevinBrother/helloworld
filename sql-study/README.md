@@ -33,3 +33,14 @@
   - savepoint：设置保存点。
   - set transaction：设置事务隔离级别。
   - set autocommit：设置自动提交。
+
+
+## 相关软件
+
+- [DataGrip ：JetBrains 旗下 IDE，支持 SQL 语法高亮、自动补全、语法检查、SQL 执行计划等功能。](https://www.jetbrains.com/datagrip/?var=light)
+- [PDManer](http://www.pdmaner.com/download/latest)：一个开源的 MySQL 管理工具，支持 SQL 语法高亮、自动补全、语法检查、SQL 执行计划等功能。
+
+## Q&A
+
+ 1. 为什么大多数互联网公司不用外键约束？
+    - 以学生和成绩的关系为例，学生表中的 student_id 是主键，那么成绩表中的 student_id 则为外键。如果更新学生表中的 student_id，同时触发成绩表中的 student_id 更新，即为级联更新。外键与级 联更新适用于单机低并发，不适合分布式、高并发集群;级联更新是强阻塞，存在数据库更新风暴的风 险;外键影响数据库的插入速度。
