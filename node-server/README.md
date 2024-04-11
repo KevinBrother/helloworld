@@ -18,10 +18,23 @@
     ```
     [protobufjs-cli](https://www.npmjs.com/package/protobufjs-cli)
 
+[x] proxy 如何使用系统代理
 
+[ ] 深入理解 event、stream、net 模块
+
+[ ] 微服务中的rpc
 
 [ ] 文件上传
 
+
+[ ] 框架 express、koa、nestjs
+
 [ ] 缓存
 
-[ ] 消息队列
+[ ] 中间件：mysql、redis、mongodb、rabbitMQ
+
+
+[ ] 定时任务
+
+
+
