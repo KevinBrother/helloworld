@@ -144,6 +144,8 @@
 
 - [ ] sql-study
 
+- [ ] linux-study
+
 ## C语言
 
 - [] makefile
