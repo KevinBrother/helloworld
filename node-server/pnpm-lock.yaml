@@ -5,9 +5,15 @@ settings:
   excludeLinksFromLockfile: false
 
 dependencies:
+  '@types/body-parser':
+    specifier: ^1.19.5
+    version: 1.19.5
   '@types/express':
     specifier: ^4.17.21
     version: 4.17.21
+  body-parser:
+    specifier: ^1.20.2
+    version: 1.20.2
   express:
     specifier: ^4.19.2
     version: 4.19.2
