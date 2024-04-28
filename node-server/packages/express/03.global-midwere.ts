@@ -2,6 +2,8 @@ import express from "express";
 
 const app = express();
 
+app.use(express.static("./public"))
+
 app.use((req, res, next) => {
   console.log("This is a global middleware");
   next();
