@@ -1,0 +1,13 @@
+{
+  "name": "express",
+  "version": "1.0.0",
+  "main": "index.js",
+  "scripts": {
+    "router": "nodemon 01-router.ts",
+    "res": "nodemon 02-res.ts"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "description": ""
+}
