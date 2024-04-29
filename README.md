@@ -146,6 +146,8 @@
 
 - [ ] linux-study
 
+- [ ] python-test
+
 ## C语言
 
 - [] makefile
