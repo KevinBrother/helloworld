@@ -1,4 +1,9 @@
-const { shortid, db } = require("../utils/lowdb");
+const low = require("lowdb");
+const FileSync = require("lowdb/adapters/FileSync");
+const shortid = require("shortid");
+const adapter = new FileSync("./db.json");
+const db = low(adapter);
+
 const id = shortid.generate();
 // 增
 db.get("account").unshift({ id, name: "张三", age: 12 }).write();
