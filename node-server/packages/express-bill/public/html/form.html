@@ -1,0 +1,76 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Document</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body>
+    <div class="container mx-auto px-4 py-8">
+        <form class="bg-white dark:bg-zinc-700 shadow-md rounded px-8 pt-6 pb-8 mb-4">
+          <div class="mb-4">
+            <label class="block text-zinc-700 dark:text-zinc-200 text-sm font-bold mb-2" for="item">
+              Item
+            </label>
+            <input
+              class="shadow appearance-none border rounded w-full py-2 px-3 text-zinc-700 dark:text-zinc-200 leading-tight focus:outline-none focus:shadow-outline"
+              id="item"
+              type="text"
+              placeholder="Enter item"
+            />
+          </div>
+          <div class="mb-4">
+            <label class="block text-zinc-700 dark:text-zinc-200 text-sm font-bold mb-2" for="time">
+              Time
+            </label>
+            <input
+              class="shadow appearance-none border rounded w-full py-2 px-3 text-zinc-700 dark:text-zinc-200 leading-tight focus:outline-none focus:shadow-outline"
+              id="time"
+              type="time"
+            />
+          </div>
+          <div class="mb-4">
+            <label class="block text-zinc-700 dark:text-zinc-200 text-sm font-bold mb-2" for="type">
+              Type
+            </label>
+            <select
+              class="shadow appearance-none border rounded w-full py-2 px-3 text-zinc-700 dark:text-zinc-200 leading-tight focus:outline-none focus:shadow-outline"
+              id="type"
+            >
+              <option value="1">Option 1</option>
+              <option value="2">Option 2</option>
+              <option value="3">Option 3</option>
+            </select>
+          </div>
+          <div class="mb-4">
+            <label class="block text-zinc-700 dark:text-zinc-200 text-sm font-bold mb-2" for="amount">
+              Amount
+            </label>
+            <input
+              class="shadow appearance-none border rounded w-full py-2 px-3 text-zinc-700 dark:text-zinc-200 leading-tight focus:outline-none focus:shadow-outline"
+              id="amount"
+              type="number"
+              placeholder="Enter amount"
+            />
+          </div>
+          <div class="mb-6">
+            <label class="block text-zinc-700 dark:text-zinc-200 text-sm font-bold mb-2" for="notes">
+              Notes
+            </label>
+            <textarea
+              class="shadow appearance-none border rounded w-full py-2 px-3 text-zinc-700 dark:text-zinc-200 mb-3 leading-tight focus:outline-none focus:shadow-outline"
+              id="notes"
+              placeholder="Enter notes"
+            ></textarea>
+          </div>
+          <button
+            class="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded focus:outline-none focus:shadow-outline"
+            type="button"
+          >
+            Submit
+          </button>
+        </form>
+      </div>
+</body>
+</html>
