@@ -1,0 +1,80 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Document</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body>
+    <div class="container mx-auto px-4 py-8">
+        <form class="bg-white dark:bg-zinc-700 shadow-md rounded px-8 pt-6 pb-8 mb-4" action="/account/add" method="POST">
+          <div class="mb-4">
+            <label class="block text-zinc-700 dark:text-zinc-200 text-sm font-bold mb-2" for="name">
+              name
+            </label>
+            <input
+              class="shadow appearance-none border rounded w-full py-2 px-3 text-zinc-700 dark:text-zinc-200 leading-tight focus:outline-none focus:shadow-outline"
+              id="name"
+              name="name"
+              type="text"
+              placeholder="Enter name"
+            />
+          </div>
+          <div class="mb-4">
+            <label class="block text-zinc-700 dark:text-zinc-200 text-sm font-bold mb-2" for="date">
+              date
+            </label>
+            <input
+              class="shadow appearance-none border rounded w-full py-2 px-3 text-zinc-700 dark:text-zinc-200 leading-tight focus:outline-none focus:shadow-outline"
+              id="date"
+              name="date"
+              type="date"
+            />
+          </div>
+          <div class="mb-4">
+            <label class="block text-zinc-700 dark:text-zinc-200 text-sm font-bold mb-2" for="type">
+              Type
+            </label>
+            <select
+              class="shadow appearance-none border rounded w-full py-2 px-3 text-zinc-700 dark:text-zinc-200 leading-tight focus:outline-none focus:shadow-outline"
+              id="type"
+              name="type"
+            >
+              <option value="-1">支出</option>
+              <option value="1">收入</option>
+            </select>
+          </div>
+          <div class="mb-4">
+            <label class="block text-zinc-700 dark:text-zinc-200 text-sm font-bold mb-2" for="amount">
+              Amount
+            </label>
+            <input
+              class="shadow appearance-none border rounded w-full py-2 px-3 text-zinc-700 dark:text-zinc-200 leading-tight focus:outline-none focus:shadow-outline"
+              id="amount"
+              name="amount"
+              type="number"
+              placeholder="Enter amount"
+            />
+          </div>
+          <div class="mb-6">
+            <label class="block text-zinc-700 dark:text-zinc-200 text-sm font-bold mb-2" for="desc">
+              desc
+            </label>
+            <textarea
+              class="shadow appearance-none border rounded w-full py-2 px-3 text-zinc-700 dark:text-zinc-200 mb-3 leading-tight focus:outline-none focus:shadow-outline"
+              id="desc"
+              name="desc"
+              placeholder="Enter desc"
+            ></textarea>
+          </div>
+          <button
+            class="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded focus:outline-none focus:shadow-outline"
+            type="submit"
+          >
+            Submit
+          </button>
+        </form>
+      </div>
+</body>
+</html>
