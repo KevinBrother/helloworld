@@ -1,7 +1,9 @@
 const low = require("lowdb");
 const FileSync = require("lowdb/adapters/FileSync");
 const shortid = require("shortid");
-const adapter = new FileSync("./db.json");
+const path = require("path");
+const dbPath = path.resolve(__dirname, "db.json");
+const adapter = new FileSync(dbPath);
 const db = low(adapter);
 
 const id = shortid.generate();
