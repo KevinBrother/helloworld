@@ -6,7 +6,7 @@ var logger = require('morgan');
 
 var lowdbAccountRouter = require('./routes/lowdb-account');
 var mongodbAccountRouter = require('./routes/mongo-account');
-const { connect } = require('./utils/mongodb');
+var apiAccountRouter = require('./routes/api-account');
 
 var app = express();
 
@@ -26,6 +26,7 @@ app.get('/', (req, res, next) => {
 
 app.use('/lowdbAccount', lowdbAccountRouter);
 app.use('/account', mongodbAccountRouter);
+app.use('/api', apiAccountRouter);
 
 // catch 404 and forward to error handler
 app.use(function(req, res, next) {
