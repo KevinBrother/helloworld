@@ -4,7 +4,9 @@ var path = require('path');
 var cookieParser = require('cookie-parser');
 var logger = require('morgan');
 
-var accountRouter = require('./routes/account');
+var lowdbAccountRouter = require('./routes/lowdb-account');
+var mongodbAccountRouter = require('./routes/mongo-account');
+const { connect } = require('./utils/mongodb');
 
 var app = express();
 
@@ -22,7 +24,8 @@ app.get('/', (req, res, next) => {
   res.redirect('/account');
 })
 
-app.use('/account', accountRouter);
+app.use('/lowdbAccount', lowdbAccountRouter);
+app.use('/account', mongodbAccountRouter);
 
 // catch 404 and forward to error handler
 app.use(function(req, res, next) {
