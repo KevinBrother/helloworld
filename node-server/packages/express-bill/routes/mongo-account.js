@@ -15,7 +15,9 @@ connect(
       const id = shortid.generate();
       const { name, date, type, amount, desc } = req.body;
       User.create({ id, name, date, type, amount, desc }).then((user) => {
-        res.render("tip", { tip: "添加成功", type: "add" });
+        res.render("tip", { tip: "添加成功", success: true });
+      }).catch(err =>{
+        res.render("tip", { tip: "添加失败", success: false });
       });
     });
 
@@ -25,6 +27,8 @@ connect(
           title: "Express",
           accounts: users,
         });
+      }).catch(err => {
+        res.render("tip", { tip: "获取数据失败", success: false });
       });
     });
 
@@ -32,7 +36,9 @@ connect(
       const { id } = req.params;
 
       User.deleteOne({ id }).then(() => {
-        res.render("tip", { tip: "删除成功", type: "remove" });
+        res.render("tip", { tip: "删除成功", success: true });
+      }).catch(err => {
+        res.render("tip", { tip: "删除失败", success: false  });
       });
     });
   },

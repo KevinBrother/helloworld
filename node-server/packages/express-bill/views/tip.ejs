@@ -8,9 +8,15 @@
   </head>
   <body>
     <div class="flex flex-col items-center justify-center h-screen">
+      <% if (success) { %>
       <h2 class="text-2xl font-bold text-green-600 mb-4">
-        Submission Successful!
+        <%- tip %>
       </h2>
+      <% } else { %>
+      <h2 class="text-2xl font-bold text-red-600 mb-4">
+        <%- tip %>
+      </h2>
+      <% } %>
       <!-- 删除成功到列表， -->
       <a href="/account/">点击跳转到列表界面</a>
     </div>
