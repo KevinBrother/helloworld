@@ -4,12 +4,12 @@
   "description": "",
   "main": "index.js",
   "scripts": {
-    "jwt": "ts-node ./jwt/index.ts",
-    "grpc-server": "ts-node ./grpc/server.ts",
-    "grpc-client": "ts-node ./grpc/client.ts",
-    "static-server": "ts-node ./static-server/index.ts",
-    "gen-grpc-pb": "pbjs -t json-module -w commonjs -o ./grpc/bundle.js ./grpc/helloworld.proto",
-    "gen-grpc-ts": "pbjs -t static-module ./grpc/helloworld.proto | pbts -o ./grpc/bundle.d.ts -",
+    "jwt": "ts-node ./packages/jwt/index.ts",
+    "grpc-server": "ts-node ./packages/grpc/server.ts",
+    "grpc-client": "ts-node ./packages/grpc/client.ts",
+    "static-server": "ts-node ./packages/static-server/index.ts",
+    "gen-grpc-pb": "pbjs -t json-module -w commonjs -o ./packages/grpc/bundle.js ./packages/grpc/helloworld.proto",
+    "gen-grpc-ts": "pbjs -t static-module ./packages/grpc/helloworld.proto | pbts -o ./packages/grpc/bundle.d.ts -",
     "test": "vitest"
   },
   "workspaces": ["packages/*"],
