@@ -8,15 +8,51 @@
   - 主要做了什么
   - 文档链接
 
+## 新建文件夹下新增的文档需要只要要包含两个主题：作用、目的。如
+
+```
+# 文档
+
+## 作用
+
+## 目的
+
+## 参考链接
+```
+
 ## master 分支主要作用是编写统一文档与全局控制作用
 
 ## 使用案例
 
-- [] echarts-test
-  - 基础的echarts操作
+- [x] worker
+  工作者线程
 
-- [] base-css
+- [] design-pattern
+  设计模式
+
+- [ ] graphQL
+  - [x] 基础api
+  - [ ] 实际项目的使用
+
+- [ ] vue3.0
+
+- [ ] babel-study
+
+- [ ] nodejs-study
+  - node常用api文档的使用以及案例，比如child-process、fs、path、os、net、http等模块
+- 图形学
+  - [x] echarts-test
+  - [ ] canvas-study
+    - 基础的echarts操作
+  - [ ] webgl-study
+  - [ ] threejs-study
+  - [ ] cesiumjs-study
+  
+- [] css-style
   - 基础的css学习案例如flex、grid等
+
+- ts-study
+  - (深入理解typescript)[https://jkchao.github.io/typescript-book-chinese/]
 
 - [x] react-study
   - react的基础使用包括三大属性、生命周期等
@@ -39,7 +75,10 @@
   - egg-demo
   - node、后端
   - js的后端服务框架
-  
+
+- [ ] chrome-plugin
+  - [ ] chrome-plugin 简单的浏览器插件功能
+
 - [x] docker-compose
   <!-- - docker-compose build ： 暂时理解为 会触发compose 中的build命令 ， 构建镜像-->
   - docker-compose down 卸载所有容器
@@ -54,7 +93,11 @@
 
 - [] grunt-study
 
+- [] animejs-study
+
 - [] gulp-study
+
+- [] tsup-study
 
 - [] nodejs-study
 
@@ -67,3 +110,42 @@
 
 - [] ng-antd-test
 - [] angular
+
+- [] wx-config
+  - 微信公招平台相关的功能
+
+- [] npm-module-study
+  - npm相关实验
+
+- [] electron-study
+  - electron相关的案例
+
+- [] vite-test
+  - vite的配置和相关功能案例
+
+- [] electron-test
+  - vite的配置和相关功能案例
+
+- [] monorepo-test
+  - [] npm link
+  - yarn workspace
+  - lerna
+
+- [] code-collect
+  - 工作中遇到的小功能需求，小工具
+
+- [] DEEP LEARNING
+  - [深度学习的入门](https://zh.d2l.ai/chapter_preliminaries/probability.html)
+
+- [] svg-study
+  - [文档](https://svg-tutorial.com/)
+
+- [ ] network-study
+
+- [ ] sql-study
+
+- [ ] linux-study
+
+## C语言
+
+- [] makefile
