@@ -32,7 +32,7 @@ export default {
       inlineDynamicImports: true,
       sourcemap: true,
       format: 'iife',
-      name: 'version',
+      name: 'version', // 全局变量名称
       plugins: [terser()]
     }
   ],
