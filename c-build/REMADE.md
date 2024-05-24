@@ -4,10 +4,10 @@
 
 1. 编写 CMakeLists.txt 文件
 
-2. 调用cmake 会根据 CMakeLists.txt 生成 Makefile
+2. 调用 cmake 会根据 CMakeLists.txt 生成 Makefile
 
 ``` bash
-    cmake .
+    cd cmake && cmake .
 ```
 
 3. 调用 make 会根据 Makefile 编译生成可执行文件
@@ -16,9 +16,16 @@
 make
 ```
 
+4. 运行可执行文件
+
+``` bash
+./bin/helloCMake
+```
+
 ## 工程操作
 
 [查看 build 文档](./build/README.md)
+[CMake 工程教程](https://blog.csdn.net/kaizi318/article/details/7721624)
 
 # 参考文档
 

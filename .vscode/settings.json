@@ -1,5 +1,6 @@
 {
   "cSpell.words": [
     "vuepress"
-  ]
+  ],
+  "cmake.sourceDirectory": "/Users/caojunjie/workspace/helloworld/c-build"
 }
