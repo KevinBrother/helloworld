@@ -1,0 +1,1 @@
+ADD_EXECUTABLE(cmakeTest.exe "CMakeTest.cpp")
