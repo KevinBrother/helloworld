@@ -1,6 +1,12 @@
 import cv2
 import numpy as np
 
+def convert_to_cartesian(x, y, screen_height):
+    half_width = screen_height / 2
+    x2 = (x - half_width) / half_width
+    y2 = (half_width - y) / half_width
+    return round(x2, 3), round(y2, 3)
+
 # 读取图像
 image = cv2.imread('./cmake.png')
 hsv = cv2.cvtColor(image, cv2.COLOR_BGR2HSV)
@@ -34,7 +40,7 @@ for color, tris in triangles.items():
     for i, tri in enumerate(tris):
         print(f"  Triangle {i+1} vertices:")
         for vertex in tri:
-            print(f"    {vertex[0]}")
+            print(f"{convert_to_cartesian(vertex[0][0], vertex[0][1], image.shape[0])}")
 
 # 可视化检测到的三角形
 for color, tris in triangles.items():
