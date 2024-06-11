@@ -22,12 +22,18 @@
 
 [x] node 调用 c++ 模块
 
+[x] 发送邮件
+
+``` bash 
+    # ts 版本不知道为什么不行
+    node ./packages/mail/index.js
+```
+
 [ ] 深入理解 event、stream、net 模块
 
 [ ] 微服务中的rpc
 
 [ ] 文件上传
-
 
 [ ] 框架 express、koa、nestjs
 
@@ -35,8 +41,4 @@
 
 [ ] 中间件：mysql、redis、mongodb、rabbitMQ
 
-
 [ ] 定时任务
-
-
-
