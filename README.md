@@ -148,6 +148,8 @@
 
 - [ ] python-test
 
+- [ ] jquery-case
+
 ## C语言
 
 - c-build
