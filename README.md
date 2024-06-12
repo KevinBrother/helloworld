@@ -38,7 +38,7 @@
 
 - [ ] babel-study
 
-- [ ] node-study
+- [ ] nodejs-study
   - node常用api文档的使用以及案例，比如child-process、fs、path、os、net、http等模块
 - 图形学
   - [x] echarts-test
@@ -46,9 +46,13 @@
     - 基础的echarts操作
   - [ ] webgl-study
   - [ ] threejs-study
+  - [ ] cesiumjs-study
   
 - [] css-style
   - 基础的css学习案例如flex、grid等
+
+- ts-study
+  - (深入理解typescript)[https://jkchao.github.io/typescript-book-chinese/]
 
 - [x] react-study
   - react的基础使用包括三大属性、生命周期等
@@ -71,7 +75,10 @@
   - egg-demo
   - node、后端
   - js的后端服务框架
-  
+
+- [ ] chrome-plugin
+  - [ ] chrome-plugin 简单的浏览器插件功能
+
 - [x] docker-compose
   <!-- - docker-compose build ： 暂时理解为 会触发compose 中的build命令 ， 构建镜像-->
   - docker-compose down 卸载所有容器
@@ -86,6 +93,8 @@
 
 - [] grunt-study
 
+- [] animejs-study
+
 - [] gulp-study
 
 - [] tsup-study
@@ -95,7 +104,7 @@
 - [] rxjs
 - []typescript-study
 
-- [] antd-test
+- [x] antd-test
   - antd
   - react
 
@@ -117,7 +126,7 @@
 - [] electron-test
   - vite的配置和相关功能案例
 
-- [] monorepo-test
+- [x] monorepo-test
   - [] npm link
   - yarn workspace
   - lerna
@@ -125,6 +134,22 @@
 - [] code-collect
   - 工作中遇到的小功能需求，小工具
 
+- [] DEEP LEARNING
+  - [深度学习的入门](https://zh.d2l.ai/chapter_preliminaries/probability.html)
+
+- [] svg-study
+  - [文档](https://svg-tutorial.com/)
+
+- [x] network-study
+
+- [ ] sql-study
+
+- [ ] linux-study
+
+- [ ] python-test
+
 ## C语言
 
-- [] makefile
+- c-build
+  - [] cmake
+  - [] makefile
