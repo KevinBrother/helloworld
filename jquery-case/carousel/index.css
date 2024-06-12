@@ -8,6 +8,7 @@
     display: flex;
     overflow: hidden;
     img {
+      position: relative;
       width: 100%;
       height: auto;
     }
@@ -34,7 +35,6 @@
     transform: translateX(-50%);
     display: flex;
   }
-
 
   .dot {
     border: 1px solid burlywood;
