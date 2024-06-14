@@ -9,4 +9,5 @@ lib
 build.ninja
 .ninja*
 build
+cmake-build-debug
 ../build
