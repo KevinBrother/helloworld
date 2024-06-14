@@ -9,6 +9,8 @@
 ``` bash
     cmake -DCMAKE_BUILD_TYPE=Debug -DCMAKE_MAKE_PROGRAM=ninja -G Ninja -S . -B cmake-build-debug
     cd c-build && cmake . -B cmake-build-debug  # 生成构建项目文件 build tree/binary tree, 并把构建结果输出到 cmake-build-debug 目录下
+    # window 如果装了 vs 默认会使用 vs 编译器 可以使用 -G 指定 mingw 或 ninja 编译器
+    cmake -G "MinGW Makefiles" -S . -B cmake-build-debug
 ```
 
 3. 调用 make 会根据 Makefile 编译生成可执行文件

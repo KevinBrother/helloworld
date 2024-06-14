@@ -50,5 +50,28 @@
             ],
             "preLaunchTask": "g++ build multiples file"
         },
+        {
+            "name": "cmake build file debug",
+            "type": "cppdbg",
+            "request": "launch",
+            // "program": "${workspaceFolder}/c-build/build/bin/Debug/can-debug-main.exe",
+            "program": "${workspaceFolder}/c-build/build/bin/Debug/helloCMake.exe",
+            "args": [],
+            "stopAtEntry": false,
+            "cwd": "${fileDirname}",
+            "environment": [],
+            "externalConsole": false,
+            "windows": {
+                "MIMode": "gdb",
+                "miDebuggerPath": "C:/MinGW/bin/gdb.exe",
+            },
+            "setupCommands": [
+                {
+                    "description": "为 gdb 开启整齐打印",
+                    "text": "-enable-pretty-printing",
+                    "ignoreFailures": true
+                }
+            ],
+        },
     ]
 }
