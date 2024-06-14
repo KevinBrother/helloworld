@@ -23,8 +23,6 @@ make
 ```
 
 ## 工程操作
-
-[查看 build 文档](./build/README.md)
 [CMake 工程教程](https://blog.csdn.net/kaizi318/article/details/7721624)
 
 # 参考文档
