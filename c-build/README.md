@@ -7,7 +7,8 @@
 2. 调用 cmake 会根据 CMakeLists.txt 生成 Makefile
 
 ``` bash
-    cd c-build && cmake .   # 生成构建项目文件 build tree/binary tree
+    cmake -DCMAKE_BUILD_TYPE=Debug -DCMAKE_MAKE_PROGRAM=ninja -G Ninja -S . -B cmake-build-debug
+    cd c-build && cmake . -B cmake-build-debug  # 生成构建项目文件 build tree/binary tree, 并把构建结果输出到 cmake-build-debug 目录下
 ```
 
 3. 调用 make 会根据 Makefile 编译生成可执行文件
