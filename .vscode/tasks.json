@@ -20,8 +20,7 @@
             "command": "C:/MinGW/bin/g++.exe",
             "args": [
                 "-g",
-                // "${file}", // 路径有问题
-                "D:/workspace/helloworld/${fileBasename}",
+                "${fileDirname}/${fileBasename}",
                 "-o",
                 "${fileDirname}/${fileBasenameNoExtension}.exe"
             ],
@@ -29,7 +28,37 @@
                 "cwd": "${workspaceFolder}"
             },
             "group": {
-                "kind": "build",
+                "kind": "test",
+                "isDefault": true
+            },
+        },
+        
+        {
+            "label": "g++ build multiples file",
+            "type": "shell",
+            "windows": {
+                "options": {
+                    "shell": {
+                        "executable": "cmd.exe",
+                        "args": [
+                            "/d",
+                            "/c"
+                        ]
+                    }
+                }
+            },
+            "command": "C:/MinGW/bin/g++.exe",
+            "args": [
+                "-g",
+                "${fileDirname}/*.cpp",
+                "-o",
+                "${fileDirname}/${fileBasenameNoExtension}.exe"
+            ],
+            "options": {
+                "cwd": "${workspaceFolder}"
+            },
+            "group": {
+                "kind": "test",
                 "isDefault": true
             },
         }
