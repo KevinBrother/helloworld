@@ -7,12 +7,14 @@
 2. 调用 cmake 会根据 CMakeLists.txt 生成 Makefile
 
 ``` bash
-    cd cmake && cmake .
+    cd c-build && cmake .   # 生成构建项目文件 build tree/binary tree
 ```
 
 3. 调用 make 会根据 Makefile 编译生成可执行文件
 
 ``` bash
+cmake --build .  # - 执行当前目录下的构建系统，生成构建目标 
+# 或者 上面的命令 支持跨平台，所以建议使用上面的命令
 make
 ```
 
