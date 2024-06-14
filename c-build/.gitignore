@@ -8,3 +8,5 @@ bin
 lib
 build.ninja
 .ninja*
+build
+../build
