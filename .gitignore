@@ -94,3 +94,5 @@ sw.*
 *.swp
 
 build
+
+*.exe
