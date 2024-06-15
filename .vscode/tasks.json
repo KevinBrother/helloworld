@@ -15,9 +15,12 @@
                             "/c"
                         ]
                     }
-                }
+                },
+                "command": "C:/MinGW/bin/g++.exe",
             },
-            "command": "C:/MinGW/bin/g++.exe",
+            "osx": {
+                "command": "g++",
+            },
             "args": [
                 "-g",
                 "${fileDirname}/${fileBasename}",
