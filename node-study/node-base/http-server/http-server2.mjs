@@ -26,7 +26,7 @@ http
         const {name, message}
           = Object.fromEntries(formData.entries());
         res.statusCode = 302;
-        res.setHeader("Location", `http://localhost:3002/submit-origin?name=${name}&message=${message}`);
+        res.setHeader("Location", `/submit-origin?name=${name}&message=${message}`);
         res.end();
       });
     } else if (req.url.includes(`/submit-origin`)) {
@@ -47,6 +47,6 @@ http
 
     // 静态服务器
   })
-  .listen(3000, () => {
-    console.log("Server running at http://localhost:3000/");
+  .listen(3002, () => {
+    console.log("Server running at http://localhost:3002/");
   });
