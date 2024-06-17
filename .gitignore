@@ -94,3 +94,4 @@ sw.*
 *.swp
 
 node-utils/packages/C++/build/
+output/
