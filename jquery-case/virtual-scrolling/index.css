@@ -1,3 +1,6 @@
+html, body {
+    overflow: hidden;
+}
 .container {
     position: relative;
     margin: 20px auto;
@@ -5,7 +8,31 @@
     width: 500px;
     height: 500px;
     border: solid 1px #ccc;
-    overflow: auto;
+    overflow: hidden;
+
+    .vs_scroll {
+        position: absolute;
+        right: 0;
+        height: 100%;
+        width: 10px;
+        background-color: black;
+        cursor: pointer;
+
+        .vs_scroll_bar {
+            position: absolute;
+            top: 50%;
+            left: 0;
+            height: 20px;
+            width: 100%;
+            background-color: #ccc;
+            cursor: pointer;
+        }
+    }
+
+    .scroll-container  {
+        position: relative;
+        transform: translateY(-200px);
+    }
 
     .inner {
         border: solid 1px #ccc;
