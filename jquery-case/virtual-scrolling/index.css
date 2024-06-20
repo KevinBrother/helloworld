@@ -1,10 +1,12 @@
 html, body {
     overflow: hidden;
+    --vs_scroll_width: 20px;
+    background-color: bisque;
 }
 .container {
     position: relative;
     margin: 20px auto;
-    padding: 10px;
+    padding: 10px calc(var(--vs_scroll_width) + 10px) 10px 10px;
     width: 500px;
     height: 500px;
     border: solid 1px #ccc;
@@ -13,14 +15,15 @@ html, body {
     .vs_scroll {
         position: absolute;
         right: 0;
+        top: 0;
         height: 100%;
-        width: 10px;
-        background-color: black;
+        width: var(--vs_scroll_width);
+        background-color: skyblue;
         cursor: pointer;
 
         .vs_scroll_bar {
             position: absolute;
-            top: 50%;
+            transform: translateY(50%);
             left: 0;
             height: 20px;
             width: 100%;
@@ -29,7 +32,7 @@ html, body {
         }
     }
 
-    .scroll-container  {
+    .vs_main  {
         position: relative;
         transform: translateY(-200px);
     }
