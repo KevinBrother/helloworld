@@ -104,7 +104,7 @@
 - [] rxjs
 - []typescript-study
 
-- [] antd-test
+- [x] antd-test
   - antd
   - react
 
@@ -126,7 +126,7 @@
 - [] electron-test
   - vite的配置和相关功能案例
 
-- [] monorepo-test
+- [x] monorepo-test
   - [] npm link
   - yarn workspace
   - lerna
@@ -140,7 +140,7 @@
 - [] svg-study
   - [文档](https://svg-tutorial.com/)
 
-- [ ] network-study
+- [x] network-study
 
 - [ ] sql-study
 
@@ -148,6 +148,10 @@
 
 - [ ] python-test
 
+- [ ] jquery-case
+
 ## C语言
 
-- [] makefile
+- c-build
+  - [] cmake
+  - [] makefile
