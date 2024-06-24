@@ -29,6 +29,7 @@ class VirtualScrolling {
     this.vsScroll = vsScroll;
     this.vsMainTotalHeight = data.length * itemHeight;
 
+    this.realScrollHeight = containerHeight - this.scrollBarHeight - 20;
     this.realContainerHeight =
       this.vsMainTotalHeight + 20 + this.containerTopPadding - containerHeight;
 
@@ -66,20 +67,26 @@ class VirtualScrolling {
       const { top } = $parent.offset();
       // console.log(`parent offset top: ${top}, pageY: ${event.pageY}`);
       const total = event.pageY - top;
+      console.log("🚀 ~ VirtualScrolling ~ this.vsScrollBar.on ~ total:", total, this.realScrollHeight)
+
       if (total < 0) {
         this.vsScrollBar.css("transform", `translateY(0px)`);
         return;
       }
-
-      if (total > this.containerHeight) {
+      
+      if(total > this.realScrollHeight){
         this.vsScrollBar.css(
           "transform",
-          `translateY(${this.containerHeight}px)`
+          `translateY(${this.realScrollHeight}px)`
         );
         return;
       }
 
+      const percent = total / this.realScrollHeight;
+      const mainPosition = Math.floor(this.realContainerHeight * percent);
+
       this.vsScrollBar.css("transform", `translateY(${total}px)`);
+      this.vsMain.css("transform", `translateY(-${mainPosition}px)`);
     });
   }
 
