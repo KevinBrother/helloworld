@@ -36,9 +36,9 @@
 
 - [ ] vue3.0
 
-- [ ] babel-study
+- [x] babel-study
 
-- [ ] nodejs-study
+- [x] nodejs-study
   - node常用api文档的使用以及案例，比如child-process、fs、path、os、net、http等模块
 - 图形学
   - [x] echarts-test
@@ -48,7 +48,7 @@
   - [ ] threejs-study
   - [ ] cesiumjs-study
   
-- [] css-style
+- [x] css-style
   - 基础的css学习案例如flex、grid等
 
 - ts-study
@@ -76,7 +76,7 @@
   - node、后端
   - js的后端服务框架
 
-- [ ] chrome-plugin
+- [x] chrome-plugin
   - [ ] chrome-plugin 简单的浏览器插件功能
 
 - [x] docker-compose
@@ -85,23 +85,23 @@
   - docker-compose up [-d] 是否后台运行
   - docker-compose的使用案例,docker-compose.yml的使用
 
-- [] webpack-study
+- [x] webpack-study
   - [x]基本配置
   - [x]构建优化
   - [x]加速配置
   - [] [其他优化项](https://mubu.com/app/edit/recent/2GNsXmnlXXk)
 
-- [] grunt-study
+- [x] grunt-study
 
 - [] animejs-study
 
-- [] gulp-study
+- [x] gulp-study
 
-- [] tsup-study
+- [x] tsup-study
 
-- [] nodejs-study
+- [x] nodejs-study
 
-- [] rxjs
+- [x] rxjs
 - []typescript-study
 
 - [x] antd-test
@@ -114,16 +114,16 @@
 - [] wx-config
   - 微信公招平台相关的功能
 
-- [] npm-module-study
+- [x] npm-module-study
   - npm相关实验
 
-- [] electron-study
+- [x] electron-study
   - electron相关的案例
 
-- [] vite-test
+- [x] vite-test
   - vite的配置和相关功能案例
 
-- [] electron-test
+- [x] electron-test
   - vite的配置和相关功能案例
 
 - [x] monorepo-test
@@ -142,16 +142,18 @@
 
 - [x] network-study
 
-- [ ] sql-study
+- [x] sql-study
 
 - [ ] linux-study
 
-- [ ] python-test
+- [x] python-test
 
-- [ ] jquery-case
+- [x] jquery-case
+
+- [x] vscode-plugin-case
 
 ## C语言
 
 - c-build
-  - [] cmake
-  - [] makefile
+  - [x] cmake
+  - [x] makefile
