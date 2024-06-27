@@ -1,0 +1,24 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Document</title>
+</head>
+<body>
+    <script>
+        fetch('http://127.0.0.1:13000/redirect').then(res => {
+            console.log("🚀 ~redirect:", res)
+            // return res.json();
+            return res.text();
+        }).then(data => {
+            console.log("🚀 ~data:", data)
+            // window.location.href = data;
+            document.write(data);
+        })
+        .catch(err => {
+            console.log("🚀 ~err:", err)
+        })
+    </script>
+</body>
+</html>
