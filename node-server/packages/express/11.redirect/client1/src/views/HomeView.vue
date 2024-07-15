@@ -19,7 +19,7 @@
       const red_url = window.location.href
       // @ts-ignore
       if(res.code === 502) {
-        window.location.href = `http://localhost:13002/sso/authorize/code?redirect_url=${red_url}`
+        window.location.href = `http://localhost:13002/sso/authorize/code?redirect_url=${encodeURIComponent(red_url)}`
       }
     }).catch(err => {
       console.log(err)

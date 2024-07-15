@@ -34,9 +34,12 @@ app.get("/login", (req, res) => {
   );
 });
 
+// http://localhost:13002/sso/authorize/code?redirect_url=http://localhost:8080/#/good
+// http://localhost:13002/sso/authorize/code?redirect_url=http%3A%2F%2Flocalhost%3A8080%2F%23%2Fgood
 app.get("/sso/authorize/code", (req, res) => {
   // const redirectUrl = req.query.red_url;
-  const redirectUrl = 'http://127.0.0.1:51732/#/login';
+  const url = new URL(`http://localhost${req.url}`)
+  const redirectUrl = url.searchParams.get('redirect_url');
   // 第 5 步骤
   res.redirect(
     301,
@@ -71,5 +74,5 @@ app.get("/redirect-second", (req, res) => {
 });
 
 app.listen(13002, () => {
-  console.log("Server is running on port 13002, visit http://localhost:13002/");
+  console.log("Server is running on port 3000, visit http://localhost:13002/");
 });
