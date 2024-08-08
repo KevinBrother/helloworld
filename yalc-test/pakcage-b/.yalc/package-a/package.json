@@ -1,0 +1,14 @@
+{
+  "name": "package-a",
+  "version": "1.0.0",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "type": "module",
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "description": "",
+  "yalcSig": "7c3b1d9f54eb000f88a96750e6e86684"
+}
