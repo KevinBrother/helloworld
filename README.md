@@ -52,7 +52,7 @@
   - 基础的css学习案例如flex、grid等
 
 - ts-study
-  - (深入理解typescript)[https://jkchao.github.io/typescript-book-chinese/]
+  - [深入理解typescript](https://jkchao.github.io/typescript-book-chinese/)
 
 - [x] react-study
   - react的基础使用包括三大属性、生命周期等
@@ -149,6 +149,9 @@
 - [ ] python-test
 
 - [ ] jquery-case
+
+- [x] nestjs-study
+  - nestjs的入门案例
 
 ## C语言
 
