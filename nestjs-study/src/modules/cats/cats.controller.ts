@@ -17,6 +17,7 @@ import {
   Req,
   Res,
   UseFilters,
+  UseGuards,
   UsePipes,
 } from '@nestjs/common';
 import { Request, Response } from 'express';
@@ -31,13 +32,18 @@ import { MyForbiddenException } from 'src/common/exceptions/forbidden';
 import { MyHttpExceptionFilter } from 'src/common/exceptions/my.http.exception.filter';
 import { ZodValidationPipe } from 'src/common/pipes/zod.validation.pipe';
 import { ValidationPipe } from 'src/common/pipes/validation.pipe';
+import { RolesGuard } from 'src/common/guards/roles.guards';
+import { Roles } from 'src/common/decorators/roles.decorator';
 
 @Controller('cats')
+@UseGuards(RolesGuard)
+@UseFilters(MyHttpExceptionFilter)
 export class CatsController {
   constructor(private catsService: CatsService) {}
 
   @Post('create')
   @UsePipes(new ZodValidationPipe(createCatSchema))
+  @Roles(['admin'])
   create(@Body() createCatDto: CreateCatDto, @Res() res: Response) {
     this.catsService.create(createCatDto);
     console.log(`this action adds a new cat ${createCatDto.name}`);
