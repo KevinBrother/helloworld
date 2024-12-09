@@ -1,7 +1,10 @@
 import {
+  // BadRequestException,
   Body,
   Controller,
   Delete,
+  // ForbiddenException,
+  // HttpException,
   Get,
   HttpStatus,
   Ip,
@@ -9,12 +12,15 @@ import {
   Post,
   Req,
   Res,
+  UseFilters,
 } from '@nestjs/common';
 import { Request, Response } from 'express';
 import { CreateCatDto } from './dto/create-cat.dto';
 import { CatsService } from './cats.service';
 import { CatDto } from './dto/list-cat.dto';
 import { Cat } from './interfaces/cat.interface';
+import { MyForbiddenException } from 'src/exceptions/forbidden';
+import { MyHttpExceptionFilter } from 'src/exceptions/my.http.exception.filter';
 
 @Controller('cats')
 export class CatsController {
@@ -29,7 +35,18 @@ export class CatsController {
 
   @Get()
   findAll(@Res() res: Response<CatDto[]>) {
-    res.status(HttpStatus.OK).send([{ name: 'cat1', age: 1, breed: 'breed1' }]);
+    res
+      .status(HttpStatus.OK)
+      .send([{ name: 'catAll', age: 1, breed: 'breed1' }]);
+  }
+
+  @Get('exception')
+  @UseFilters(MyHttpExceptionFilter)
+  exception() {
+    // throw new HttpException('Forbidden !!!', HttpStatus.FORBIDDEN);
+    // throw new ForbiddenException();
+    // throw new BadRequestException();
+    throw new MyForbiddenException();
   }
 
   @Get(':id')
