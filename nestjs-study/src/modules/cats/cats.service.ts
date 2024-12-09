@@ -6,4 +6,12 @@ export class CatsService {
   create(createCatDto: CreateCatDto) {
     console.log(createCatDto);
   }
+
+  findAll(activeOnly: boolean, page: number) {
+    return {
+      activeOnly,
+      page,
+      cats: [],
+    };
+  }
 }
