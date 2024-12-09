@@ -28,8 +28,8 @@ import {
 } from './dto/create-cat.dto';
 import { CatsService } from './cats.service';
 import { Cat } from './interfaces/cat.interface';
-import { MyForbiddenException } from 'src/common/exceptions/forbidden';
-import { MyHttpExceptionFilter } from 'src/common/exceptions/my.http.exception.filter';
+import { MyForbiddenException } from 'src/common/filters/forbidden';
+import { MyHttpExceptionFilter } from 'src/common/filters/my.http.exception.filter';
 import { ZodValidationPipe } from 'src/common/pipes/zod.validation.pipe';
 import { ValidationPipe } from 'src/common/pipes/validation.pipe';
 import { RolesGuard } from 'src/common/guards/roles.guards';
