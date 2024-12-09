@@ -18,6 +18,7 @@ import {
   Res,
   UseFilters,
   UseGuards,
+  UseInterceptors,
   UsePipes,
 } from '@nestjs/common';
 import { Request, Response } from 'express';
@@ -34,10 +35,12 @@ import { ZodValidationPipe } from 'src/common/pipes/zod.validation.pipe';
 import { ValidationPipe } from 'src/common/pipes/validation.pipe';
 import { RolesGuard } from 'src/common/guards/roles.guards';
 import { Roles } from 'src/common/decorators/roles.decorator';
+import { LoggingInterceptor } from 'src/common/Interceptors/logging.interceptor';
 
 @Controller('cats')
 @UseGuards(RolesGuard)
 @UseFilters(MyHttpExceptionFilter)
+@UseInterceptors(LoggingInterceptor)
 export class CatsController {
   constructor(private catsService: CatsService) {}
 
