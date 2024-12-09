@@ -19,8 +19,8 @@ import { CreateCatDto } from './dto/create-cat.dto';
 import { CatsService } from './cats.service';
 import { CatDto } from './dto/list-cat.dto';
 import { Cat } from './interfaces/cat.interface';
-import { MyForbiddenException } from 'src/exceptions/forbidden';
-import { MyHttpExceptionFilter } from 'src/exceptions/my.http.exception.filter';
+import { MyForbiddenException } from 'src/common/exceptions/forbidden';
+import { MyHttpExceptionFilter } from 'src/common/exceptions/my.http.exception.filter';
 
 @Controller('cats')
 export class CatsController {

@@ -6,8 +6,8 @@ import {
 } from '@nestjs/common';
 import { AppController } from './app.controller';
 import { AppService } from './app.service';
-import { CatsModule } from './cats/cats.module';
-import { LoggerMiddleware } from './middleware/logger/logger.middleware';
+import { CatsModule } from './modules/cats/cats.module';
+import { LoggerMiddleware } from './common/middleware/logger/logger.middleware';
 
 @Module({
   imports: [CatsModule],

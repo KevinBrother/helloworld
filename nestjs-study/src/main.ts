@@ -1,7 +1,7 @@
 import { HttpAdapterHost, NestFactory } from '@nestjs/core';
 import { AppModule } from './app.module';
-import { fnLogger } from './middleware/function/fn-logger.middleware';
-import { AllExceptionsFilter } from './exceptions/all.exceptions.filter';
+import { fnLogger } from './common/middleware/function/fn-logger.middleware';
+import { AllExceptionsFilter } from './common/exceptions/all.exceptions.filter';
 // import { CatchEverythingFilter } from './exceptions/catch.everything.filter';
 
 async function bootstrap() {
