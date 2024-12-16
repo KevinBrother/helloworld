@@ -52,3 +52,19 @@ nodejs
 ├── test （单元测试）
 │   ├── app.e2e-spec.ts
 ├── tsconfig.json
+
+## 区别
+
+- modules 和 controllers 的区别
+
+modules 是模块，controllers 是控制器，modules 是 controllers 的集合
+
+- exceptions 和 filters 的区别
+
+自定义 Exception 是对 NestJS 中的 HttpException 进行扩展。
+自定义 Filter 用来拦截所有异常，然后格式化响应的结构。主要作用于 controller 层。
+
+- guards 和 interceptors 的区别
+
+guards 是守卫，主要用于权限控制，可以拦截请求，并根据请求的权限进行处理。
+interceptors 是拦截器，主要用于拦截请求和响应，可以对请求和响应进行处理。
