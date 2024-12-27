@@ -85,7 +85,7 @@
   - docker-compose up [-d] 是否后台运行
   - docker-compose的使用案例,docker-compose.yml的使用
 
-- [] webpack-study
+- [x] webpack-study
   - [x]基本配置
   - [x]构建优化
   - [x]加速配置
@@ -99,10 +99,10 @@
 
 - [] tsup-study
 
-- [] nodejs-study
+- [x] nodejs-study
 
 - [] rxjs
-- []typescript-study
+- [x]typescript-study
 
 - [x] antd-test
   - antd
@@ -114,16 +114,16 @@
 - [] wx-config
   - 微信公招平台相关的功能
 
-- [] npm-module-study
+- [x] npm-module-study
   - npm相关实验
 
-- [] electron-study
+- [x] electron-study
   - electron相关的案例
 
-- [] vite-test
+- [x] vite-test
   - vite的配置和相关功能案例
 
-- [] electron-test
+- [x] electron-test
   - vite的配置和相关功能案例
 
 - [x] monorepo-test
@@ -142,19 +142,22 @@
 
 - [x] network-study
 
-- [ ] sql-study
+- [x] sql-study
 
 - [ ] linux-study
 
 - [ ] python-test
 
-- [ ] jquery-case
+- [x] jquery-case
 
 - [x] nestjs-study
   - nestjs的入门案例
 
+- [x] chat-test
+  - 聊天室
+
 ## C语言
 
 - c-build
-  - [] cmake
-  - [] makefile
+  - [x] cmake
+  - [x] makefile
