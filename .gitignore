@@ -93,4 +93,13 @@ sw.*
 # Vim swap files
 *.swp
 
+build
+
+z1.txt
+z2.json
+
+*.exe
+
 output
+
+cmake-build-debug
