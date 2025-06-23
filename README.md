@@ -156,6 +156,8 @@
 - [x] chat-test
   - 聊天室
 
+- [ ] svelte
+  
 ## C语言
 
 - c-build
