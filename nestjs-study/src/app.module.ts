@@ -4,13 +4,21 @@ import {
   NestModule,
   RequestMethod,
 } from '@nestjs/common';
+import { ConfigModule } from '@nestjs/config';
 import { AppController } from './app.controller';
 import { AppService } from './app.service';
 import { CatsModule } from './modules/cats/cats.module';
 import { LoggerMiddleware } from './common/middleware/logger/logger.middleware';
+import configuration from './config/configuration';
 
 @Module({
-  imports: [CatsModule],
+  imports: [
+    CatsModule,
+    ConfigModule.forRoot({
+      // envFilePath: '.develop.env'
+      load: [configuration],
+    }),
+  ],
   controllers: [AppController],
   providers: [AppService],
 })

@@ -16,6 +16,7 @@ async function bootstrap() {
 }
 
 bootstrap().then(() => {
+  console.log('process.env.database', process.env.database)
   console.log(
     `Server is running on port: http://localhost:${process.env.PORT ?? 3000}`,
   );
