@@ -156,6 +156,8 @@
 - [x] chat-test
   - 聊天室
 
+- [x] rush-test
+
 - [ ] svelte
   
 ## C语言
