@@ -1,0 +1,27 @@
+{
+  "name": "cloudfare-test",
+  "version": "1.0.0",
+  "description": "Cloudflare Workers demo with R2, KV, D1 and TypeScript",
+  "main": "dist/index.js",
+  "scripts": {
+    "dev": "wrangler dev",
+    "deploy": "wrangler deploy",
+    "build": "tsc",
+    "db:create": "wrangler d1 create my-database",
+    "db:migrate": "wrangler d1 execute my-database --file=./schema.sql",
+    "db:migrate-local": "wrangler d1 execute my-database --local --file=./schema.sql",
+    "kv:create": "wrangler kv:namespace create KV",
+    "r2:create": "wrangler r2 bucket create my-r2-bucket"
+  },
+  "keywords": ["cloudflare", "workers", "typescript", "hono"],
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "hono": "^4.9.0"
+  },
+  "devDependencies": {
+    "@cloudflare/workers-types": "^4.20241218.0",
+    "typescript": "^5.3.3",
+    "wrangler": "^3.84.0"
+  }
+}
