@@ -120,6 +120,8 @@
 - [x] electron-study
   - electron相关的案例
 
+- [x] tailwindcss-test
+
 - [x] vite-test
   - vite的配置和相关功能案例
 
@@ -156,9 +158,11 @@
 - [x] chat-test
   - 聊天室
 
-- [x] rush-test
+- [ ] rush-test
 
 - [ ] svelte
+
+- [ ] cloudflare-test
   
 ## C语言
 
