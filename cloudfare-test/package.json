@@ -7,10 +7,10 @@
     "dev": "wrangler dev",
     "deploy": "wrangler deploy",
     "build": "tsc",
-    "db:create": "wrangler d1 create my-database",
     "db:migrate": "wrangler d1 execute my-database --file=./schema.sql",
     "db:migrate-local": "wrangler d1 execute my-database --local --file=./schema.sql",
-    "kv:create": "wrangler kv:namespace create KV",
+    "db:create": "wrangler d1 create my-database",
+    "kv:create": "wrangler kv namespace create KV",
     "r2:create": "wrangler r2 bucket create my-r2-bucket"
   },
   "keywords": ["cloudflare", "workers", "typescript", "hono"],
