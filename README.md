@@ -162,8 +162,12 @@
 
 - [ ] svelte
 
-- [ ] cloudflare-test
-  
+- [x] cloudflare-test
+  - wrangler + KV + D1 + R2
+
+- [ ] gin-test
+  - gin的使用案例 + 相关中间件
+
 ## C语言
 
 - c-build
