@@ -168,6 +168,8 @@
 - [ ] gin-test
   - gin的使用案例 + 相关中间件
 
+- [ ] playwright-test
+
 - [ ] spider-test
 
 ## C语言
