@@ -144,6 +144,56 @@ services:
     depends_on:
       - prometheus
 
+  # Backend API服务
+  backend:
+    build:
+      context: ../backend
+      dockerfile: Dockerfile
+    container_name: spider-backend
+    environment:
+      - NODE_ENV=production
+      - PORT=3001
+      - DB_HOST=mysql
+      - DB_PORT=3306
+      - DB_USERNAME=spider_user
+      - DB_PASSWORD=spider_pass
+      - DB_DATABASE=spider_db
+      - REDIS_HOST=redis
+      - REDIS_PORT=6379
+      - MONGO_URI=mongodb://admin:admin123@mongodb:27017/spider_logs?authSource=admin
+      - JWT_SECRET=your-super-secret-jwt-key-change-in-production
+      - JWT_EXPIRES_IN=7d
+      - ELASTICSEARCH_NODE=http://elasticsearch:9200
+      - MINIO_ENDPOINT=minio
+      - MINIO_PORT=9000
+      - MINIO_ACCESS_KEY=minioadmin
+      - MINIO_SECRET_KEY=minioadmin123
+    ports:
+      - "3001:3001"
+    networks:
+      - spider-network
+    restart: unless-stopped
+    depends_on:
+      - mysql
+      - redis
+      - mongodb
+      - elasticsearch
+      - minio
+
+  # Frontend Web应用
+  frontend:
+    build:
+      context: ../frontend
+      dockerfile: Dockerfile
+    container_name: spider-frontend
+    ports:
+      - "80:80"
+    networks:
+      - spider-network
+    restart: unless-stopped
+    depends_on:
+      - backend
+
 volumes:
   mysql_data:
   redis_data:
