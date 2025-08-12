@@ -1,35 +1,65 @@
-import { useState } from 'react'
-import reactLogo from './assets/react.svg'
-import viteLogo from '/vite.svg'
-import './App.css'
+import React from 'react';
+import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
+import { ConfigProvider } from 'antd';
+import zhCN from 'antd/locale/zh_CN';
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
+import { Provider } from 'react-redux';
+import { store } from './store';
+import Layout from './components/Layout';
+import Login from './pages/Login';
+import Dashboard from './pages/Dashboard';
+import Tasks from './pages/Tasks';
+import Configs from './pages/Configs';
+import Monitoring from './pages/Monitoring';
+import Users from './pages/Users';
+import { useAuth } from './hooks/useAuth';
+import './App.css';
 
-function App() {
-  const [count, setCount] = useState(0)
+const queryClient = new QueryClient({
+  defaultOptions: {
+    queries: {
+      retry: 1,
+      refetchOnWindowFocus: false,
+    },
+  },
+});
 
-  return (
-    <>
-      <div>
-        <a href="https://vite.dev" target="_blank">
-          <img src={viteLogo} className="logo" alt="Vite logo" />
-        </a>
-        <a href="https://react.dev" target="_blank">
-          <img src={reactLogo} className="logo react" alt="React logo" />
-        </a>
-      </div>
-      <h1>Vite + React</h1>
-      <div className="card">
-        <button onClick={() => setCount((count) => count + 1)}>
-          count is {count}
-        </button>
-        <p>
-          Edit <code>src/App.tsx</code> and save to test HMR
-        </p>
-      </div>
-      <p className="read-the-docs">
-        Click on the Vite and React logos to learn more
-      </p>
-    </>
-  )
+function ProtectedRoute({ children }: { children: React.ReactNode }) {
+  const { isAuthenticated } = useAuth();
+  return isAuthenticated ? <>{children}</> : <Navigate to="/login" replace />;
 }
 
-export default App
+function App() {
+  return (
+    <Provider store={store}>
+      <QueryClientProvider client={queryClient}>
+        <ConfigProvider locale={zhCN}>
+          <Router>
+            <Routes>
+              <Route path="/login" element={<Login />} />
+              <Route
+                path="/*"
+                element={
+                  <ProtectedRoute>
+                    <Layout>
+                      <Routes>
+                        <Route path="/" element={<Navigate to="/dashboard" replace />} />
+                        <Route path="/dashboard" element={<Dashboard />} />
+                        <Route path="/tasks" element={<Tasks />} />
+                        <Route path="/configs" element={<Configs />} />
+                        <Route path="/monitoring" element={<Monitoring />} />
+                        <Route path="/users" element={<Users />} />
+                      </Routes>
+                    </Layout>
+                  </ProtectedRoute>
+                }
+              />
+            </Routes>
+          </Router>
+        </ConfigProvider>
+      </QueryClientProvider>
+    </Provider>
+  );
+}
+
+export default App;

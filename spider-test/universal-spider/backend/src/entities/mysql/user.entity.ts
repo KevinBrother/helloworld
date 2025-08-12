@@ -4,7 +4,6 @@ import {
   Column,
   CreateDateColumn,
   UpdateDateColumn,
-  Index,
 } from 'typeorm';
 import { Exclude } from 'class-transformer';
 
@@ -20,8 +19,6 @@ export enum UserStatus {
 }
 
 @Entity('users')
-@Index(['email'], { unique: true })
-@Index(['username'], { unique: true })
 export class User {
   @PrimaryGeneratedColumn()
   id: number;

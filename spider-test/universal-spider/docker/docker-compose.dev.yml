@@ -27,6 +27,6 @@ services:
       - /app/node_modules
     environment:
       - NODE_ENV=development
-    command: npm run dev
+    command: npm run dev -- --host 0.0.0.0
     ports:
       - "5173:5173"  # Vite开发服务器端口
