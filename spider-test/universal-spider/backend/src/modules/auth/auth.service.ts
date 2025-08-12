@@ -20,8 +20,8 @@ export interface JwtPayload {
 }
 
 export interface AuthResult {
-  user: Omit<User, 'password'>;
-  accessToken: string;
+  user: Omit<User, 'password' | 'status'> & { isActive: boolean };
+  access_token: string;
 }
 
 @Injectable()
@@ -77,12 +77,15 @@ export class AuthService {
 
     const accessToken = this.jwtService.sign(payload);
 
-    // 移除密码字段
-    const { password: _, ...userWithoutPassword } = user;
+    // 移除密码和状态字段
+    const { password: userPassword, status, ...userWithoutSensitiveFields } = user;
 
     return {
-      user: userWithoutPassword,
-      accessToken,
+      user: {
+        ...userWithoutSensitiveFields,
+        isActive: status === UserStatus.ACTIVE,
+      },
+      access_token: accessToken,
     };
   }
 
@@ -127,12 +130,15 @@ export class AuthService {
 
     const accessToken = this.jwtService.sign(payload);
 
-    // 移除密码字段
-    const { password: _, ...userWithoutPassword } = savedUser;
+    // 移除密码和状态字段
+    const { password: savedUserPassword, status, ...userWithoutSensitiveFields } = savedUser;
 
     return {
-      user: userWithoutPassword,
-      accessToken,
+      user: {
+        ...userWithoutSensitiveFields,
+        isActive: status === UserStatus.ACTIVE,
+      },
+      access_token: accessToken,
     };
   }
 

@@ -33,17 +33,23 @@ function ProtectedRoute({ children }: { children: React.ReactNode }) {
 
 function AuthProvider({ children }: { children: React.ReactNode }) {
   const dispatch = useAppDispatch();
-  const { token, loading, isAuthenticated } = useAuth();
+  const { token, loading, isAuthenticated, user } = useAuth();
 
   useEffect(() => {
-    // 如果有 token 但未认证，尝试获取用户信息验证 token
-    if (token && !isAuthenticated && !loading) {
+    // 如果有 token 但未认证且没有用户信息，尝试获取用户信息验证 token
+    if (token && !isAuthenticated && !user && !loading) {
       dispatch(getCurrentUser());
     }
-  }, [dispatch, token, isAuthenticated, loading]);
+    // 如果没有 token 但仍然显示为已认证，清除认证状态
+    else if (!token && isAuthenticated) {
+      // 这种情况通常不会发生，但为了安全起见
+      localStorage.removeItem('token');
+      window.location.href = '/login';
+    }
+  }, [dispatch, token, isAuthenticated, user, loading]);
 
   // 如果正在验证 token，显示加载状态
-  if (token && !isAuthenticated && loading) {
+  if (token && !isAuthenticated && !user && loading) {
     return (
       <div style={{ 
         display: 'flex', 

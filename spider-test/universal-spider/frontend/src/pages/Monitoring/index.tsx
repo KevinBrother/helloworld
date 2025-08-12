@@ -169,12 +169,11 @@ const Monitoring: React.FC = () => {
   ];
 
   const renderChart = () => {
-    const data = performanceData?.data || [];
+    const data = performanceData?.data?.data || [];
     
     const chartProps = {
       width: '100%',
       height: 300,
-      data,
     };
 
     switch (chartType) {
@@ -246,11 +245,11 @@ const Monitoring: React.FC = () => {
 
   // 任务状态分布数据
   const taskStatusData = [
-    { name: '运行中', value: taskStats?.data?.running || 0, color: '#1890ff' },
-    { name: '已完成', value: taskStats?.data?.completed || 0, color: '#52c41a' },
-    { name: '失败', value: taskStats?.data?.failed || 0, color: '#ff4d4f' },
-    { name: '等待中', value: taskStats?.data?.pending || 0, color: '#faad14' },
-    { name: '已取消', value: taskStats?.data?.cancelled || 0, color: '#d9d9d9' },
+    { name: '运行中', value: taskStats?.data?.data?.running || 0, color: '#1890ff' },
+    { name: '已完成', value: taskStats?.data?.data?.completed || 0, color: '#52c41a' },
+    { name: '失败', value: taskStats?.data?.data?.failed || 0, color: '#ff4d4f' },
+    { name: '等待中', value: taskStats?.data?.data?.pending || 0, color: '#faad14' },
+    { name: '已取消', value: taskStats?.data?.data?.cancelled || 0, color: '#d9d9d9' },
   ];
 
   const runningTasksData = runningTasks?.data?.data || [];
@@ -285,7 +284,7 @@ const Monitoring: React.FC = () => {
           <Card title="CPU 使用率" loading={systemStatsLoading}>
             <Progress
               type="circle"
-              percent={Math.round((systemStats?.data?.cpu?.usage || 0) * 100)}
+              percent={Math.round((systemStats?.data?.data?.cpu?.usage || 0) * 100)}
               format={(percent) => `${percent}%`}
               strokeColor={{
                 '0%': '#108ee9',
@@ -295,7 +294,7 @@ const Monitoring: React.FC = () => {
             <div style={{ marginTop: 16, textAlign: 'center' }}>
               <Statistic
                 title="CPU 核心数"
-                value={systemStats?.data?.cpu?.cores || 0}
+                value={systemStats?.data?.data?.cpu?.cores || 0}
                 suffix="核"
               />
             </div>
@@ -305,7 +304,7 @@ const Monitoring: React.FC = () => {
           <Card title="内存使用率" loading={systemStatsLoading}>
             <Progress
               type="circle"
-              percent={Math.round((systemStats?.data?.memory?.usage || 0) * 100)}
+              percent={Math.round((systemStats?.data?.data?.memory?.usage || 0) * 100)}
               format={(percent) => `${percent}%`}
               strokeColor={{
                 '0%': '#108ee9',
@@ -315,7 +314,7 @@ const Monitoring: React.FC = () => {
             <div style={{ marginTop: 16, textAlign: 'center' }}>
               <Statistic
                 title="已用内存"
-                value={(systemStats?.data?.memory?.used || 0) / 1024 / 1024 / 1024}
+                value={(systemStats?.data?.data?.memory?.used || 0) / 1024 / 1024 / 1024}
                 suffix="GB"
                 precision={2}
               />
@@ -326,7 +325,7 @@ const Monitoring: React.FC = () => {
           <Card title="磁盘使用率" loading={systemStatsLoading}>
             <Progress
               type="circle"
-              percent={Math.round((systemStats?.data?.disk?.usage || 0) * 100)}
+              percent={Math.round((systemStats?.data?.data?.disk?.usage || 0) * 100)}
               format={(percent) => `${percent}%`}
               strokeColor={{
                 '0%': '#108ee9',
@@ -336,7 +335,7 @@ const Monitoring: React.FC = () => {
             <div style={{ marginTop: 16, textAlign: 'center' }}>
               <Statistic
                 title="已用磁盘"
-                value={(systemStats?.data?.disk?.used || 0) / 1024 / 1024 / 1024}
+                value={(systemStats?.data?.data?.disk?.used || 0) / 1024 / 1024 / 1024}
                 suffix="GB"
                 precision={2}
               />
@@ -370,7 +369,7 @@ const Monitoring: React.FC = () => {
             <div style={{ textAlign: 'center', marginTop: 16 }}>
               <Statistic
                 title="总任务数"
-                value={taskStats?.data?.total || 0}
+                value={taskStats?.data?.data?.total || 0}
               />
             </div>
           </Card>

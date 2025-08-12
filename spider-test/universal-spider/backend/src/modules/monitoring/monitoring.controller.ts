@@ -10,7 +10,7 @@ import {
   HttpException,
   Logger,
 } from '@nestjs/common';
-import { MonitoringService, AlertRule } from './services/monitoring.service';
+import { MonitoringService } from './services/monitoring.service';
 import { LoggingService, LogQuery } from './services/logging.service';
 import { MetricsService, MetricQuery } from './services/metrics.service';
 import { HealthService } from './services/health.service';
@@ -39,7 +39,7 @@ export class MonitoringController {
    * 获取系统统计信息
    */
   @Get('system')
-  async getSystemStats() {
+  getSystemStats() {
     try {
       const systemStats = {
         cpu: {
@@ -78,7 +78,7 @@ export class MonitoringController {
    * 获取任务统计信息
    */
   @Get('tasks')
-  async getTaskStats() {
+  getTaskStats() {
     try {
       const taskStats = {
         total: Math.round(Math.random() * 1000),
@@ -105,15 +105,31 @@ export class MonitoringController {
    * 获取性能指标
    */
   @Get('performance')
-  async getPerformanceMetrics() {
+  getPerformanceMetrics(@Query('hours') hours?: string) {
     try {
-      const performanceMetrics = {
-        timestamp: new Date().toISOString(),
-        responseTime: Math.round(Math.random() * 1000),
-        throughput: Math.round(Math.random() * 100),
-        errorRate: Math.round(Math.random() * 10),
-        activeConnections: Math.round(Math.random() * 50),
-      };
+      const hoursNum = hours ? parseInt(hours, 10) : 24;
+      const dataPoints = Math.min(hoursNum * 6, 144); // 每10分钟一个数据点，最多144个点
+
+      const performanceMetrics: Array<{
+        timestamp: string;
+        responseTime: number;
+        throughput: number;
+        errorRate: number;
+        activeConnections: number;
+      }> = [];
+      const now = new Date();
+
+      for (let i = dataPoints - 1; i >= 0; i--) {
+        const timestamp = new Date(now.getTime() - i * 10 * 60 * 1000); // 每10分钟一个点
+        performanceMetrics.push({
+          timestamp: timestamp.toISOString(),
+          responseTime: Math.round(Math.random() * 1000 + 100), // 100-1100ms
+          throughput: Math.round(Math.random() * 100 + 10), // 10-110 requests/sec
+          errorRate: Math.round(Math.random() * 5), // 0-5%
+          activeConnections: Math.round(Math.random() * 50 + 5), // 5-55 connections
+        });
+      }
+
       return {
         success: true,
         data: performanceMetrics,
@@ -154,7 +170,7 @@ export class MonitoringController {
    * 获取详细健康检查结果
    */
   @Get('health/detailed')
-  async getDetailedHealth() {
+  getDetailedHealth() {
     try {
       const healthChecks = this.healthService.getDetailedHealthChecks();
       return {
@@ -223,7 +239,7 @@ export class MonitoringController {
    * 查询指标数据
    */
   @Get('metrics/query')
-  async queryMetrics(
+  queryMetrics(
     @Query('name') name?: string,
     @Query('startTime') startTime?: string,
     @Query('endTime') endTime?: string,
@@ -260,7 +276,7 @@ export class MonitoringController {
    * 获取指标统计信息
    */
   @Get('metrics/stats')
-  async getMetricsStats() {
+  getMetricsStats() {
     try {
       const stats = this.metricsService.getMetricsStats();
       return {
@@ -283,7 +299,7 @@ export class MonitoringController {
    * 查询日志
    */
   @Get('logs')
-  async queryLogs(
+  queryLogs(
     @Query('level') level?: 'debug' | 'info' | 'warn' | 'error',
     @Query('category') category?: string,
     @Query('action') action?: string,
@@ -326,7 +342,7 @@ export class MonitoringController {
    * 获取日志统计信息
    */
   @Get('logs/stats')
-  async getLogStats() {
+  getLogStats() {
     try {
       const stats = this.loggingService.getLogStats();
       return {
@@ -349,7 +365,7 @@ export class MonitoringController {
    * 导出日志
    */
   @Get('logs/export')
-  async exportLogs(
+  exportLogs(
     @Query('level') level?: 'debug' | 'info' | 'warn' | 'error',
     @Query('category') category?: string,
     @Query('action') action?: string,
@@ -392,7 +408,7 @@ export class MonitoringController {
    * 获取告警规则
    */
   @Get('alerts/rules')
-  async getAlertRules() {
+  getAlertRules() {
     try {
       const rules = this.monitoringService.getAlertRules();
       return {
@@ -415,7 +431,7 @@ export class MonitoringController {
    * 添加告警规则
    */
   @Post('alerts/rules')
-  async addAlertRule(@Body() addAlertRuleDto: AddAlertRuleDto) {
+  addAlertRule(@Body() addAlertRuleDto: AddAlertRuleDto) {
     try {
       const rule = this.monitoringService.addAlertRule(addAlertRuleDto);
       return {
@@ -438,7 +454,7 @@ export class MonitoringController {
    * 删除告警规则
    */
   @Delete('alerts/rules/:ruleId')
-  async removeAlertRule(@Param('ruleId') ruleId: string) {
+  removeAlertRule(@Param('ruleId') ruleId: string) {
     try {
       const success = this.monitoringService.removeAlertRule(ruleId);
       if (!success) {
@@ -474,7 +490,7 @@ export class MonitoringController {
    * 获取活跃告警
    */
   @Get('alerts/active')
-  async getActiveAlerts() {
+  getActiveAlerts() {
     try {
       const alerts = this.monitoringService.getActiveAlerts();
       return {
@@ -497,7 +513,7 @@ export class MonitoringController {
    * 获取所有告警
    */
   @Get('alerts')
-  async getAllAlerts() {
+  getAllAlerts() {
     try {
       const alerts = this.monitoringService.getAllAlerts();
       return {
@@ -520,7 +536,7 @@ export class MonitoringController {
    * 解决告警
    */
   @Post('alerts/:alertId/resolve')
-  async resolveAlert(@Param('alertId') alertId: string) {
+  resolveAlert(@Param('alertId') alertId: string) {
     try {
       const success = this.monitoringService.resolveAlert(alertId);
       if (!success) {
@@ -556,7 +572,7 @@ export class MonitoringController {
    * 启动监控
    */
   @Post('start')
-  async startMonitoring() {
+  startMonitoring() {
     try {
       this.monitoringService.startMonitoring();
       this.healthService.startHealthChecks();
@@ -581,7 +597,7 @@ export class MonitoringController {
    * 停止监控
    */
   @Post('stop')
-  async stopMonitoring() {
+  stopMonitoring() {
     try {
       this.monitoringService.stopMonitoring();
       this.healthService.stopHealthChecks();
@@ -606,7 +622,7 @@ export class MonitoringController {
    * 获取监控状态
    */
   @Get('status')
-  async getMonitoringStatus() {
+  getMonitoringStatus() {
     try {
       const monitoringStatus = this.monitoringService.getMonitoringStatus();
       const healthServiceStatus = this.healthService.getServiceStatus();
@@ -636,7 +652,7 @@ export class MonitoringController {
    * 清理数据
    */
   @Post('cleanup')
-  async cleanupData(
+  cleanupData(
     @Body() cleanupOptions: {
       logs?: { olderThan?: string };
       metrics?: { olderThan?: string };
