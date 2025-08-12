@@ -9,6 +9,10 @@ import { AuthModule } from './modules/auth/auth.module';
 import { UsersModule } from './modules/users/users.module';
 import { CrawlerModule } from './modules/crawler/crawler.module';
 import { TasksModule } from './modules/tasks/tasks.module';
+import { DataModule } from './modules/data/data.module';
+import { MonitoringModule } from './modules/monitoring/monitoring.module';
+import { MediaModule } from './modules/media/media.module';
+import { WebSocketModule } from './modules/websocket/websocket.module';
 import { getMySQLConfig, getMongoConfig } from './config/database.config';
 
 @Module({
@@ -32,6 +36,10 @@ import { getMySQLConfig, getMongoConfig } from './config/database.config';
     UsersModule,
     CrawlerModule,
     TasksModule,
+    DataModule,
+    MonitoringModule,
+    MediaModule,
+    WebSocketModule,
   ],
   controllers: [AppController],
   providers: [AppService],
