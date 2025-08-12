@@ -1,6 +1,6 @@
 # 多阶段构建
 # 第一阶段：构建应用
-FROM node:18-alpine AS builder
+FROM node:20-alpine AS builder
 
 WORKDIR /app
 
@@ -8,7 +8,7 @@ WORKDIR /app
 COPY package*.json ./
 
 # 安装依赖
-RUN npm ci
+RUN npm install
 
 # 复制源代码
 COPY . .

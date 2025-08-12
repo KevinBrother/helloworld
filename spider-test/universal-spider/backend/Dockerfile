@@ -1,5 +1,5 @@
 # 使用官方Node.js运行时作为基础镜像
-FROM node:18-alpine
+FROM node:20-alpine
 
 # 设置工作目录
 WORKDIR /app
@@ -7,14 +7,17 @@ WORKDIR /app
 # 复制package.json和package-lock.json（如果存在）
 COPY package*.json ./
 
-# 安装依赖
-RUN npm ci --only=production && npm cache clean --force
+# 安装所有依赖（包括devDependencies用于构建）
+RUN npm ci && npm cache clean --force
 
 # 复制源代码
 COPY . .
 
 # 构建应用
 RUN npm run build
+
+# 重新安装仅生产依赖
+RUN npm ci --only=production && npm cache clean --force
 
 # 暴露端口
 EXPOSE 3001

@@ -1,0 +1,92 @@
+# 最小化配置，只包含核心服务
+services:
+  # MySQL数据库
+  mysql:
+    image: mysql:8.0
+    container_name: spider-mysql
+    environment:
+      MYSQL_ROOT_PASSWORD: root123
+      MYSQL_DATABASE: spider_db
+      MYSQL_USER: spider_user
+      MYSQL_PASSWORD: spider_pass
+    ports:
+      - "3306:3306"
+    volumes:
+      - mysql_data:/var/lib/mysql
+    networks:
+      - spider-network
+    restart: unless-stopped
+    command: --innodb-buffer-pool-size=128M --innodb-log-file-size=32M
+
+  # Redis缓存
+  redis:
+    image: redis:7-alpine
+    container_name: spider-redis
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+    networks:
+      - spider-network
+    restart: unless-stopped
+    command: redis-server --appendonly yes --maxmemory 128mb
+
+  # Backend API服务
+  backend:
+    build:
+      context: ../backend
+      dockerfile: Dockerfile.dev
+    container_name: spider-backend
+    environment:
+      - NODE_ENV=development
+      - PORT=3001
+      - DB_HOST=mysql
+      - DB_PORT=3306
+      - DB_USERNAME=spider_user
+      - DB_PASSWORD=spider_pass
+      - DB_DATABASE=spider_db
+      - REDIS_HOST=redis
+      - REDIS_PORT=6379
+      - JWT_SECRET=your-super-secret-jwt-key-change-in-production
+      - JWT_EXPIRES_IN=7d
+    ports:
+      - "3001:3001"
+      - "9229:9229"  # Debug port
+    volumes:
+      - ../backend:/app
+      - /app/node_modules
+    networks:
+      - spider-network
+    restart: unless-stopped
+    depends_on:
+      - mysql
+      - redis
+    command: npm run start:dev
+
+  # Frontend Web应用
+  frontend:
+    build:
+      context: ../frontend
+      dockerfile: Dockerfile.dev
+    container_name: spider-frontend
+    environment:
+      - NODE_ENV=development
+    ports:
+      - "5173:5173"
+    volumes:
+      - ../frontend:/app
+      - /app/node_modules
+    networks:
+      - spider-network
+    restart: unless-stopped
+    depends_on:
+      - backend
+    command: npm run dev -- --host 0.0.0.0
+
+volumes:
+  mysql_data:
+  redis_data:
+
+networks:
+  spider-network:
+    driver: bridge

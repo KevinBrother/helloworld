@@ -811,7 +811,7 @@ describe('Security Tests', () => {
 
 ```dockerfile
 # 前端Dockerfile
-FROM node:18-alpine AS builder
+FROM node:20-alpine AS builder
 WORKDIR /app
 COPY package*.json ./
 RUN npm ci
@@ -827,7 +827,7 @@ CMD ["nginx", "-g", "daemon off;"]
 
 ```dockerfile
 # 后端Dockerfile
-FROM node:18-alpine
+FROM node:20-alpine
 WORKDIR /app
 COPY package*.json ./
 RUN npm ci --only=production
