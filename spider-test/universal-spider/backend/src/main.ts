@@ -23,11 +23,19 @@ async function bootstrap() {
     credentials: true,
   });
 
-  // 配置 Swagger
+  // 配置 Swagger (OpenAPI 3.1)
   const config = new DocumentBuilder()
     .setTitle('Universal Spider API')
     .setDescription('Universal Spider 爬虫系统 API 文档')
     .setVersion('1.0')
+    .setContact(
+      'Universal Spider Team',
+      'https://github.com/universal-spider',
+      'support@universal-spider.com',
+    )
+    .setLicense('MIT', 'https://opensource.org/licenses/MIT')
+    .addServer('http://localhost:3001', '开发环境')
+    .addServer('https://api.universal-spider.com', '生产环境')
     .addBearerAuth(
       {
         type: 'http',
@@ -48,13 +56,32 @@ async function bootstrap() {
     .addTag('media', '媒体文件接口')
     .build();
 
-  const document = SwaggerModule.createDocument(app, config);
+  const document = SwaggerModule.createDocument(app, config, {
+    operationIdFactory: (controllerKey: string, methodKey: string) => methodKey,
+    deepScanRoutes: true,
+  });
+
+  // 设置 OpenAPI 版本为 3.1.0
+  document.openapi = '3.1.0';
+
   SwaggerModule.setup('api/docs', app, document, {
     swaggerOptions: {
       persistAuthorization: true,
       tagsSorter: 'alpha',
       operationsSorter: 'alpha',
+      docExpansion: 'none',
+      filter: true,
+      showRequestDuration: true,
     },
+    customSiteTitle: 'Universal Spider API Documentation',
+    customfavIcon: '/favicon.ico',
+    customJs: [
+      'https://cdnjs.cloudflare.com/ajax/libs/swagger-ui/4.15.5/swagger-ui-bundle.min.js',
+      'https://cdnjs.cloudflare.com/ajax/libs/swagger-ui/4.15.5/swagger-ui-standalone-preset.min.js',
+    ],
+    customCssUrl: [
+      'https://cdnjs.cloudflare.com/ajax/libs/swagger-ui/4.15.5/swagger-ui.min.css',
+    ],
   });
 
   const port = process.env.PORT ?? 3001;
