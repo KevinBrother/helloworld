@@ -3,7 +3,9 @@ import { MongooseModuleOptions } from '@nestjs/mongoose';
 import { ConfigService } from '@nestjs/config';
 
 // MySQL配置
-export const getMySQLConfig = (configService: ConfigService): TypeOrmModuleOptions => ({
+export const getMySQLConfig = (
+  configService: ConfigService,
+): TypeOrmModuleOptions => ({
   type: 'mysql',
   host: configService.get('DB_HOST', 'localhost'),
   port: configService.get('DB_PORT', 3306),
@@ -21,10 +23,12 @@ export const getMySQLConfig = (configService: ConfigService): TypeOrmModuleOptio
 });
 
 // MongoDB配置
-export const getMongoConfig = (configService: ConfigService): MongooseModuleOptions => ({
+export const getMongoConfig = (
+  configService: ConfigService,
+): MongooseModuleOptions => ({
   uri: configService.get(
     'MONGO_URI',
-    'mongodb://admin:admin123@localhost:27017/spider_logs?authSource=admin'
+    'mongodb://admin:admin123@localhost:27017/spider_logs?authSource=admin',
   ),
 });
 

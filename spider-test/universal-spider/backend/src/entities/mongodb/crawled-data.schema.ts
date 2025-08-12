@@ -128,5 +128,5 @@ CrawledDataSchema.index({
 // TTL索引，30天后自动删除（可配置）
 CrawledDataSchema.index(
   { createdAt: 1 },
-  { expireAfterSeconds: 30 * 24 * 60 * 60 }
+  { expireAfterSeconds: 30 * 24 * 60 * 60 },
 );

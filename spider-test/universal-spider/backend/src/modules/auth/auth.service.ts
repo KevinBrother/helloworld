@@ -1,4 +1,8 @@
-import { Injectable, UnauthorizedException, BadRequestException } from '@nestjs/common';
+import {
+  Injectable,
+  UnauthorizedException,
+  BadRequestException,
+} from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
@@ -51,7 +55,7 @@ export class AuthService {
 
   async login(loginDto: LoginDto): Promise<AuthResult> {
     const { username, password } = loginDto;
-    
+
     const user = await this.validateUser(username, password);
     if (!user) {
       throw new UnauthorizedException('用户名或密码错误');

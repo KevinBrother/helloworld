@@ -1,4 +1,8 @@
-import { Injectable, NotFoundException, BadRequestException } from '@nestjs/common';
+import {
+  Injectable,
+  NotFoundException,
+  BadRequestException,
+} from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository, FindManyOptions } from 'typeorm';
 import * as bcrypt from 'bcryptjs';
@@ -217,7 +221,10 @@ export class UsersService {
     await this.userRepository.remove(user);
   }
 
-  async changeStatus(id: number, status: UserStatus): Promise<Omit<User, 'password'>> {
+  async changeStatus(
+    id: number,
+    status: UserStatus,
+  ): Promise<Omit<User, 'password'>> {
     const user = await this.userRepository.findOne({ where: { id } });
 
     if (!user) {

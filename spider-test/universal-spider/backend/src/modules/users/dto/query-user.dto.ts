@@ -1,11 +1,4 @@
-import {
-  IsOptional,
-  IsString,
-  IsEnum,
-  IsInt,
-  Min,
-  Max,
-} from 'class-validator';
+import { IsOptional, IsString, IsEnum, IsInt, Min, Max } from 'class-validator';
 import { Type, Transform } from 'class-transformer';
 import { ApiProperty } from '@nestjs/swagger';
 import { UserRole, UserStatus } from '../../../entities/mysql/user.entity';
@@ -92,9 +85,12 @@ export class QueryUserDto {
   })
   @IsOptional()
   @IsString()
-  @IsEnum(['id', 'username', 'email', 'createdAt', 'updatedAt', 'lastLoginAt'], {
-    message: '排序字段不正确',
-  })
+  @IsEnum(
+    ['id', 'username', 'email', 'createdAt', 'updatedAt', 'lastLoginAt'],
+    {
+      message: '排序字段不正确',
+    },
+  )
   sortBy?: string = 'createdAt';
 
   @ApiProperty({

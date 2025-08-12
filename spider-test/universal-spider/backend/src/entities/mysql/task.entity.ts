@@ -93,6 +93,18 @@ export class Task {
   @Column({ type: 'int' })
   userId: number;
 
+  @Column({ type: 'varchar', length: 50, nullable: true })
+  scheduleType: string;
+
+  @Column({ type: 'json', nullable: true })
+  scheduleConfig: Record<string, any>;
+
+  @Column({ type: 'int', default: 5 })
+  priority: number;
+
+  @Column({ type: 'varchar', length: 500, nullable: true })
+  tags: string;
+
   @ManyToOne(() => User)
   @JoinColumn({ name: 'userId' })
   user: User;

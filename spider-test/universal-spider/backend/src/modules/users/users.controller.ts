@@ -47,7 +47,9 @@ export class UsersController {
   })
   @ApiResponse({ status: 400, description: '用户名或邮箱已存在' })
   @ApiResponse({ status: 401, description: '未授权' })
-  async create(@Body() createUserDto: CreateUserDto): Promise<Omit<User, 'password'>> {
+  async create(
+    @Body() createUserDto: CreateUserDto,
+  ): Promise<Omit<User, 'password'>> {
     return this.usersService.create(createUserDto);
   }
 
@@ -90,7 +92,9 @@ export class UsersController {
   })
   @ApiResponse({ status: 404, description: '用户不存在' })
   @ApiResponse({ status: 401, description: '未授权' })
-  async findOne(@Param('id', ParseIntPipe) id: number): Promise<Omit<User, 'password'>> {
+  async findOne(
+    @Param('id', ParseIntPipe) id: number,
+  ): Promise<Omit<User, 'password'>> {
     return this.usersService.findOne(id);
   }
 
