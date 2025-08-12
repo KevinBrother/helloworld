@@ -6,7 +6,7 @@ export interface Notification {
   type: string;
   title: string;
   message: string;
-  data?: any;
+  data?: Record<string, unknown>;
   priority: 'low' | 'medium' | 'high' | 'urgent';
   createdAt: Date;
   expiresAt?: Date;
@@ -132,7 +132,7 @@ export class NotificationService {
   }
 
   // 预定义的通知类型方法
-  async sendSpiderStatusNotification(status: string, data?: any): Promise<string> {
+  async sendSpiderStatusNotification(status: string, data?: Record<string, unknown>): Promise<string> {
     return this.sendNotification({
       type: 'spider-status',
       title: 'Spider Status Update',
@@ -142,7 +142,7 @@ export class NotificationService {
     });
   }
 
-  async sendErrorNotification(error: string, data?: any): Promise<string> {
+  async sendErrorNotification(error: string, data?: Record<string, unknown>): Promise<string> {
     return this.sendNotification({
       type: 'error',
       title: 'Error Occurred',
@@ -152,7 +152,7 @@ export class NotificationService {
     });
   }
 
-  async sendDataProcessingNotification(message: string, data?: any): Promise<string> {
+  async sendDataProcessingNotification(message: string, data?: Record<string, unknown>): Promise<string> {
     return this.sendNotification({
       type: 'data-processing',
       title: 'Data Processing Update',
@@ -162,7 +162,7 @@ export class NotificationService {
     });
   }
 
-  async sendSystemNotification(message: string, priority: 'low' | 'medium' | 'high' | 'urgent' = 'medium', data?: any): Promise<string> {
+  async sendSystemNotification(message: string, priority: 'low' | 'medium' | 'high' | 'urgent' = 'medium', data?: Record<string, unknown>): Promise<string> {
     return this.sendNotification({
       type: 'system',
       title: 'System Notification',
@@ -177,7 +177,7 @@ export class NotificationService {
     title: string,
     message: string,
     priority: 'low' | 'medium' | 'high' | 'urgent' = 'medium',
-    data?: any,
+    data?: Record<string, unknown>,
     targetClients?: string[],
     targetRooms?: string[],
   ): Promise<string> {

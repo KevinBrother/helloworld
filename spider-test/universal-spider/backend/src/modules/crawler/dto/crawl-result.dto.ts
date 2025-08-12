@@ -12,7 +12,7 @@ export interface PageInfo {
 }
 
 export interface ExtractedData {
-  [key: string]: any;
+  [key: string]: unknown;
 }
 
 export class CrawlResultDto {
@@ -45,8 +45,8 @@ export class CrawlResultDto {
     url: string;
     method: string;
     headers: Record<string, string>;
-    params: Record<string, any>;
-    response: any;
+    params: Record<string, unknown>;
+    response: Record<string, unknown>;
   }>;
 
   @ApiPropertyOptional({ description: '下载的媒体文件' })

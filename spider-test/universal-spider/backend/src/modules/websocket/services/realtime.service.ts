@@ -234,7 +234,7 @@ export class RealTimeService {
 
     await this.notificationService.sendDataProcessingNotification(
       'Data processing status updated',
-      this.dataProcessingStatus,
+      this.dataProcessingStatus as unknown as Record<string, unknown>,
     );
   }
 

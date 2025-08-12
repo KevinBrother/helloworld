@@ -27,7 +27,7 @@ import {
 } from '@ant-design/icons';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { userApi } from '../../services/api';
-import type { User, CreateUserRequest, UpdateUserRequest } from '../../types/api';
+import type { User, CreateUserDto as CreateUserRequest, UpdateUserDto as UpdateUserRequest } from '@universal-spider/shared';
 
 const { Option } = Select;
 

@@ -5,8 +5,8 @@ export interface DiscoveredApi {
   url: string;
   method: string;
   headers: Record<string, string>;
-  params: Record<string, any>;
-  response: any;
+  params: Record<string, unknown>;
+  response: Record<string, unknown>;
   timestamp: Date;
 }
 
@@ -59,11 +59,11 @@ export class ApiDiscoveryService {
                   response
                     .text()
                     .then((text) => {
-                      apiInfo.response = text;
+                      apiInfo.response = { data: text };
                       discoveredApis.push(apiInfo as DiscoveredApi);
                     })
                     .catch(() => {
-                      apiInfo.response = null;
+                      apiInfo.response = undefined;
                       discoveredApis.push(apiInfo as DiscoveredApi);
                     });
                 });
@@ -71,7 +71,7 @@ export class ApiDiscoveryService {
           })
           .catch(() => {
             // 请求失败也记录
-            apiInfo.response = null;
+            apiInfo.response = undefined;
             discoveredApis.push(apiInfo as DiscoveredApi);
           });
       }

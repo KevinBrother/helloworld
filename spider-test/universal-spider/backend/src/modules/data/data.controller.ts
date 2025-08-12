@@ -68,15 +68,19 @@ export class DataController {
       const invalidData = data.filter((_, index) => !validationResults[index].isValid);
 
       // 数据处理
-      const processedData = this.dataProcessingService.processExtractedData(
-        validData,
-        (rules as any[]) || [],
+      const processedData = validData.map(item => 
+        this.dataProcessingService.processExtractedData(
+          item,
+          (rules as any[]) || [],
+        )
       );
 
       // 数据清洗
-      const cleanedData = this.dataProcessingService.cleanData(
-        processedData,
-        [],
+      const cleanedData = processedData.map(item => 
+        this.dataProcessingService.cleanData(
+          item,
+          [],
+        )
       );
 
       return {
