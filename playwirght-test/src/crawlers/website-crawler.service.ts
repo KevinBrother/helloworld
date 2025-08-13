@@ -73,7 +73,10 @@ export class WebsiteCrawlerService {
           // 提取并添加新链接
           if (depth < maxDepth) {
             const links = this.contentExtractor.extractLinks(pageContent.html, baseUrl, url);
-            this.linkManager.addUrls(links, depth + 1);
+            const addedCount = this.linkManager.addUrls(links, depth + 1);
+            this.logger.log(`从 ${url} (深度: ${depth}) 提取到 ${links.length} 个链接，成功添加 ${addedCount} 个到队列 (目标深度: ${depth + 1})`);
+          } else {
+            this.logger.log(`页面 ${url} 已达到最大深度 ${maxDepth}，跳过链接提取`);
           }
           
           // 保存到知识库
