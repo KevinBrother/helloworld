@@ -13,8 +13,14 @@ import {
 } from '@nestjs/common';
 import { DataProcessingService } from './services/data-processing.service';
 import { DataValidationService } from './services/data-validation.service';
-import { DataExportService, ExportOptions } from './services/data-export.service';
-import { DataStorageService, QueryOptions } from './services/data-storage.service';
+import {
+  DataExportService,
+  ExportOptions,
+} from './services/data-export.service';
+import {
+  DataStorageService,
+  QueryOptions,
+} from './services/data-storage.service';
 import { ExtractedData } from '../crawler/dto/crawl-result.dto';
 
 export interface ProcessDataDto {
@@ -64,23 +70,24 @@ export class DataController {
         data.map((item) => this.dataValidationService.validateData(item, [])),
       );
 
-      const validData = data.filter((_, index) => validationResults[index].isValid);
-      const invalidData = data.filter((_, index) => !validationResults[index].isValid);
+      const validData = data.filter(
+        (_, index) => validationResults[index].isValid,
+      );
+      const invalidData = data.filter(
+        (_, index) => !validationResults[index].isValid,
+      );
 
       // 数据处理
-      const processedData = validData.map(item => 
+      const processedData = validData.map((item) =>
         this.dataProcessingService.processExtractedData(
           item,
           (rules as any[]) || [],
-        )
+        ),
       );
 
       // 数据清洗
-      const cleanedData = processedData.map(item => 
-        this.dataProcessingService.cleanData(
-          item,
-          [],
-        )
+      const cleanedData = processedData.map((item) =>
+        this.dataProcessingService.cleanData(item, []),
       );
 
       return {
@@ -120,7 +127,9 @@ export class DataController {
         data.map((item) => this.dataValidationService.validateData(item, [])),
       );
 
-      const validCount = validationResults.filter((result) => result.isValid).length;
+      const validCount = validationResults.filter(
+        (result) => result.isValid,
+      ).length;
       const invalidCount = validationResults.length - validCount;
 
       return {

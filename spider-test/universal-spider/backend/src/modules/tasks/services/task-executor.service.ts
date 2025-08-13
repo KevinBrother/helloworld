@@ -4,6 +4,7 @@ import { Repository } from 'typeorm';
 import { Task } from '../../../entities/mysql/task.entity';
 import { TaskStatus } from '../../../entities/mysql/task.entity';
 import { CrawlerService } from '../../crawler/crawler.service';
+import { DataStorageService } from '../../data/services/data-storage.service';
 
 interface TaskExecution {
   taskId: number;
@@ -28,6 +29,7 @@ export class TaskExecutorService {
     @InjectRepository(Task)
     private taskRepository: Repository<Task>,
     private crawlerService: CrawlerService,
+    private dataStorageService: DataStorageService,
   ) {
     this.startQueueProcessor();
   }
@@ -63,6 +65,7 @@ export class TaskExecutorService {
       execution.status = 'paused';
       this.logger.log(`任务 ${taskId} 已暂停`);
     }
+    await Promise.resolve();
   }
 
   async resumeTask(taskId: number): Promise<void> {
@@ -98,6 +101,7 @@ export class TaskExecutorService {
     }
 
     this.isProcessing = false;
+    await Promise.resolve();
   }
 
   private async executeTask(task: Task): Promise<void> {
@@ -119,15 +123,15 @@ export class TaskExecutorService {
 
       // 根据任务类型执行不同的爬虫逻辑
       const result = await this.crawlerService.crawl({
-        url: task.config.url,
-        extractionRules: task.config.extractionRules,
+        url: String(task.config.url || ''),
+        extractionRules: task.config.extractionRules || [],
         // waitStrategy: task.config.waitStrategy, // 暂时注释掉不存在的属性
-        timeout: task.config.timeout,
+        timeout: Number(task.config.timeout || 30000),
         // screenshot: task.config.screenshot, // 暂时注释掉不存在的属性
-        customScript: task.config.customScript,
+        customScript: String(task.config.customScript || ''),
         // antiDetection: task.config.antiDetection, // 暂时注释掉不存在的属性
-        discoverApis: task.config.discoverApis,
-        downloadMedia: task.config.downloadMedia,
+        discoverApis: Boolean(task.config.discoverApis),
+        downloadMedia: Boolean(task.config.downloadMedia),
       });
 
       // 检查任务是否被停止
@@ -146,7 +150,7 @@ export class TaskExecutorService {
       await this.updateTaskStatus(task.id, TaskStatus.COMPLETED);
       this.logger.log(`任务 ${task.id} 执行完成`);
     } catch (error) {
-      execution.errors.push(error.message || '未知错误');
+      execution.errors.push(String((error as Error)?.message || '未知错误'));
       await this.updateTaskStatus(task.id, TaskStatus.FAILED);
       this.logger.error(`任务 ${task.id} 执行失败:`, error);
 
@@ -171,18 +175,46 @@ export class TaskExecutorService {
   }
 
   private async saveTaskResult(taskId: number, result: any): Promise<void> {
-    // 这里应该将结果保存到数据库或文件系统
-    // 暂时只记录日志
-    this.logger.log(
-      `保存任务 ${taskId} 的结果:`,
-      JSON.stringify(result, null, 2),
-    );
+    try {
+      // 获取任务信息以获取任务名称
+      const task = await this.taskRepository.findOne({ where: { id: taskId } });
+      const taskName = task?.name || `任务${taskId}`;
+      
+      // 将爬取结果保存到MongoDB
+      const extractedData = {
+        taskId: taskId.toString(),
+        url: String((result as any)?.url || ''),
+        title: String((result as any)?.title || taskName),
+        content: String((result as any)?.content || ''),
+        metadata: (result as any)?.metadata as Record<string, any> || {},
+        rawData: (result as any)?.rawData as any || null,
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString(),
+      };
+
+      const storageResult = await this.dataStorageService.storeData(
+        extractedData,
+      );
+      
+      if (storageResult.success) {
+        this.logger.log(
+          `任务 ${taskId} 的结果已成功保存到MongoDB，记录ID: ${storageResult.recordId}`,
+        );
+      } else {
+        this.logger.error(
+          `任务 ${taskId} 的结果保存失败: ${storageResult.error}`,
+        );
+      }
+    } catch (error) {
+      this.logger.error(`保存任务 ${taskId} 结果时发生错误:`, error);
+    }
   }
 
   private async saveTaskError(taskId: number, error: any): Promise<void> {
     // 这里应该将错误信息保存到数据库
     // 暂时只记录日志
     this.logger.error(`保存任务 ${taskId} 的错误:`, error);
+    await Promise.resolve();
   }
 
   private startQueueProcessor(): void {

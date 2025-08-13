@@ -1,5 +1,11 @@
 import { Injectable, Logger } from '@nestjs/common';
+import { InjectModel } from '@nestjs/mongoose';
+import { Model } from 'mongoose';
 import { ExtractedData } from '../../crawler/dto/crawl-result.dto';
+import {
+  CrawledData,
+  CrawledDataDocument,
+} from '../../../entities/mongodb/crawled-data.schema';
 
 export interface StorageOptions {
   database?: string;
@@ -33,6 +39,11 @@ export interface QueryResult {
 @Injectable()
 export class DataStorageService {
   private readonly logger = new Logger(DataStorageService.name);
+
+  constructor(
+    @InjectModel(CrawledData.name)
+    private readonly crawledDataModel: Model<CrawledDataDocument>,
+  ) {}
 
   /**
    * 存储单条数据
@@ -229,83 +240,137 @@ export class DataStorageService {
   }
 
   /**
-   * 保存到数据库（模拟）
+   * 保存到数据库
    */
   private async saveToDatabase(
     data: ExtractedData,
     recordId: string,
-    options: StorageOptions,
+    _options: StorageOptions,
   ): Promise<void> {
-    // 这里应该实现实际的数据库保存逻辑
-    this.logger.debug(`保存数据到数据库: ${recordId}`, {
-      database: options.database || 'default',
-      collection: options.collection || 'extracted_data',
-    });
+    try {
+      const crawledData = new this.crawledDataModel({
+        taskId:
+          parseInt(String(data.taskId)) ||
+          parseInt(String(recordId)) ||
+          Date.now(),
+        userId: parseInt(String(data.userId)) || 1,
+        url: data.url || '',
+        title: data.title || '',
+        content: data.content || '',
+        metadata: data.metadata || {},
+        extractedData: data,
+        rawData: data.rawData || null,
+      });
 
-    // 模拟异步操作
-    await new Promise((resolve) => setTimeout(resolve, 10));
+      await crawledData.save();
+      
+      this.logger.debug(`数据成功保存到MongoDB: ${recordId}`, {
+        database: _options.database || 'default',
+        collection: _options.collection || 'crawled_data',
+      });
+    } catch (error) {
+      this.logger.error(`保存数据到MongoDB失败: ${recordId}`, error);
+      throw error;
+    }
   }
 
   /**
-   * 批量保存到数据库（模拟）
+   * 批量保存到数据库
    */
   private async saveBatchToDatabase(
     dataList: ExtractedData[],
     options: StorageOptions,
   ): Promise<number> {
-    // 这里应该实现实际的批量数据库保存逻辑
-    this.logger.debug(`批量保存数据到数据库，记录数: ${dataList.length}`);
+    try {
+      const crawledDataList = dataList.map((data) => ({
+        taskId: data.taskId || this.generateRecordId(data),
+        userId: data.userId || 'system',
+        url: data.url || '',
+        title: data.title || '',
+        content: data.content || '',
+        metadata: data.metadata || {},
+        extractedData: data,
+        rawData: data.rawData || null,
+        createdAt: new Date(),
+        updatedAt: new Date(),
+      }));
 
-    // 模拟异步操作
-    await new Promise((resolve) => setTimeout(resolve, 50));
-
-    return dataList.length;
+      const result = await this.crawledDataModel.insertMany(crawledDataList);
+      
+      this.logger.debug(`批量数据成功保存到MongoDB，记录数: ${result.length}`);
+      return result.length;
+    } catch (error) {
+      this.logger.error(`批量保存数据到MongoDB失败`, error);
+      throw error;
+    }
   }
 
   /**
-   * 从数据库查询（模拟）
+   * 从数据库查询
    */
   private async queryFromDatabase(
-    options: QueryOptions,
+    options: QueryOptions
   ): Promise<QueryResult> {
-    // 这里应该实现实际的数据库查询逻辑
-    this.logger.debug('从数据库查询数据', options);
+    try {
+      const limit = options.limit || 10;
+      const offset = options.offset || 0;
+      const sortBy = options.sortBy || 'createdAt';
+      const sortOrder = options.sortOrder === 'asc' ? 1 : -1;
 
-    // 模拟查询结果
-    const mockData: ExtractedData[] = [
-      {
-        title: '示例标题',
-        url: 'https://example.com',
-        content: '示例内容',
-        createdAt: new Date().toISOString(),
-        updatedAt: new Date().toISOString(),
-      },
-    ];
+      // 构建查询条件
+      const query = options.filters || {};
 
-    return {
-      data: mockData.slice(0, options.limit || 10),
-      total: mockData.length,
-      hasMore: (options.offset || 0) + (options.limit || 10) < mockData.length,
-    };
+      // 执行查询
+      const [data, total] = await Promise.all([
+        this.crawledDataModel
+          .find(query)
+          .sort({ [sortBy]: sortOrder })
+          .skip(offset)
+          .limit(limit)
+          .exec(),
+        this.crawledDataModel.countDocuments(query).exec(),
+      ]);
+
+      // 转换为ExtractedData格式
+      const extractedData: ExtractedData[] = data.map(
+        (doc) => doc.extractedData,
+      );
+
+      this.logger.debug(`从MongoDB查询到 ${extractedData.length} 条数据`);
+
+      return {
+        data: extractedData,
+        total,
+        hasMore: offset + limit < total,
+      };
+    } catch (error) {
+      this.logger.error('从MongoDB查询数据失败', error);
+      throw error;
+    }
   }
 
   /**
-   * 根据ID从数据库查找（模拟）
+   * 根据ID从数据库查找
    */
   private async findByIdInDatabase(
     recordId: string,
   ): Promise<ExtractedData | null> {
-    // 这里应该实现实际的数据库查询逻辑
-    this.logger.debug(`从数据库根据ID查找数据: ${recordId}`);
+    try {
+      const doc = await this.crawledDataModel
+        .findOne({ taskId: recordId })
+        .exec();
+      
+      if (!doc) {
+        this.logger.debug(`MongoDB中未找到ID为 ${recordId} 的数据`);
+        return null;
+      }
 
-    // 模拟查询结果
-    return {
-      title: '示例标题',
-      url: 'https://example.com',
-      content: '示例内容',
-      createdAt: new Date().toISOString(),
-      updatedAt: new Date().toISOString(),
-    };
+      this.logger.debug(`从MongoDB成功查找到ID为 ${recordId} 的数据`);
+      return doc.extractedData;
+    } catch (error) {
+      this.logger.error(`从MongoDB根据ID查找数据失败: ${recordId}`, error);
+      throw error;
+    }
   }
 
   /**

@@ -4,7 +4,6 @@ import {
   Get,
   Body,
   Param,
-  Query,
   UseGuards,
   ParseIntPipe,
 } from '@nestjs/common';
@@ -16,7 +15,6 @@ import {
   ApiBearerAuth,
   ApiBody,
   ApiParam,
-  ApiQuery,
 } from '@nestjs/swagger';
 
 import { CrawlerService } from './crawler.service';
