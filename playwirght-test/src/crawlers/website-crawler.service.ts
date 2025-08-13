@@ -35,6 +35,17 @@ export class WebsiteCrawlerService {
       userAgent = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36'
     } = options;
     
+    // 开始新的爬取会话
+    const sessionId = this.minioService.startCrawlSession(baseUrl, {
+      maxDepth,
+      maxPages,
+      delay,
+      takeScreenshots,
+      userAgent
+    });
+    
+    this.logger.log(`爬取会话已开始: ${sessionId}`);
+    
     // 初始化链接管理器
     this.linkManager.initialize(baseUrl, maxDepth);
     this.linkManager.addUrl(baseUrl, 0);
@@ -100,6 +111,10 @@ export class WebsiteCrawlerService {
       this.logger.log(`爬取完成，共处理 ${processedPages} 个页面`);
       return processedPages;
     } finally {
+      // 结束爬取会话
+      await this.minioService.endCrawlSession();
+      this.logger.log(`爬取会话已结束: ${sessionId}`);
+      
       // 关闭浏览器
       await this.playwrightService.close();
     }

@@ -2,16 +2,15 @@ import { Injectable, Logger, OnModuleInit } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import * as Minio from 'minio';
 import { PageData } from '../interfaces/crawler.interface';
+import { STORAGE_CONFIG, PathGenerator, SessionManager } from '../config/storage.config';
 
 @Injectable()
 export class MinioService implements OnModuleInit {
   private readonly logger = new Logger(MinioService.name);
   private minioClient: Minio.Client;
-  private bucketName: string;
+  private buckets = STORAGE_CONFIG.buckets;
 
-  constructor(private readonly configService: ConfigService) {
-    this.bucketName = this.configService.get<string>('MINIO_BUCKET_NAME', 'crawler-data');
-  }
+  constructor(private readonly configService: ConfigService) {}
 
   async onModuleInit() {
     this.logger.log('开始初始化 MinIO 客户端...');
@@ -41,21 +40,34 @@ export class MinioService implements OnModuleInit {
       
       this.logger.log(`MinIO 客户端已创建: ${host}:${port}`);
       
-      // 检查存储桶是否存在，如果不存在则创建
-      this.logger.log(`检查存储桶是否存在: ${this.bucketName}`);
-      const bucketExists = await this.minioClient.bucketExists(this.bucketName);
-      if (!bucketExists) {
-        this.logger.log(`存储桶不存在，正在创建: ${this.bucketName}`);
-        await this.minioClient.makeBucket(this.bucketName, 'us-east-1');
-        this.logger.log(`存储桶创建成功: ${this.bucketName}`);
-      } else {
-        this.logger.log(`存储桶已存在: ${this.bucketName}`);
-      }
+      // 创建所有必需的存储桶
+      await this.createBucketsIfNotExists();
       
       this.logger.log('MinIO 客户端初始化完成');
     } catch (error) {
       this.logger.error(`MinIO 初始化失败: ${error.message}`, error.stack);
       // 不要抛出错误，让应用继续运行
+    }
+  }
+
+  /**
+   * 创建所有必需的存储桶
+   */
+  private async createBucketsIfNotExists(): Promise<void> {
+    const bucketNames = Object.values(this.buckets);
+    
+    for (const bucketName of bucketNames) {
+      try {
+        const bucketExists = await this.minioClient.bucketExists(bucketName);
+        if (!bucketExists) {
+          await this.minioClient.makeBucket(bucketName, 'us-east-1');
+          this.logger.log(`存储桶已创建: ${bucketName}`);
+        } else {
+          this.logger.log(`存储桶已存在: ${bucketName}`);
+        }
+      } catch (error) {
+        this.logger.error(`创建存储桶失败 ${bucketName}: ${error.message}`);
+      }
     }
   }
 
@@ -70,16 +82,37 @@ export class MinioService implements OnModuleInit {
         return false;
       }
 
-      // 生成文件名，使用 URL 的 hash 和时间戳
-      const urlHash = this.generateUrlHash(pageData.url);
-      const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
-      const fileName = `pages/${urlHash}_${timestamp}.json`;
+      const now = new Date();
+      const urlHash = PathGenerator.generateUrlHash(pageData.url);
+      const timestamp = PathGenerator.generateTimestamp(now);
+      const sequence = SessionManager.getNextSequence();
+      
+      // 生成目录路径
+      const directoryPath = PathGenerator.generateDirectoryPath(pageData.url, now);
+      
+      // 生成文件名
+      const fileName = PathGenerator.generateFileName(
+        STORAGE_CONFIG.naming.pageFile,
+        {
+          depth: pageData.metadata.depth,
+          sequence,
+          urlHash,
+          timestamp
+        }
+      );
+      
+      const fullPath = `${directoryPath}/${fileName}`;
 
       // 准备要存储的数据
       const dataToStore = {
         ...pageData,
-        storedAt: new Date().toISOString(),
-        fileSize: JSON.stringify(pageData).length
+        storedAt: now.toISOString(),
+        fileSize: JSON.stringify(pageData).length,
+        sessionInfo: {
+          sequence,
+          sessionId: SessionManager.getCurrentSession()?.id,
+          filePath: fullPath
+        }
       };
 
       // 转换为 Buffer
@@ -87,8 +120,8 @@ export class MinioService implements OnModuleInit {
 
       // 上传到 MinIO
       await this.minioClient.putObject(
-        this.bucketName,
-        fileName,
+        this.buckets.pages,
+        fullPath,
         dataBuffer,
         dataBuffer.length,
         {
@@ -96,10 +129,16 @@ export class MinioService implements OnModuleInit {
           'X-Amz-Meta-Url': pageData.url,
           'X-Amz-Meta-Title': pageData.title,
           'X-Amz-Meta-Depth': pageData.metadata.depth.toString(),
+          'X-Amz-Meta-Domain': PathGenerator.generateDomainPath(pageData.url),
+          'X-Amz-Meta-Sequence': sequence.toString(),
+          'X-Amz-Meta-Session': SessionManager.getCurrentSession()?.id || 'unknown'
         }
       );
 
-      this.logger.log(`页面数据已保存到 MinIO: ${fileName}`);
+      // 记录文件到会话
+      SessionManager.addFile(fullPath);
+
+      this.logger.log(`页面数据已保存到 MinIO: ${fullPath}`);
       return true;
     } catch (error) {
       this.logger.error(`保存页面数据到 MinIO 失败: ${error.message}`, error.stack);
@@ -118,23 +157,46 @@ export class MinioService implements OnModuleInit {
         return null;
       }
 
-      const urlHash = this.generateUrlHash(url);
-      const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
-      const fileName = `screenshots/${urlHash}_${timestamp}.png`;
+      const now = new Date();
+      const urlHash = PathGenerator.generateUrlHash(url);
+      const timestamp = PathGenerator.generateTimestamp(now);
+      const sequence = SessionManager.getNextSequence();
+      
+      // 生成目录路径
+      const directoryPath = PathGenerator.generateDirectoryPath(url, now).replace('/pages', '/screenshots');
+      
+      // 生成文件名
+      const fileName = PathGenerator.generateFileName(
+        STORAGE_CONFIG.naming.screenshotFile,
+        {
+          depth: 0, // 截图不区分深度
+          sequence,
+          urlHash,
+          timestamp
+        }
+      );
+      
+      const fullPath = `${directoryPath}/${fileName}`;
 
       await this.minioClient.putObject(
-        this.bucketName,
-        fileName,
+        this.buckets.screenshots,
+        fullPath,
         screenshotBuffer,
         screenshotBuffer.length,
         {
           'Content-Type': 'image/png',
           'X-Amz-Meta-Url': url,
+          'X-Amz-Meta-Domain': PathGenerator.generateDomainPath(url),
+          'X-Amz-Meta-Sequence': sequence.toString(),
+          'X-Amz-Meta-Session': SessionManager.getCurrentSession()?.id || 'unknown'
         }
       );
 
-      this.logger.log(`截图已保存到 MinIO: ${fileName}`);
-      return fileName;
+      // 记录文件到会话
+      SessionManager.addFile(fullPath);
+
+      this.logger.log(`截图已保存到 MinIO: ${fullPath}`);
+      return fullPath;
     } catch (error) {
       this.logger.error(`保存截图到 MinIO 失败: ${error.message}`, error.stack);
       return null;
@@ -144,10 +206,11 @@ export class MinioService implements OnModuleInit {
   /**
    * 获取存储桶中的文件列表
    */
-  async listFiles(prefix: string = ''): Promise<string[]> {
+  async listFiles(bucketType: 'pages' | 'screenshots' | 'metadata' | 'logs' = 'pages', prefix: string = ''): Promise<string[]> {
     try {
       const files: string[] = [];
-      const stream = this.minioClient.listObjects(this.bucketName, prefix, true);
+      const bucketName = this.buckets[bucketType];
+      const stream = this.minioClient.listObjects(bucketName, prefix, true);
       
       return new Promise((resolve, reject) => {
         stream.on('data', (obj) => {
@@ -171,14 +234,54 @@ export class MinioService implements OnModuleInit {
   }
 
   /**
-   * 生成 URL 的哈希值作为文件名的一部分
+   * 开始新的爬取会话
    */
-  private generateUrlHash(url: string): string {
-    // 简单的哈希函数，将 URL 转换为安全的文件名
-    return Buffer.from(url)
-      .toString('base64')
-      .replace(/[+/=]/g, '')
-      .substring(0, 16);
+  startCrawlSession(baseUrl: string, config: any): string {
+    return SessionManager.startSession(baseUrl, config);
+  }
+
+  /**
+   * 结束爬取会话并保存会话元数据
+   */
+  async endCrawlSession(): Promise<void> {
+    const session = SessionManager.endSession();
+    if (!session) {
+      return;
+    }
+
+    try {
+      const now = new Date();
+      const sessionMetadata = {
+        sessionId: session.id,
+        startTime: session.startTime,
+        endTime: now,
+        duration: now.getTime() - session.startTime.getTime(),
+        baseUrl: session.baseUrl,
+        config: session.config,
+        totalFiles: session.files.length,
+        files: session.files
+      };
+
+      const metadataPath = `sessions/${PathGenerator.generateDatePath(now)}/${session.id}.json`;
+      const dataBuffer = Buffer.from(JSON.stringify(sessionMetadata, null, 2), 'utf8');
+
+      await this.minioClient.putObject(
+        this.buckets.metadata,
+        metadataPath,
+        dataBuffer,
+        dataBuffer.length,
+        {
+          'Content-Type': 'application/json',
+          'X-Amz-Meta-Session-Id': session.id,
+          'X-Amz-Meta-Base-Url': session.baseUrl,
+          'X-Amz-Meta-Total-Files': session.files.length.toString()
+        }
+      );
+
+      this.logger.log(`会话元数据已保存: ${metadataPath}`);
+    } catch (error) {
+      this.logger.error(`保存会话元数据失败: ${error.message}`, error.stack);
+    }
   }
 
   /**
