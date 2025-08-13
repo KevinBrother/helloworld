@@ -78,8 +78,30 @@ export class PlaywrightService {
       // 等待页面加载完成
       await page.waitForLoadState('domcontentloaded');
       
-      // 处理可能的动态内容 - 等待额外时间
-      await new Promise(resolve => setTimeout(resolve, 2000));
+      // 等待导航菜单加载（针对SPA应用）
+      try {
+        await page.waitForSelector('nav, .md-nav, [role="navigation"], .navigation', { timeout: 5000 });
+        this.logger.debug(`导航元素已加载: ${url}`);
+      } catch (error) {
+        this.logger.debug(`未找到导航元素，继续处理: ${url}`);
+      }
+      
+      // 处理可能的动态内容 - 等待额外时间让JavaScript完全执行
+      await new Promise(resolve => setTimeout(resolve, 3000));
+      
+      // 尝试滚动页面以触发懒加载内容
+      try {
+        await page.evaluate(() => {
+          window.scrollTo(0, document.body.scrollHeight / 2);
+        });
+        await new Promise(resolve => setTimeout(resolve, 1000));
+        await page.evaluate(() => {
+          window.scrollTo(0, 0);
+        });
+        await new Promise(resolve => setTimeout(resolve, 1000));
+      } catch (error) {
+        this.logger.debug(`滚动页面失败: ${error.message}`);
+      }
       
       // 获取页面内容
       const html = await page.content();

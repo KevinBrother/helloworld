@@ -72,6 +72,22 @@ export class MinioService implements OnModuleInit {
   }
 
   /**
+   * 清理元数据值，移除 HTTP 头部不允许的字符
+   */
+  private sanitizeMetadataValue(value: string): string {
+    if (!value) return '';
+    // 使用 Base64 编码来处理包含特殊字符的值
+    // 这样可以安全地存储任何字符，包括中文和特殊符号
+    try {
+      const encoded = Buffer.from(value, 'utf8').toString('base64');
+      return encoded.substring(0, 200); // 限制长度
+    } catch (error) {
+      // 如果编码失败，返回安全的默认值
+      return 'encoded-value';
+    }
+  }
+
+  /**
    * 保存页面数据到 MinIO
    */
   async savePageData(pageData: PageData): Promise<boolean> {
@@ -126,10 +142,10 @@ export class MinioService implements OnModuleInit {
         dataBuffer.length,
         {
           'Content-Type': 'application/json',
-          'X-Amz-Meta-Url': pageData.url,
-          'X-Amz-Meta-Title': pageData.title,
+          'X-Amz-Meta-Url': this.sanitizeMetadataValue(pageData.url),
+          'X-Amz-Meta-Title': this.sanitizeMetadataValue(pageData.title),
           'X-Amz-Meta-Depth': pageData.metadata.depth.toString(),
-          'X-Amz-Meta-Domain': PathGenerator.generateDomainPath(pageData.url),
+          'X-Amz-Meta-Domain': this.sanitizeMetadataValue(PathGenerator.generateDomainPath(pageData.url)),
           'X-Amz-Meta-Sequence': sequence.toString(),
           'X-Amz-Meta-Session': SessionManager.getCurrentSession()?.id || 'unknown'
         }
@@ -185,8 +201,8 @@ export class MinioService implements OnModuleInit {
         screenshotBuffer.length,
         {
           'Content-Type': 'image/png',
-          'X-Amz-Meta-Url': url,
-          'X-Amz-Meta-Domain': PathGenerator.generateDomainPath(url),
+          'X-Amz-Meta-Url': this.sanitizeMetadataValue(url),
+          'X-Amz-Meta-Domain': this.sanitizeMetadataValue(PathGenerator.generateDomainPath(url)),
           'X-Amz-Meta-Sequence': sequence.toString(),
           'X-Amz-Meta-Session': SessionManager.getCurrentSession()?.id || 'unknown'
         }
@@ -273,7 +289,7 @@ export class MinioService implements OnModuleInit {
         {
           'Content-Type': 'application/json',
           'X-Amz-Meta-Session-Id': session.id,
-          'X-Amz-Meta-Base-Url': session.baseUrl,
+          'X-Amz-Meta-Base-Url': this.sanitizeMetadataValue(session.baseUrl),
           'X-Amz-Meta-Total-Files': session.files.length.toString()
         }
       );
