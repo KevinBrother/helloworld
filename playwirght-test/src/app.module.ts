@@ -1,6 +1,6 @@
 import { Module } from '@nestjs/common';
 import { ConfigModule } from '@nestjs/config';
-import { CrawlersModule } from './crawlers/crawlers.module';
+import { CrawlerModule } from './modules/crawler.module';
 import { AppController } from './app.controller';
 
 @Module({
@@ -8,7 +8,7 @@ import { AppController } from './app.controller';
     ConfigModule.forRoot({
       isGlobal: true,
     }),
-    CrawlersModule,
+    CrawlerModule,
   ],
   controllers: [AppController],
 })

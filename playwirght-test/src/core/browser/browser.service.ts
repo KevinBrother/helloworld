@@ -2,8 +2,8 @@ import { Injectable, Logger } from '@nestjs/common';
 import { chromium, Browser, Page, BrowserContext } from 'playwright';
 
 @Injectable()
-export class PlaywrightService {
-  private readonly logger = new Logger(PlaywrightService.name);
+export class BrowserService {
+  private readonly logger = new Logger(BrowserService.name);
   private browser: Browser | null = null;
   private context: BrowserContext | null = null;
 

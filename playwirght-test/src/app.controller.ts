@@ -1,20 +1,26 @@
-import { Controller, Get, Res } from '@nestjs/common';
-import { Response } from 'express';
-import { join } from 'path';
+import { Controller, Get } from '@nestjs/common';
 
 @Controller()
 export class AppController {
   @Get()
-  getTestPage(@Res() res: Response) {
-    return res.sendFile(join(__dirname, '..', 'api-test.html'));
+  getHello(): string {
+    return 'Web Crawler API is running!';
   }
-  
+
   @Get('health')
-  getHealth() {
+  getHealth(): { status: string; timestamp: string } {
     return {
       status: 'ok',
       timestamp: new Date().toISOString(),
-      service: '网页爬虫API服务'
+    };
+  }
+
+  @Get('info')
+  getInfo(): { name: string; version: string; description: string } {
+    return {
+      name: 'Web Crawler API',
+      version: '2.0.0',
+      description: 'A powerful web crawler service with improved architecture',
     };
   }
 }
