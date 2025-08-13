@@ -23,7 +23,7 @@ export class WebsiteCrawlerService {
    * @param baseUrl 基础URL
    * @param options 爬取选项
    */
-  async startCrawling(baseUrl: string, options: CrawlOptions = {}): Promise<void> {
+  async startCrawling(baseUrl: string, options: CrawlOptions = {}): Promise<number> {
     this.logger.log(`开始爬取: ${baseUrl}`);
     
     // 初始化配置
@@ -95,6 +95,7 @@ export class WebsiteCrawlerService {
       }
       
       this.logger.log(`爬取完成，共处理 ${processedPages} 个页面`);
+      return processedPages;
     } finally {
       // 关闭浏览器
       await this.playwrightService.close();

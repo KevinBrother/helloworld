@@ -1,6 +1,7 @@
 import { Module } from '@nestjs/common';
 import { ConfigModule } from '@nestjs/config';
 import { CrawlersModule } from './crawlers/crawlers.module';
+import { AppController } from './app.controller';
 
 @Module({
   imports: [
@@ -9,5 +10,6 @@ import { CrawlersModule } from './crawlers/crawlers.module';
     }),
     CrawlersModule,
   ],
+  controllers: [AppController],
 })
 export class AppModule {}

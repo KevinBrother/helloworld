@@ -1,26 +1,31 @@
 import { NestFactory } from '@nestjs/core';
 import { AppModule } from './app.module';
-import { WebsiteCrawlerService } from './crawlers/website-crawler.service';
+import { NestExpressApplication } from '@nestjs/platform-express';
+import { join } from 'path';
 
 async function bootstrap() {
-  const app = await NestFactory.create(AppModule);
+  const app = await NestFactory.create<NestExpressApplication>(AppModule);
+  
+  // 配置静态文件服务
+  app.useStaticAssets(join(__dirname, '..'), {
+    index: false,
+    prefix: '/static'
+  });
   
   // 等待应用程序完全初始化（包括所有 onModuleInit 钩子）
   await app.init();
   
-  // 获取爬虫服务实例
-  const crawlerService = app.get<WebsiteCrawlerService>(WebsiteCrawlerService);
+  // 启动HTTP服务器
+  const port = process.env.PORT || 3000;
+  await app.listen(port);
   
-  // 示例：爬取指定网站并保存到知识库
-  const targetUrl = 'https://www.example.com/'; // 替换为目标URL
-  await crawlerService.startCrawling(targetUrl, {
-    maxDepth: 3,           // 最大爬取深度
-    maxPages: 50,          // 最大爬取页面数量
-    delay: 1500,           // 每个请求之间的延迟(毫秒)
-    takeScreenshots: true  // 启用截图功能
-  });
-  
-  await app.close();
+  console.log(`🚀 爬虫服务已启动，监听端口: ${port}`);
+  console.log(`📡 API接口: http://localhost:${port}/crawler/crawl`);
+  console.log(`📊 MinIO WebUI: http://localhost:9001`);
+  console.log(`\n使用示例:`);
+  console.log(`curl -X POST http://localhost:${port}/crawler/crawl \\`);
+  console.log(`  -H "Content-Type: application/json" \\`);
+  console.log(`  -d '{"url": "https://www.example.com", "maxPages": 10, "takeScreenshots": true}'`);
 }
 
 bootstrap();
