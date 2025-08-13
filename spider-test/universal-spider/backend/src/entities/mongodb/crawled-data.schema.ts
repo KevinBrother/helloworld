@@ -18,7 +18,7 @@ export class CrawledData {
   @Prop({ required: true, index: true })
   url: string;
 
-  @Prop({ required: false, default: '' })  title: string;
+  @Prop({ required: false, default: '' }) title: string;
 
   @Prop({ type: String })
   content: string;
