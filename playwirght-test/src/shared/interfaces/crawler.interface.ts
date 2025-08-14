@@ -29,7 +29,7 @@ export interface MediaCrawlOptions {
 export interface CrawlRequest {
   startUrl: string;
   maxDepth?: number;
-  maxPages?: number;
+  maxPages?: number; // 可选：用户指定页面数限制，不设置则为完全爬取模式
   takeScreenshots?: boolean;
   userAgent?: string;
   allowedDomains?: string[];
@@ -51,6 +51,7 @@ export interface CrawlSession {
   startUrl: string;
   maxDepth: number;
   maxPages: number;
+  isCompleteCrawl: boolean; // 是否为完全爬取模式
   takeScreenshots: boolean;
   userAgent?: string;
   allowedDomains: string[];
@@ -58,7 +59,7 @@ export interface CrawlSession {
   mediaOptions?: MediaCrawlOptions;
   startTime: Date;
   endTime?: Date;
-  status: 'running' | 'completed' | 'failed';
+  status: 'running' | 'completed' | 'failed' | 'stopped';
   pagesProcessed: number;
   totalPages: number;
   errors: string[];

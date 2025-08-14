@@ -23,11 +23,17 @@ export interface CrawlerConfig {
   };
   crawler: {
     maxDepth: number;
-    maxPages: number;
+    maxPagesLimit: number; // 系统允许的最大页面数限制
     maxConcurrency: number;
     requestDelay: number;
     retryAttempts: number;
     retryDelay: number;
+    // 安全限制
+    safetyLimits: {
+      maxDuration: number; // 最大运行时间（小时）
+      maxStorageSize: number; // 最大存储空间（GB）
+      memoryThreshold: number; // 内存使用阈值（%）
+    };
   };
   content: {
     maxContentLength: number;
@@ -78,12 +84,17 @@ export const defaultCrawlerConfig: CrawlerConfig = {
     },
   },
   crawler: {
-    maxDepth: parseInt(process.env.CRAWLER_MAX_DEPTH || '3'),
-    maxPages: parseInt(process.env.CRAWLER_MAX_PAGES || '10'),
+    maxDepth: parseInt(process.env.CRAWLER_MAX_DEPTH || '6'),
+    maxPagesLimit: parseInt(process.env.CRAWLER_MAX_PAGES_LIMIT || '5000'),
     maxConcurrency: parseInt(process.env.CRAWLER_MAX_CONCURRENCY || '1'),
     requestDelay: parseInt(process.env.CRAWLER_REQUEST_DELAY || '1000'),
     retryAttempts: parseInt(process.env.CRAWLER_RETRY_ATTEMPTS || '3'),
     retryDelay: parseInt(process.env.CRAWLER_RETRY_DELAY || '2000'),
+    safetyLimits: {
+      maxDuration: parseInt(process.env.CRAWLER_MAX_DURATION || '24'),
+      maxStorageSize: parseInt(process.env.CRAWLER_MAX_STORAGE_SIZE || '5'),
+      memoryThreshold: parseInt(process.env.CRAWLER_MEMORY_THRESHOLD || '80'),
+    },
   },
   content: {
     maxContentLength: parseInt(process.env.CONTENT_MAX_LENGTH || '1000000'),

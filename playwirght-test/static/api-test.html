@@ -107,13 +107,22 @@
             </div>
             
             <div class="form-group">
+                <label for="crawlMode">爬取模式:</label>
+                <select id="crawlMode" name="crawlMode" onchange="toggleMaxPages()">
+                    <option value="complete">完全爬取（推荐）</option>
+                    <option value="limited">限制页面数</option>
+                </select>
+            </div>
+            
+            <div class="form-group" id="maxPagesGroup" style="display: none;">
                 <label for="maxPages">最大页面数:</label>
-                <input type="number" id="maxPages" name="maxPages" value="5" min="1" max="100">
+                <input type="number" id="maxPages" name="maxPages" value="50" min="1" max="5000">
+                <small style="color: #666; font-size: 12px;">系统最大限制: 5000 页</small>
             </div>
             
             <div class="form-group">
                 <label for="maxDepth">最大深度:</label>
-                <input type="number" id="maxDepth" name="maxDepth" value="3" min="1" max="10">
+                <input type="number" id="maxDepth" name="maxDepth" value="6" min="1" max="10">
             </div>
             
             <div class="form-group">
@@ -141,6 +150,18 @@
     </div>
 
     <script>
+        // 切换爬取模式
+        function toggleMaxPages() {
+            const crawlMode = document.getElementById('crawlMode').value;
+            const maxPagesGroup = document.getElementById('maxPagesGroup');
+            
+            if (crawlMode === 'limited') {
+                maxPagesGroup.style.display = 'block';
+            } else {
+                maxPagesGroup.style.display = 'none';
+            }
+        }
+        
         document.getElementById('crawlForm').addEventListener('submit', async function(e) {
             e.preventDefault();
             
@@ -148,13 +169,18 @@
             const resultDiv = document.getElementById('result');
             
             // 获取表单数据
+            const crawlMode = document.getElementById('crawlMode').value;
             const formData = {
-                url: document.getElementById('url').value,
-                maxPages: parseInt(document.getElementById('maxPages').value),
+                startUrl: document.getElementById('url').value,
                 maxDepth: parseInt(document.getElementById('maxDepth').value),
-                delay: parseInt(document.getElementById('delay').value),
                 takeScreenshots: document.getElementById('takeScreenshots').value === 'true'
             };
+            
+            // 只有在限制模式下才添加 maxPages
+            if (crawlMode === 'limited') {
+                formData.maxPages = parseInt(document.getElementById('maxPages').value);
+            }
+            // 完全爬取模式不设置 maxPages，让后端使用默认的完全爬取逻辑
             
             // 显示加载状态
             submitBtn.disabled = true;
@@ -175,7 +201,8 @@
                 
                 if (result.success) {
                     resultDiv.className = 'result success';
-                    resultDiv.textContent = `✅ ${result.message}\n处理页面数: ${result.pagesProcessed}\n\n可以在MinIO WebUI中查看保存的数据和截图。`;
+                    const modeText = crawlMode === 'complete' ? '完全爬取模式' : '限制页面数模式';
+                    resultDiv.textContent = `✅ ${result.message}\n爬取模式: ${modeText}\n处理页面数: ${result.pagesProcessed}\n\n可以在MinIO WebUI中查看保存的数据和截图。`;
                 } else {
                     resultDiv.className = 'result error';
                     resultDiv.textContent = `❌ ${result.message}`;
@@ -191,14 +218,23 @@
         
         function showCurlExample() {
             const url = document.getElementById('url').value;
-            const maxPages = document.getElementById('maxPages').value;
+            const crawlMode = document.getElementById('crawlMode').value;
             const takeScreenshots = document.getElementById('takeScreenshots').value;
+            
+            let requestBody = `{"startUrl": "${url}", "takeScreenshots": ${takeScreenshots}`;
+            
+            if (crawlMode === 'limited') {
+                const maxPages = document.getElementById('maxPages').value;
+                requestBody += `, "maxPages": ${maxPages}`;
+            }
+            
+            requestBody += '}';
             
             const curlCommand = `curl -X POST http://localhost:3000/crawler/crawl \\
   -H "Content-Type: application/json" \\
-  -d '{"url": "${url}", "maxPages": ${maxPages}, "takeScreenshots": ${takeScreenshots}}'`;
+  -d '${requestBody}'`;
             
-            alert('cURL命令示例:\n\n' + curlCommand);
+            alert(curlCommand);
         }
     </script>
 </body>

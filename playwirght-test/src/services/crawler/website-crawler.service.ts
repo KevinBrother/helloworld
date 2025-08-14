@@ -13,6 +13,7 @@ import {
   PageData,
 } from '../../shared/interfaces/crawler.interface';
 import { PathGenerator } from '../../shared/utils/path-generator.util';
+import { defaultCrawlerConfig } from '../../config/app.config';
 
 @Injectable()
 export class WebsiteCrawlerService {
@@ -80,17 +81,69 @@ export class WebsiteCrawlerService {
   }
 
   /**
+   * 终止爬取会话
+   */
+  async stopCrawling(sessionId: string): Promise<{ success: boolean; message: string }> {
+    const session = this.activeSessions.get(sessionId);
+    
+    if (!session) {
+      return {
+        success: false,
+        message: `会话 ${sessionId} 不存在或已结束`
+      };
+    }
+
+    if (session.status !== 'running') {
+      return {
+        success: false,
+        message: `会话 ${sessionId} 当前状态为 ${session.status}，无法终止`
+      };
+    }
+
+    try {
+      // 更新会话状态为已停止
+      session.status = 'stopped';
+      session.endTime = new Date();
+      
+      this.logger.log(`手动终止爬取会话: ${sessionId}`);
+      
+      // 保存会话元数据
+      await this.saveSessionMetadata(session);
+      
+      return {
+        success: true,
+        message: `会话 ${sessionId} 已成功终止`
+      };
+    } catch (error) {
+      this.logger.error(`终止会话 ${sessionId} 时发生错误: ${error.message}`);
+      return {
+        success: false,
+        message: `终止会话时发生错误: ${error.message}`
+      };
+    }
+  }
+
+  /**
    * 创建爬取会话
    */
   private createSession(sessionId: string, request: CrawlRequest): CrawlSession {
     const startUrlObj = new URL(request.startUrl);
     const allowedDomains = request.allowedDomains || [startUrlObj.hostname];
     
+    // 判断是否为完全爬取模式
+    const isCompleteCrawl = !request.maxPages;
+    
+    // 计算有效的最大页面数
+    const effectiveMaxPages = request.maxPages 
+      ? Math.min(request.maxPages, defaultCrawlerConfig.crawler.maxPagesLimit)
+      : defaultCrawlerConfig.crawler.maxPagesLimit;
+    
     return {
       sessionId,
       startUrl: request.startUrl,
-      maxDepth: request.maxDepth || 3,
-      maxPages: request.maxPages || 10,
+      maxDepth: request.maxDepth || defaultCrawlerConfig.crawler.maxDepth,
+      maxPages: effectiveMaxPages,
+      isCompleteCrawl,
       takeScreenshots: request.takeScreenshots || false,
       userAgent: request.userAgent,
       allowedDomains,
@@ -126,7 +179,13 @@ export class WebsiteCrawlerService {
       );
       
       // 开始爬取循环
-      while (session.pagesProcessed < session.maxPages) {
+      while (this.shouldContinueCrawling(session)) {
+        // 检查会话是否被手动终止
+        if (session.status === 'stopped') {
+          this.logger.log(`会话 ${session.sessionId} 已被手动终止`);
+          break;
+        }
+        
         const nextLink = this.linkManager.getNextLink();
         
         if (!nextLink) {
@@ -134,13 +193,22 @@ export class WebsiteCrawlerService {
           break;
         }
         
+        // 安全检查
+        if (!this.checkSafetyLimits(session)) {
+          this.logger.warn(`达到安全限制，停止爬取`);
+          break;
+        }
+        
         try {
           await this.processPage(nextLink.url, nextLink.depth, session);
           session.pagesProcessed++;
           
+          const progressInfo = session.isCompleteCrawl 
+            ? `已处理 ${session.pagesProcessed} 个页面（完全爬取模式）`
+            : `已处理 ${session.pagesProcessed}/${session.maxPages} 个页面`;
+          
           this.logger.log(
-            `已处理 ${session.pagesProcessed}/${session.maxPages} 个页面，` +
-            `队列剩余: ${this.linkManager.getQueueSize()}`
+            `${progressInfo}，队列剩余: ${this.linkManager.getQueueSize()}`
           );
         } catch (error) {
           this.logger.error(`处理页面失败 ${nextLink.url}: ${error.message}`);
@@ -320,6 +388,43 @@ export class WebsiteCrawlerService {
         await page.close();
       }
     }
+  }
+
+  /**
+   * 判断是否应该继续爬取
+   */
+  private shouldContinueCrawling(session: CrawlSession): boolean {
+    // 完全爬取模式：只要没有达到系统限制就继续
+    if (session.isCompleteCrawl) {
+      return session.pagesProcessed < session.maxPages;
+    }
+    
+    // 限制模式：按用户指定的页面数
+    return session.pagesProcessed < session.maxPages;
+  }
+
+  /**
+   * 检查安全限制
+   */
+  private checkSafetyLimits(session: CrawlSession): boolean {
+    const now = new Date();
+    const runningHours = (now.getTime() - session.startTime.getTime()) / (1000 * 60 * 60);
+    
+    // 检查运行时间限制
+    if (runningHours > defaultCrawlerConfig.crawler.safetyLimits.maxDuration) {
+      this.logger.warn(`运行时间超过限制: ${runningHours.toFixed(2)}h > ${defaultCrawlerConfig.crawler.safetyLimits.maxDuration}h`);
+      return false;
+    }
+    
+    // 检查内存使用（简单检查）
+    const memoryUsage = process.memoryUsage();
+    const memoryUsageMB = memoryUsage.heapUsed / 1024 / 1024;
+    if (memoryUsageMB > 1000) { // 超过1GB内存使用
+      this.logger.warn(`内存使用过高: ${memoryUsageMB.toFixed(2)}MB`);
+      return false;
+    }
+    
+    return true;
   }
 
   /**

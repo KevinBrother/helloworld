@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>MinIO 文件查询测试</title>
+    <title>爬取结果查询与管理</title>
     <style>
         body {
             font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
@@ -161,6 +161,16 @@
             margin-top: 5px;
             font-style: italic;
         }
+        .storage-path {
+            color: #6c757d;
+            font-size: 0.85em;
+            margin-top: 5px;
+            font-family: monospace;
+            background-color: #f8f9fa;
+            padding: 2px 6px;
+            border-radius: 3px;
+            word-break: break-all;
+        }
         .file-info {
             flex: 1;
         }
@@ -284,7 +294,7 @@
 </head>
 <body>
     <div class="container">
-        <h1>🗂️ MinIO 文件查询测试</h1>
+        <h1>🗂️ 爬取结果查询与管理</h1>
         
         <!-- 文件查询部分 -->
         <div class="section">
@@ -320,6 +330,36 @@
                 <input type="text" id="fileName" placeholder="例如: domain/example.com/2025/08/13/pages/session-id/file.json">
             </div>
             <button onclick="getDownloadUrl()">🔗 生成下载链接</button>
+        </div>
+        
+        <!-- 会话管理部分 -->
+        <div class="section">
+            <h2>📋 会话管理</h2>
+            <button onclick="getActiveSessions()">📊 获取活跃会话</button>
+            <button onclick="getMediaStats()" class="secondary">📈 获取媒体统计</button>
+            
+            <div class="form-group" style="margin-top: 20px;">
+                <label for="sessionIdDetail">会话ID:</label>
+                <input type="text" id="sessionIdDetail" placeholder="输入会话ID查看详情">
+                <div style="margin-top: 10px;">
+                    <button onclick="getSessionStatus()">📄 查看会话状态</button>
+                    <button onclick="getSessionMedia()" class="secondary">🎬 查看会话媒体</button>
+                </div>
+            </div>
+        </div>
+        
+        <!-- 媒体搜索部分 -->
+        <div class="section">
+            <h2>🔍 媒体搜索</h2>
+            <div class="form-group">
+                <label for="searchQuery">搜索关键词:</label>
+                <input type="text" id="searchQuery" placeholder="输入文件名或URL关键词">
+            </div>
+            <div class="form-group">
+                <label for="searchSessionId">限定会话ID (可选):</label>
+                <input type="text" id="searchSessionId" placeholder="留空搜索所有会话">
+            </div>
+            <button onclick="searchMedia()">🔍 搜索媒体文件</button>
         </div>
         
         <!-- 结果显示区域 -->
@@ -449,7 +489,7 @@
                                         <div class="file-item">
                                             <div class="file-info">
                                                 <div class="file-name">${fileIcon} ${getDisplayName(file.name)}</div>
-                                                ${urlInfo ? `<div class="url-info">🔗 ${urlInfo}</div>` : ''}
+                                                <div class="storage-path">📁 存储路径: ${getStoragePath(file.name)}</div>
                                                 <div class="file-meta">
                                                     大小: ${sizeKB} KB | 
                                                     修改时间: ${lastModified} | 
@@ -538,23 +578,37 @@
             return names[type] || type;
         }
         
-        // 获取显示名称
+        // 获取显示名称（原始URL）
         function getDisplayName(fileName) {
             const pathParts = fileName.split('/');
             if (pathParts.length >= 6 && pathParts[0] === 'domain') {
+                const domain = pathParts[1];
                 const type = pathParts[5];
                 const actualFileName = pathParts[pathParts.length - 1];
                 
                 if (type === 'pages') {
-                    // 显示URL路径
+                    // 返回完整的原始URL
                     const urlPath = pathParts.slice(6, -1).join('/');
-                    return `${urlPath}/${actualFileName}`;
+                    if (urlPath === '_root') {
+                        return `https://${domain}/`;
+                    } else {
+                        return `https://${domain}/${urlPath}`;
+                    }
+                } else if (type === 'media') {
+                    // 对于媒体文件，尝试从文件名中提取原始URL
+                    // 媒体文件名格式通常包含hash，我们需要显示来源URL
+                    return `https://${domain}/ (媒体文件: ${actualFileName})`;
                 } else if (type === 'sessions') {
-                    return actualFileName;
-                } else if (type === 'index') {
-                    return actualFileName;
+                    return `会话数据: ${actualFileName}`;
+                } else {
+                    return `${domain} - ${actualFileName}`;
                 }
             }
+            return fileName;
+        }
+        
+        // 获取存储路径描述
+        function getStoragePath(fileName) {
             return fileName;
         }
         
@@ -821,6 +875,99 @@
             const div = document.createElement('div');
             div.textContent = text;
             return div.innerHTML;
+        }
+        
+        // 会话管理相关函数
+        async function getActiveSessions() {
+            try {
+                const response = await fetch(`${API_BASE}/sessions`);
+                const data = await response.json();
+                displayResults('活跃会话列表', data);
+            } catch (error) {
+                displayResults('获取失败', { error: error.message });
+            }
+        }
+        
+        async function getSessionStatus() {
+            const sessionId = document.getElementById('sessionIdDetail').value;
+            if (!sessionId) {
+                alert('请输入会话ID');
+                return;
+            }
+            
+            try {
+                const response = await fetch(`${API_BASE}/session/${sessionId}`);
+                const data = await response.json();
+                displayResults(`会话状态 - ${sessionId}`, data);
+            } catch (error) {
+                displayResults('获取失败', { error: error.message });
+            }
+        }
+        
+        async function getSessionMedia() {
+            const sessionId = document.getElementById('sessionIdDetail').value;
+            if (!sessionId) {
+                alert('请输入会话ID');
+                return;
+            }
+            
+            try {
+                const response = await fetch(`${API_BASE}/session/${sessionId}/media`);
+                const data = await response.json();
+                displayResults(`会话媒体文件 - ${sessionId}`, data);
+            } catch (error) {
+                displayResults('获取失败', { error: error.message });
+            }
+        }
+        
+        async function getMediaStats() {
+            try {
+                const response = await fetch(`${API_BASE}/media/stats`);
+                const data = await response.json();
+                displayResults('媒体文件统计', data);
+            } catch (error) {
+                displayResults('获取失败', { error: error.message });
+            }
+        }
+        
+        async function searchMedia() {
+            const query = document.getElementById('searchQuery').value;
+            const sessionId = document.getElementById('searchSessionId').value;
+            
+            if (!query) {
+                alert('请输入搜索关键词');
+                return;
+            }
+            
+            try {
+                let url = `${API_BASE}/media/search?query=${encodeURIComponent(query)}`;
+                if (sessionId) {
+                    url += `&sessionId=${encodeURIComponent(sessionId)}`;
+                }
+                
+                const response = await fetch(url);
+                const data = await response.json();
+                displayResults('搜索结果', data);
+            } catch (error) {
+                displayResults('搜索失败', { error: error.message });
+            }
+        }
+        
+        // 通用结果显示函数
+        function displayResults(title, data) {
+            const resultsDiv = document.getElementById('results');
+            
+            let html = `
+                <div class="stats">
+                    <h3>📊 ${title}</h3>
+                    <p>查询时间: <strong>${new Date().toLocaleString()}</strong></p>
+                </div>
+                <div class="response success">
+                    <pre>${JSON.stringify(data, null, 2)}</pre>
+                </div>
+            `;
+            
+            resultsDiv.innerHTML = html;
         }
         
         // 点击模态框外部关闭预览

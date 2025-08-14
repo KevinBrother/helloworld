@@ -79,6 +79,15 @@ export class CrawlerController {
   }
 
   /**
+   * 终止爬取会话
+   */
+  @Post('session/:sessionId/stop')
+  async stopCrawling(@Param('sessionId') sessionId: string): Promise<{ success: boolean; message: string }> {
+    this.logger.log(`请求终止爬取会话: ${sessionId}`);
+    return this.crawlerService.stopCrawling(sessionId);
+  }
+
+  /**
    * 健康检查
    */
   @Get('health')
