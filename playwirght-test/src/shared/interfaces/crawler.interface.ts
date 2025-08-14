@@ -12,6 +12,20 @@ export interface PageData {
   };
 }
 
+export interface MediaTypeConfig {
+  type: 'image' | 'video' | 'audio' | 'document' | 'archive';
+  mode: 'inherit' | 'override';
+  extensions?: string[];
+}
+
+export interface MediaCrawlOptions {
+  enabled: boolean;
+  mediaTypes: MediaTypeConfig[];
+  maxFileSize?: number; // MB
+  downloadTimeout?: number; // seconds
+  concurrent?: number;
+}
+
 export interface CrawlRequest {
   startUrl: string;
   maxDepth?: number;
@@ -20,6 +34,7 @@ export interface CrawlRequest {
   userAgent?: string;
   allowedDomains?: string[];
   excludePatterns?: string[];
+  mediaOptions?: MediaCrawlOptions;
 }
 
 export interface CrawlResponse {
@@ -40,6 +55,7 @@ export interface CrawlSession {
   userAgent?: string;
   allowedDomains: string[];
   excludePatterns: string[];
+  mediaOptions?: MediaCrawlOptions;
   startTime: Date;
   endTime?: Date;
   status: 'running' | 'completed' | 'failed';
@@ -54,4 +70,25 @@ export interface LinkInfo {
   parentUrl?: string;
   discovered: boolean;
   processed: boolean;
+}
+
+export interface MediaFileInfo {
+  url: string;
+  type: 'image' | 'video' | 'audio' | 'document' | 'archive';
+  extension: string;
+  fileName: string;
+  sourceUrl: string;
+  size?: number;
+  downloadedAt?: string;
+  storagePath?: string;
+  md5Hash?: string;
+  metadata?: {
+    [key: string]: any;
+  };
+}
+
+export interface MediaDownloadResult {
+  success: boolean;
+  mediaFile?: MediaFileInfo;
+  error?: string;
 }

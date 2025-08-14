@@ -7,9 +7,8 @@ async function bootstrap() {
   const app = await NestFactory.create<NestExpressApplication>(AppModule);
   
   // 配置静态文件服务
-  app.useStaticAssets(join(__dirname, '..'), {
-    index: false,
-    prefix: '/static'
+  app.useStaticAssets(join(__dirname, '..', 'static'), {
+    index: false
   });
   
   // 等待应用程序完全初始化（包括所有 onModuleInit 钩子）

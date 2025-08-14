@@ -3,6 +3,9 @@ import { BrowserService } from '../../core/browser/browser.service';
 import { StorageService } from '../../core/storage/storage.service';
 import { ContentExtractorService } from '../content/content-extractor.service';
 import { LinkManagerService } from './link-manager.service';
+import { MediaDetectorService } from '../media/media-detector.service';
+import { MediaDownloaderService } from '../media/media-downloader.service';
+import { MediaStorageService } from '../media/media-storage.service';
 import {
   CrawlRequest,
   CrawlResponse,
@@ -21,6 +24,9 @@ export class WebsiteCrawlerService {
     private readonly storageService: StorageService,
     private readonly contentExtractor: ContentExtractorService,
     private readonly linkManager: LinkManagerService,
+    private readonly mediaDetector: MediaDetectorService,
+    private readonly mediaDownloader: MediaDownloaderService,
+    private readonly mediaStorage: MediaStorageService,
   ) {}
 
   /**
@@ -89,6 +95,7 @@ export class WebsiteCrawlerService {
       userAgent: request.userAgent,
       allowedDomains,
       excludePatterns: request.excludePatterns || [],
+      mediaOptions: request.mediaOptions,
       startTime: new Date(),
       status: 'running',
       pagesProcessed: 0,
@@ -211,6 +218,11 @@ export class WebsiteCrawlerService {
         );
       }
       
+      // 处理媒体文件（如果启用）
+      if (session.mediaOptions?.enabled && session.mediaOptions.mediaTypes.length > 0) {
+        await this.processMediaFiles(url, session);
+      }
+      
       // 添加发现的链接到队列
       const addedLinksCount = this.linkManager.addLinks(
         extractedContent.links,
@@ -232,15 +244,102 @@ export class WebsiteCrawlerService {
   }
 
   /**
+   * 处理页面中的媒体文件
+   */
+  private async processMediaFiles(url: string, session: CrawlSession): Promise<void> {
+    if (!session.mediaOptions) {
+      return;
+    }
+    
+    let page = null;
+    
+    try {
+      // 创建新页面用于媒体检测
+      if (!this.browserService['context']) {
+        this.logger.warn('浏览器上下文不可用，跳过媒体文件处理');
+        return;
+      }
+      
+      page = await this.browserService['context'].newPage();
+      
+      // 导航到页面
+      await page.goto(url, {
+        waitUntil: 'networkidle',
+        timeout: 30000,
+      });
+      
+      // 等待页面加载
+      await page.waitForLoadState('domcontentloaded');
+      
+      // 检测媒体文件
+      const mediaFiles = await this.mediaDetector.detectMediaFiles(
+        page,
+        url,
+        session.mediaOptions.mediaTypes
+      );
+      
+      if (mediaFiles.length === 0) {
+        return;
+      }
+      
+      this.logger.log(`在页面 ${url} 中检测到 ${mediaFiles.length} 个媒体文件`);
+      
+      // 下载媒体文件
+      const downloadResults = await this.mediaDownloader.downloadMediaFiles(
+        mediaFiles,
+        session.sessionId,
+        session.mediaOptions
+      );
+      
+      // 保存成功下载的媒体文件信息
+      const successfulFiles = downloadResults
+        .filter(result => result.success && result.mediaFile)
+        .map(result => result.mediaFile!);
+      
+      if (successfulFiles.length > 0) {
+        this.mediaStorage.saveMediaFilesToSession(session.sessionId, successfulFiles);
+        this.logger.log(`成功下载并保存 ${successfulFiles.length} 个媒体文件`);
+      }
+      
+      // 记录失败的下载
+      const failedDownloads = downloadResults.filter(result => !result.success);
+      if (failedDownloads.length > 0) {
+        this.logger.warn(`${failedDownloads.length} 个媒体文件下载失败`);
+        failedDownloads.forEach(result => {
+          if (result.error) {
+            session.errors.push(`媒体文件下载失败: ${result.error}`);
+          }
+        });
+      }
+    } catch (error) {
+      this.logger.error(`处理媒体文件失败: ${error.message}`);
+      session.errors.push(`处理媒体文件失败: ${error.message}`);
+    } finally {
+      // 关闭页面
+      if (page) {
+        await page.close();
+      }
+    }
+  }
+
+  /**
    * 保存会话元数据
    */
   private async saveSessionMetadata(session: CrawlSession): Promise<void> {
     try {
       const linkStats = this.linkManager.getStats();
       
+      // 保存媒体文件元数据
+      if (session.mediaOptions?.enabled) {
+        await this.mediaStorage.saveMediaMetadata(session.sessionId);
+      }
+      
       const metadata = {
         session,
         linkStats,
+        mediaStats: session.mediaOptions?.enabled 
+          ? this.mediaStorage.getSessionMediaFiles(session.sessionId).length
+          : 0,
         summary: {
           totalPagesProcessed: session.pagesProcessed,
           totalLinksDiscovered: linkStats.discovered,

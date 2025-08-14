@@ -12,10 +12,12 @@ import {
 } from '@nestjs/common';
 import { WebsiteCrawlerService } from '../services/crawler/website-crawler.service';
 import { StorageService } from '../core/storage/storage.service';
+import { MediaStorageService } from '../services/media/media-storage.service';
 import {
   CrawlRequest,
   CrawlResponse,
   CrawlSession,
+  MediaFileInfo,
 } from '../shared/interfaces/crawler.interface';
 
 @Controller('api/crawler')
@@ -25,6 +27,7 @@ export class CrawlerController {
   constructor(
     private readonly crawlerService: WebsiteCrawlerService,
     private readonly storageService: StorageService,
+    private readonly mediaStorageService: MediaStorageService,
   ) {}
 
   /**
@@ -186,6 +189,108 @@ export class CrawlerController {
           throw new BadRequestException(`无效的域名: ${domain}`);
         }
       }
+    }
+  }
+
+  /**
+   * 获取会话的媒体文件
+   */
+  @Get('session/:sessionId/media')
+  async getSessionMediaFiles(
+    @Param('sessionId') sessionId: string,
+    @Query('type') type?: string,
+    @Query('extension') extension?: string,
+  ): Promise<{ files: MediaFileInfo[]; total: number }> {
+    try {
+      let files: MediaFileInfo[];
+      
+      if (type && ['image', 'video', 'audio', 'document', 'archive'].includes(type)) {
+          files = await this.mediaStorageService.getMediaFilesByType(sessionId, type as 'image' | 'video' | 'audio' | 'document' | 'archive');
+        } else if (extension) {
+          files = await this.mediaStorageService.getMediaFilesByExtension(sessionId, extension);
+        } else {
+          files = await this.mediaStorageService.getSessionMediaFiles(sessionId);
+        }
+      
+      return {
+        files,
+        total: files.length,
+      };
+    } catch (error) {
+      this.logger.error(`获取会话媒体文件失败: ${error.message}`);
+      throw new BadRequestException(`获取会话媒体文件失败: ${error.message}`);
+    }
+  }
+
+  /**
+   * 获取所有会话的媒体文件统计
+   */
+  @Get('media/stats')
+  async getAllMediaStats(): Promise<{
+     totalFiles: number;
+     totalSessions: number;
+     filesByType: Record<string, number>;
+     filesBySession: Record<string, number>;
+   }> {
+    try {
+      return await this.mediaStorageService.getAllMediaFilesStats();
+    } catch (error) {
+      this.logger.error(`获取媒体文件统计失败: ${error.message}`);
+      throw new BadRequestException(`获取媒体文件统计失败: ${error.message}`);
+    }
+  }
+
+  /**
+   * 搜索媒体文件
+   */
+  @Get('media/search')
+  async searchMediaFiles(
+    @Query('query') query: string,
+    @Query('sessionId') sessionId?: string,
+    @Query('type') type?: string,
+  ): Promise<{ files: MediaFileInfo[]; total: number }> {
+    if (!query) {
+      throw new BadRequestException('搜索关键词不能为空');
+    }
+    
+    try {
+      const files = this.mediaStorageService.searchMediaFiles(sessionId, {
+          fileName: query,
+          sourceUrl: query,
+          type: type
+        });
+      
+      return {
+        files,
+        total: files.length,
+      };
+    } catch (error) {
+      this.logger.error(`搜索媒体文件失败: ${error.message}`);
+      throw new BadRequestException(`搜索媒体文件失败: ${error.message}`);
+    }
+  }
+
+  /**
+   * 获取媒体文件下载链接
+   */
+  @Get('media/:sessionId/:fileName/download')
+  async getMediaFileDownloadUrl(
+    @Param('sessionId') sessionId: string,
+    @Param('fileName') fileName: string
+  ): Promise<{ downloadUrl: string }> {
+    try {
+      const downloadUrl = await this.mediaStorageService.getMediaFileDownloadUrl(sessionId, fileName);
+      
+      if (!downloadUrl) {
+        throw new BadRequestException('文件不存在或无法生成下载链接');
+      }
+      
+      return {
+        downloadUrl,
+      };
+    } catch (error) {
+      this.logger.error(`获取媒体文件下载链接失败: ${error.message}`);
+      throw new BadRequestException(`获取媒体文件下载链接失败: ${error.message}`);
     }
   }
 }

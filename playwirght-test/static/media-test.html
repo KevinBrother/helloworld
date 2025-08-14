@@ -1,0 +1,856 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>媒体爬取功能测试</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 20px;
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.1);
+            overflow: hidden;
+        }
+
+        .header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 30px;
+            text-align: center;
+        }
+
+        .header h1 {
+            font-size: 2.5rem;
+            margin-bottom: 10px;
+            font-weight: 700;
+        }
+
+        .header p {
+            font-size: 1.1rem;
+            opacity: 0.9;
+        }
+
+        .content {
+            padding: 30px;
+        }
+
+        .section {
+            margin-bottom: 40px;
+        }
+
+        .section h2 {
+            color: #333;
+            margin-bottom: 20px;
+            font-size: 1.8rem;
+            border-bottom: 3px solid #667eea;
+            padding-bottom: 10px;
+        }
+
+        .form-group {
+            margin-bottom: 20px;
+        }
+
+        .form-group label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: 600;
+            color: #555;
+        }
+
+        .form-group input,
+        .form-group select,
+        .form-group textarea {
+            width: 100%;
+            padding: 12px 16px;
+            border: 2px solid #e1e5e9;
+            border-radius: 10px;
+            font-size: 16px;
+            transition: all 0.3s ease;
+        }
+
+        .form-group input:focus,
+        .form-group select:focus,
+        .form-group textarea:focus {
+            outline: none;
+            border-color: #667eea;
+            box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+        }
+
+        .checkbox-group {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 15px;
+            margin-top: 10px;
+        }
+
+        .checkbox-item {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .checkbox-item input[type="checkbox"] {
+            width: auto;
+            margin: 0;
+        }
+
+        .btn {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            padding: 15px 30px;
+            border-radius: 10px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            margin-right: 10px;
+            margin-bottom: 10px;
+        }
+
+        .btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 20px rgba(102, 126, 234, 0.3);
+        }
+
+        .btn:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        .btn-secondary {
+            background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+        }
+
+        .btn-success {
+            background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
+        }
+
+        .results {
+            margin-top: 30px;
+        }
+
+        .result-item {
+            background: #f8f9fa;
+            border: 1px solid #e9ecef;
+            border-radius: 10px;
+            padding: 20px;
+            margin-bottom: 15px;
+        }
+
+        .result-item h3 {
+            color: #333;
+            margin-bottom: 10px;
+        }
+
+        .result-item pre {
+            background: #2d3748;
+            color: #e2e8f0;
+            padding: 15px;
+            border-radius: 8px;
+            overflow-x: auto;
+            font-size: 14px;
+            line-height: 1.5;
+        }
+
+        .loading {
+            display: none;
+            text-align: center;
+            padding: 20px;
+        }
+
+        .loading.show {
+            display: block;
+        }
+
+        .spinner {
+            border: 4px solid #f3f3f3;
+            border-top: 4px solid #667eea;
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            animation: spin 1s linear infinite;
+            margin: 0 auto 15px;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        .media-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+            gap: 15px;
+            margin-top: 20px;
+        }
+
+        .media-item {
+            background: white;
+            border: 1px solid #e9ecef;
+            border-radius: 10px;
+            padding: 15px;
+            text-align: center;
+            transition: all 0.3s ease;
+        }
+
+        .media-item:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 10px 20px rgba(0, 0, 0, 0.1);
+        }
+
+        .media-item img {
+            max-width: 100%;
+            height: 120px;
+            object-fit: cover;
+            border-radius: 8px;
+            margin-bottom: 10px;
+        }
+
+        .media-item .media-info {
+            font-size: 12px;
+            color: #666;
+            margin-bottom: 5px;
+        }
+
+        .media-item .media-name {
+            font-weight: 600;
+            color: #333;
+            margin-bottom: 10px;
+            word-break: break-all;
+        }
+
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 20px;
+            margin-top: 20px;
+        }
+
+        .stat-card {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 20px;
+            border-radius: 15px;
+            text-align: center;
+        }
+
+        .stat-card h3 {
+            font-size: 2rem;
+            margin-bottom: 5px;
+        }
+
+        .stat-card p {
+            opacity: 0.9;
+        }
+
+        .error {
+            background: #fee;
+            border: 1px solid #fcc;
+            color: #c33;
+            padding: 15px;
+            border-radius: 10px;
+            margin-top: 15px;
+        }
+
+        .success {
+            background: #efe;
+            border: 1px solid #cfc;
+            color: #3c3;
+            padding: 15px;
+            border-radius: 10px;
+            margin-top: 15px;
+        }
+
+        /* 媒体配置相关样式 */
+        .media-config {
+            border: 1px solid #ddd;
+            padding: 15px;
+            margin-top: 10px;
+            border-radius: 10px;
+            background-color: #f9f9f9;
+        }
+
+        .media-type-group {
+            margin-bottom: 20px;
+            padding: 15px;
+            border: 1px solid #e9ecef;
+            border-radius: 8px;
+            background: white;
+        }
+
+        .media-type-group > label {
+            font-weight: 600;
+            color: #333;
+            margin-bottom: 10px;
+            display: block;
+        }
+
+        .media-extensions {
+            margin-top: 10px;
+            padding-left: 20px;
+        }
+
+        .media-extensions label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: normal;
+        }
+
+        .extensions-config {
+            margin-top: 10px;
+        }
+
+        .extensions-input {
+            width: 100%;
+            margin-bottom: 5px;
+        }
+
+        .mode-hint {
+            color: #666;
+            font-size: 12px;
+            font-style: italic;
+        }
+
+        .download-config {
+            margin-top: 20px;
+            padding: 15px;
+            border: 1px solid #e9ecef;
+            border-radius: 8px;
+            background: white;
+        }
+
+        .download-config h4 {
+            margin-bottom: 15px;
+            color: #333;
+        }
+
+        .form-row {
+            display: flex;
+            gap: 15px;
+            margin-bottom: 15px;
+        }
+
+        .form-row .form-group {
+            flex: 1;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🎬 媒体爬取功能测试</h1>
+            <p>测试网站爬虫的媒体文件检测和下载功能</p>
+        </div>
+
+        <div class="content">
+            <!-- 启动爬取任务 -->
+            <div class="section">
+                <h2>🚀 启动媒体爬取任务</h2>
+                <div class="form-group">
+                    <label for="crawlUrl">目标网站URL:</label>
+                    <input type="url" id="crawlUrl" placeholder="https://example.com" value="https://unsplash.com">
+                </div>
+                
+                <div class="form-group">
+                    <label for="maxPages">最大页面数:</label>
+                    <input type="number" id="maxPages" value="3" min="1" max="10">
+                </div>
+
+                <div class="form-group">
+                    <label>
+                        <input type="checkbox" id="enableMediaCrawl" checked> 启用媒体文件爬取
+                    </label>
+                </div>
+
+                <div id="mediaTypesConfig" class="media-config">
+                    <!-- 图片配置 -->
+                    <div class="media-type-group">
+                        <label>
+                            <input type="checkbox" class="media-type-checkbox" data-type="image" checked> 图片文件
+                        </label>
+                        <div class="media-extensions" data-type="image">
+                            <label>
+                                <input type="radio" name="image-mode" value="inherit" checked> 继承预设格式 (JPG, PNG, GIF, WebP, SVG, BMP, ICO)
+                            </label>
+                            <label>
+                                <input type="radio" name="image-mode" value="override"> 覆盖为自定义格式
+                            </label>
+                            <div class="extensions-config">
+                                <input type="text" placeholder="继承模式：在预设基础上增加格式，如: tiff,raw" class="extensions-input" data-type="image">
+                                <small class="mode-hint">继承模式：在预设格式基础上增加新格式 | 覆盖模式：只使用指定格式</small>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- 视频配置 -->
+                    <div class="media-type-group">
+                        <label>
+                            <input type="checkbox" class="media-type-checkbox" data-type="video"> 视频文件
+                        </label>
+                        <div class="media-extensions" data-type="video" style="display: none;">
+                            <label>
+                                <input type="radio" name="video-mode" value="inherit" checked> 继承预设格式 (MP4, AVI, MOV, WMV, FLV, WebM, MKV)
+                            </label>
+                            <label>
+                                <input type="radio" name="video-mode" value="override"> 覆盖为自定义格式
+                            </label>
+                            <div class="extensions-config">
+                                <input type="text" placeholder="输入文件扩展名，用逗号分隔" class="extensions-input" data-type="video">
+                                <small class="mode-hint">继承模式：在预设格式基础上增加新格式 | 覆盖模式：只使用指定格式</small>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- 音频配置 -->
+                    <div class="media-type-group">
+                        <label>
+                            <input type="checkbox" class="media-type-checkbox" data-type="audio"> 音频文件
+                        </label>
+                        <div class="media-extensions" data-type="audio" style="display: none;">
+                            <label>
+                                <input type="radio" name="audio-mode" value="inherit" checked> 继承预设格式 (MP3, WAV, AAC, OGG, M4A)
+                            </label>
+                            <label>
+                                <input type="radio" name="audio-mode" value="override"> 覆盖为自定义格式
+                            </label>
+                            <div class="extensions-config">
+                                <input type="text" placeholder="继承模式：在预设基础上增加格式，如: flac,ape" class="extensions-input" data-type="audio">
+                                <small class="mode-hint">继承模式：在预设格式基础上增加新格式 | 覆盖模式：只使用指定格式</small>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- 文档配置 -->
+                    <div class="media-type-group">
+                        <label>
+                            <input type="checkbox" class="media-type-checkbox" data-type="document"> 文档文件
+                        </label>
+                        <div class="media-extensions" data-type="document" style="display: none;">
+                            <label>
+                                <input type="radio" name="document-mode" value="inherit" checked> 继承预设格式 (PDF, DOC, DOCX, XLS, XLSX, PPT, PPTX)
+                            </label>
+                            <label>
+                                <input type="radio" name="document-mode" value="override"> 覆盖为自定义格式
+                            </label>
+                            <div class="extensions-config">
+                                <input type="text" placeholder="继承模式：在预设基础上增加格式，如: txt,rtf" class="extensions-input" data-type="document">
+                                <small class="mode-hint">继承模式：在预设格式基础上增加新格式 | 覆盖模式：只使用指定格式</small>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- 压缩包配置 -->
+                    <div class="media-type-group">
+                        <label>
+                            <input type="checkbox" class="media-type-checkbox" data-type="archive"> 压缩包文件
+                        </label>
+                        <div class="media-extensions" data-type="archive" style="display: none;">
+                            <label>
+                                <input type="radio" name="archive-mode" value="inherit" checked> 继承预设格式 (ZIP, RAR, 7Z, TAR, GZ)
+                            </label>
+                            <label>
+                                <input type="radio" name="archive-mode" value="override"> 覆盖为自定义格式
+                            </label>
+                            <div class="extensions-config">
+                                <input type="text" placeholder="继承模式：在预设基础上增加格式，如: bz2,xz" class="extensions-input" data-type="archive">
+                                <small class="mode-hint">继承模式：在预设格式基础上增加新格式 | 覆盖模式：只使用指定格式</small>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="download-config">
+                    <h4>下载配置</h4>
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="maxFileSize">单个文件最大大小 (MB):</label>
+                            <input type="number" id="maxFileSize" value="50" min="1" max="1000">
+                        </div>
+                        <div class="form-group">
+                            <label for="maxTotalSize">总下载大小限制 (MB):</label>
+                            <input type="number" id="maxTotalSize" value="500" min="1" max="10000">
+                        </div>
+                    </div>
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="downloadTimeout">下载超时时间 (秒):</label>
+                            <input type="number" id="downloadTimeout" value="30" min="5" max="300">
+                        </div>
+                        <div class="form-group">
+                            <label for="maxConcurrent">并发下载数量:</label>
+                            <input type="number" id="maxConcurrent" value="3" min="1" max="10">
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <label>
+                            <input type="checkbox" id="skipDuplicates" checked> 跳过重复文件
+                        </label>
+                    </div>
+                </div>
+
+                <button class="btn" onclick="startCrawl()">开始爬取</button>
+            </div>
+
+            <!-- 会话管理 -->
+            <div class="section">
+                <h2>📋 会话管理</h2>
+                <button class="btn btn-secondary" onclick="getActiveSessions()">获取活跃会话</button>
+                <button class="btn btn-success" onclick="getMediaStats()">获取媒体统计</button>
+                
+                <div class="form-group" style="margin-top: 20px;">
+                    <label for="sessionId">会话ID:</label>
+                    <input type="text" id="sessionId" placeholder="输入会话ID查看详情">
+                    <button class="btn" onclick="getSessionStatus()" style="margin-top: 10px;">查看会话状态</button>
+                    <button class="btn btn-secondary" onclick="getSessionMedia()" style="margin-top: 10px;">查看会话媒体</button>
+                </div>
+            </div>
+
+            <!-- 媒体搜索 -->
+            <div class="section">
+                <h2>🔍 媒体搜索</h2>
+                <div class="form-group">
+                    <label for="searchQuery">搜索关键词:</label>
+                    <input type="text" id="searchQuery" placeholder="输入文件名或URL关键词">
+                </div>
+                <div class="form-group">
+                    <label for="searchSessionId">限定会话ID (可选):</label>
+                    <input type="text" id="searchSessionId" placeholder="留空搜索所有会话">
+                </div>
+                <button class="btn" onclick="searchMedia()">搜索媒体文件</button>
+            </div>
+
+            <!-- 加载状态 -->
+            <div class="loading" id="loading">
+                <div class="spinner"></div>
+                <p>处理中，请稍候...</p>
+            </div>
+
+            <!-- 结果显示 -->
+            <div class="results" id="results"></div>
+        </div>
+    </div>
+
+    <script>
+        const API_BASE = '/api/crawler';
+
+        // 启用/禁用媒体爬取
+        document.addEventListener('DOMContentLoaded', function() {
+            document.getElementById('enableMediaCrawl').addEventListener('change', function(e) {
+                const mediaConfig = document.getElementById('mediaTypesConfig');
+                mediaConfig.style.display = e.target.checked ? 'block' : 'none';
+            });
+
+            // 媒体类型选择
+            document.querySelectorAll('.media-type-checkbox').forEach(checkbox => {
+                checkbox.addEventListener('change', function(e) {
+                    const type = e.target.dataset.type;
+                    const extensionsDiv = document.querySelector(`.media-extensions[data-type="${type}"]`);
+                    extensionsDiv.style.display = e.target.checked ? 'block' : 'none';
+                });
+            });
+
+            // 继承/覆盖模式切换
+            document.querySelectorAll('input[type="radio"]').forEach(radio => {
+                radio.addEventListener('change', function(e) {
+                    const extensionsDiv = e.target.closest('.media-extensions').querySelector('.extensions-config');
+                    const input = extensionsDiv.querySelector('.extensions-input');
+                    
+                    if (e.target.value === 'inherit') {
+                        input.placeholder = input.placeholder.replace('覆盖模式：只使用指定格式', '继承模式：在预设基础上增加格式');
+                    } else {
+                        input.placeholder = input.placeholder.replace('继承模式：在预设基础上增加格式', '覆盖模式：只使用指定格式');
+                    }
+                });
+            });
+        });
+
+        function showLoading() {
+            document.getElementById('loading').classList.add('show');
+        }
+
+        function hideLoading() {
+            document.getElementById('loading').classList.remove('show');
+        }
+
+        function showResult(title, data, type = 'info') {
+            hideLoading();
+            const resultsDiv = document.getElementById('results');
+            const resultItem = document.createElement('div');
+            resultItem.className = `result-item ${type}`;
+            
+            let content = `<h3>${title}</h3>`;
+            
+            if (type === 'error') {
+                content += `<div class="error">${data}</div>`;
+            } else if (type === 'success') {
+                content += `<div class="success">${data}</div>`;
+            } else {
+                content += `<pre>${JSON.stringify(data, null, 2)}</pre>`;
+            }
+            
+            resultItem.innerHTML = content;
+            resultsDiv.insertBefore(resultItem, resultsDiv.firstChild);
+        }
+
+        function showMediaGrid(title, mediaFiles) {
+            hideLoading();
+            const resultsDiv = document.getElementById('results');
+            const resultItem = document.createElement('div');
+            resultItem.className = 'result-item';
+            
+            let content = `<h3>${title} (${mediaFiles.length} 个文件)</h3>`;
+            
+            if (mediaFiles.length > 0) {
+                content += '<div class="media-grid">';
+                mediaFiles.forEach(file => {
+                    content += `
+                        <div class="media-item">
+                            ${file.type === 'image' ? `<img src="data:image/svg+xml;base64,${btoa('<svg xmlns="http://www.w3.org/2000/svg" width="100" height="100"><rect width="100" height="100" fill="#f0f0f0"/><text x="50" y="50" text-anchor="middle" dy=".3em" fill="#999">IMG</text></svg>')}" alt="${file.fileName}">` : `<div style="height: 120px; background: #f0f0f0; border-radius: 8px; display: flex; align-items: center; justify-content: center; margin-bottom: 10px; color: #999;">${file.type.toUpperCase()}</div>`}
+                            <div class="media-info">${file.type} • ${file.extension}</div>
+                            <div class="media-name">${file.fileName}</div>
+                            <div class="media-info">${file.size ? (file.size / 1024 / 1024).toFixed(2) + ' MB' : '未知大小'}</div>
+                            <button class="btn" onclick="downloadMedia('${file.sessionId || ''}', '${file.fileName}')">下载</button>
+                        </div>
+                    `;
+                });
+                content += '</div>';
+            } else {
+                content += '<p>未找到媒体文件</p>';
+            }
+            
+            resultItem.innerHTML = content;
+            resultsDiv.insertBefore(resultItem, resultsDiv.firstChild);
+        }
+
+        function showStats(title, stats) {
+            hideLoading();
+            const resultsDiv = document.getElementById('results');
+            const resultItem = document.createElement('div');
+            resultItem.className = 'result-item';
+            
+            let content = `<h3>${title}</h3>`;
+            content += '<div class="stats-grid">';
+            content += `<div class="stat-card"><h3>${stats.totalFiles}</h3><p>总文件数</p></div>`;
+            content += `<div class="stat-card"><h3>${stats.totalSessions}</h3><p>总会话数</p></div>`;
+            
+            if (stats.filesByType) {
+                Object.entries(stats.filesByType).forEach(([type, count]) => {
+                    content += `<div class="stat-card"><h3>${count}</h3><p>${type}</p></div>`;
+                });
+            }
+            
+            content += '</div>';
+            content += `<pre>${JSON.stringify(stats, null, 2)}</pre>`;
+            
+            resultItem.innerHTML = content;
+            resultsDiv.insertBefore(resultItem, resultsDiv.firstChild);
+        }
+
+        // 构建媒体配置对象
+        function buildMediaOptions() {
+            const enableMediaCrawl = document.getElementById('enableMediaCrawl').checked;
+            
+            if (!enableMediaCrawl) {
+                return { enabled: false };
+            }
+            
+            const mediaTypes = [];
+            
+            document.querySelectorAll('.media-type-checkbox:checked').forEach(checkbox => {
+                const type = checkbox.dataset.type;
+                const modeRadio = document.querySelector(`input[name="${type}-mode"]:checked`);
+                
+                const extensionsInput = document.querySelector(`.extensions-input[data-type="${type}"]`);
+                const extensions = extensionsInput.value.split(',').map(ext => ext.trim()).filter(ext => ext);
+                
+                const config = {
+                    type: type,
+                    mode: modeRadio.value
+                };
+                
+                if (extensions.length > 0) {
+                    config.extensions = extensions;
+                }
+                
+                mediaTypes.push(config);
+            });
+            
+            return {
+                enabled: true,
+                mediaTypes: mediaTypes,
+                maxFileSize: parseInt(document.getElementById('maxFileSize').value) * 1024 * 1024,
+                maxTotalSize: parseInt(document.getElementById('maxTotalSize').value) * 1024 * 1024,
+                downloadTimeout: parseInt(document.getElementById('downloadTimeout').value) * 1000,
+                maxConcurrent: parseInt(document.getElementById('maxConcurrent').value),
+                skipDuplicates: document.getElementById('skipDuplicates').checked
+            };
+        }
+
+        async function startCrawl() {
+            const startUrl = document.getElementById('crawlUrl').value;
+            const maxPages = parseInt(document.getElementById('maxPages').value);
+            const mediaOptions = buildMediaOptions();
+
+            if (!startUrl) {
+                showResult('错误', '请输入有效的URL', 'error');
+                return;
+            }
+
+            if (mediaOptions.enabled && mediaOptions.mediaTypes.length === 0) {
+                showResult('错误', '启用媒体爬取时请至少选择一种媒体类型', 'error');
+                return;
+            }
+
+            showLoading();
+
+            try {
+                const response = await fetch(`${API_BASE}/crawl`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        startUrl,
+                        maxPages,
+                        mediaOptions
+                    })
+                });
+
+                const data = await response.json();
+                
+                if (response.ok) {
+                    showResult('爬取任务已启动', data, 'success');
+                    document.getElementById('sessionId').value = data.sessionId;
+                } else {
+                    showResult('启动失败', data.message || '未知错误', 'error');
+                }
+            } catch (error) {
+                showResult('网络错误', error.message, 'error');
+            }
+        }
+
+        async function getActiveSessions() {
+            showLoading();
+            try {
+                const response = await fetch(`${API_BASE}/sessions`);
+                const data = await response.json();
+                showResult('活跃会话列表', data);
+            } catch (error) {
+                showResult('获取失败', error.message, 'error');
+            }
+        }
+
+        async function getSessionStatus() {
+            const sessionId = document.getElementById('sessionId').value;
+            if (!sessionId) {
+                showResult('错误', '请输入会话ID', 'error');
+                return;
+            }
+
+            showLoading();
+            try {
+                const response = await fetch(`${API_BASE}/session/${sessionId}`);
+                const data = await response.json();
+                showResult(`会话状态 - ${sessionId}`, data);
+            } catch (error) {
+                showResult('获取失败', error.message, 'error');
+            }
+        }
+
+        async function getSessionMedia() {
+            const sessionId = document.getElementById('sessionId').value;
+            if (!sessionId) {
+                showResult('错误', '请输入会话ID', 'error');
+                return;
+            }
+
+            showLoading();
+            try {
+                const response = await fetch(`${API_BASE}/session/${sessionId}/media`);
+                const data = await response.json();
+                showMediaGrid(`会话媒体文件 - ${sessionId}`, data.files || []);
+            } catch (error) {
+                showResult('获取失败', error.message, 'error');
+            }
+        }
+
+        async function getMediaStats() {
+            showLoading();
+            try {
+                const response = await fetch(`${API_BASE}/media/stats`);
+                const data = await response.json();
+                showStats('媒体文件统计', data);
+            } catch (error) {
+                showResult('获取失败', error.message, 'error');
+            }
+        }
+
+        async function searchMedia() {
+            const query = document.getElementById('searchQuery').value;
+            const sessionId = document.getElementById('searchSessionId').value;
+            
+            if (!query) {
+                showResult('错误', '请输入搜索关键词', 'error');
+                return;
+            }
+
+            showLoading();
+            try {
+                let url = `${API_BASE}/media/search?query=${encodeURIComponent(query)}`;
+                if (sessionId) {
+                    url += `&sessionId=${encodeURIComponent(sessionId)}`;
+                }
+                
+                const response = await fetch(url);
+                const data = await response.json();
+                showMediaGrid('搜索结果', data.files || []);
+            } catch (error) {
+                showResult('搜索失败', error.message, 'error');
+            }
+        }
+
+        async function downloadMedia(sessionId, fileName) {
+            if (!sessionId) {
+                showResult('错误', '缺少会话ID', 'error');
+                return;
+            }
+
+            try {
+                const response = await fetch(`${API_BASE}/media/${sessionId}/${fileName}/download`);
+                const data = await response.json();
+                
+                if (response.ok && data.downloadUrl) {
+                    window.open(data.downloadUrl, '_blank');
+                    showResult('下载链接已生成', `文件: ${fileName}`, 'success');
+                } else {
+                    showResult('下载失败', data.message || '无法生成下载链接', 'error');
+                }
+            } catch (error) {
+                showResult('下载失败', error.message, 'error');
+            }
+        }
+
+        // 页面加载完成后的初始化
+        document.addEventListener('DOMContentLoaded', function() {
+            showResult('系统就绪', '媒体爬取功能测试页面已加载', 'success');
+        });
+    </script>
+</body>
+</html>
