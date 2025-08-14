@@ -324,6 +324,7 @@ export class CrawlerController {
       }
       
       // 返回通过后端代理的下载链接
+      // TODO 这里 hardcode 了
       const downloadUrl = `http://localhost:3000/api/crawler/media/${sessionId}/${encodeURIComponent(fileName)}/stream`;
       
       return {
