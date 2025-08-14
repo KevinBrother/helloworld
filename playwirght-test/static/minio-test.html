@@ -105,6 +105,62 @@
             justify-content: space-between;
             align-items: center;
         }
+        
+        .domain-group {
+            margin-bottom: 30px;
+            border: 2px solid #e9ecef;
+            border-radius: 12px;
+            padding: 20px;
+            background: #f8f9fa;
+        }
+        
+        .domain-header {
+            margin: 0 0 20px 0;
+            color: #495057;
+            font-size: 1.3em;
+            font-weight: 600;
+            border-bottom: 2px solid #dee2e6;
+            padding-bottom: 10px;
+        }
+        
+        .date-group {
+            margin-bottom: 25px;
+            border: 1px solid #dee2e6;
+            border-radius: 8px;
+            padding: 15px;
+            background: white;
+        }
+        
+        .date-header {
+            margin: 0 0 15px 0;
+            color: #6c757d;
+            font-size: 1.1em;
+            font-weight: 500;
+            border-bottom: 1px solid #e9ecef;
+            padding-bottom: 8px;
+        }
+        
+        .type-group {
+            margin-bottom: 20px;
+            padding: 10px;
+            border-left: 4px solid #007bff;
+            background: #f8f9fa;
+            border-radius: 0 6px 6px 0;
+        }
+        
+        .type-header {
+            margin: 0 0 10px 0;
+            color: #495057;
+            font-size: 1em;
+            font-weight: 500;
+        }
+        
+        .url-info {
+            color: #6c757d;
+            font-size: 0.9em;
+            margin-top: 5px;
+            font-style: italic;
+        }
         .file-info {
             flex: 1;
         }
@@ -365,31 +421,58 @@
             `;
             
             if (data.files && data.files.length > 0) {
+                // 按目录结构分组显示文件
+                const groupedFiles = groupFilesByStructure(data.files);
                 html += '<div class="file-list">';
                 
-                data.files.forEach(file => {
-                    const sizeKB = (file.size / 1024).toFixed(2);
-                    const lastModified = new Date(file.lastModified).toLocaleString();
-                    const fileIcon = getFileIcon(file.name);
-                    const canPreview = canPreviewFile(file.name);
+                Object.keys(groupedFiles).forEach(domain => {
+                    html += `<div class="domain-group">`;
+                    html += `<h4 class="domain-header">🌐 ${domain}</h4>`;
                     
-                    html += `
-                        <div class="file-item">
-                            <div class="file-info">
-                                <div class="file-name">${fileIcon} ${file.name}</div>
-                                <div class="file-meta">
-                                    大小: ${sizeKB} KB | 
-                                    修改时间: ${lastModified} | 
-                                    ETag: ${file.etag}
-                                </div>
-                            </div>
-                            <div class="file-actions">
-                                ${canPreview ? `<button onclick="previewFile('${file.name}')">👁️ 预览</button>` : ''}
-                                <button onclick="downloadFile('${file.name}')">⬇️ 下载</button>
-                                <button onclick="copyFileName('${file.name}')" class="secondary">📋 复制名称</button>
-                            </div>
-                        </div>
-                    `;
+                    Object.keys(groupedFiles[domain]).forEach(date => {
+                        html += `<div class="date-group">`;
+                        html += `<h5 class="date-header">📅 ${date}</h5>`;
+                        
+                        Object.keys(groupedFiles[domain][date]).forEach(type => {
+                            if (groupedFiles[domain][date][type].length > 0) {
+                                html += `<div class="type-group">`;
+                                html += `<h6 class="type-header">${getTypeIcon(type)} ${getTypeName(type)}</h6>`;
+                                
+                                groupedFiles[domain][date][type].forEach(file => {
+                                    const sizeKB = (file.size / 1024).toFixed(2);
+                                    const lastModified = new Date(file.lastModified).toLocaleString();
+                                    const fileIcon = getFileIcon(file.name);
+                                    const canPreview = canPreviewFile(file.name);
+                                    const urlInfo = extractUrlInfo(file.name);
+                                    
+                                    html += `
+                                        <div class="file-item">
+                                            <div class="file-info">
+                                                <div class="file-name">${fileIcon} ${getDisplayName(file.name)}</div>
+                                                ${urlInfo ? `<div class="url-info">🔗 ${urlInfo}</div>` : ''}
+                                                <div class="file-meta">
+                                                    大小: ${sizeKB} KB | 
+                                                    修改时间: ${lastModified} | 
+                                                    类型: ${getFileType(file.name)}
+                                                </div>
+                                            </div>
+                                            <div class="file-actions">
+                                                ${canPreview ? `<button onclick="previewFile('${file.name}')">👁️ 预览</button>` : ''}
+                                                <button onclick="downloadFile('${file.name}')">⬇️ 下载</button>
+                                                <button onclick="copyFileName('${file.name}')" class="secondary">📋 复制路径</button>
+                                            </div>
+                                        </div>
+                                    `;
+                                });
+                                
+                                html += '</div>';
+                            }
+                        });
+                        
+                        html += '</div>';
+                    });
+                    
+                    html += '</div>';
                 });
                 
                 html += '</div>';
@@ -398,6 +481,111 @@
             }
             
             resultsDiv.innerHTML = html;
+        }
+        
+        // 按目录结构分组文件
+        function groupFilesByStructure(files) {
+            const grouped = {};
+            
+            files.forEach(file => {
+                const pathParts = file.name.split('/');
+                if (pathParts.length >= 6 && pathParts[0] === 'domain') {
+                    const domain = pathParts[1];
+                    const date = `${pathParts[2]}/${pathParts[3]}/${pathParts[4]}`;
+                    const type = pathParts[5]; // pages, sessions, index
+                    
+                    if (!grouped[domain]) grouped[domain] = {};
+                    if (!grouped[domain][date]) grouped[domain][date] = {};
+                    if (!grouped[domain][date][type]) grouped[domain][date][type] = [];
+                    
+                    grouped[domain][date][type].push(file);
+                } else {
+                    // 处理其他格式的文件
+                    const domain = 'other';
+                    const date = 'unknown';
+                    const type = 'misc';
+                    
+                    if (!grouped[domain]) grouped[domain] = {};
+                    if (!grouped[domain][date]) grouped[domain][date] = {};
+                    if (!grouped[domain][date][type]) grouped[domain][date][type] = [];
+                    
+                    grouped[domain][date][type].push(file);
+                }
+            });
+            
+            return grouped;
+        }
+        
+        // 获取类型图标
+        function getTypeIcon(type) {
+            const icons = {
+                'pages': '📄',
+                'sessions': '🗂️',
+                'index': '📇',
+                'misc': '📁'
+            };
+            return icons[type] || '📄';
+        }
+        
+        // 获取类型名称
+        function getTypeName(type) {
+            const names = {
+                'pages': '页面内容',
+                'sessions': '会话数据',
+                'index': '索引文件',
+                'misc': '其他文件'
+            };
+            return names[type] || type;
+        }
+        
+        // 获取显示名称
+        function getDisplayName(fileName) {
+            const pathParts = fileName.split('/');
+            if (pathParts.length >= 6 && pathParts[0] === 'domain') {
+                const type = pathParts[5];
+                const actualFileName = pathParts[pathParts.length - 1];
+                
+                if (type === 'pages') {
+                    // 显示URL路径
+                    const urlPath = pathParts.slice(6, -1).join('/');
+                    return `${urlPath}/${actualFileName}`;
+                } else if (type === 'sessions') {
+                    return actualFileName;
+                } else if (type === 'index') {
+                    return actualFileName;
+                }
+            }
+            return fileName;
+        }
+        
+        // 提取URL信息
+        function extractUrlInfo(fileName) {
+            const pathParts = fileName.split('/');
+            if (pathParts.length >= 6 && pathParts[0] === 'domain' && pathParts[5] === 'pages') {
+                const domain = pathParts[1];
+                const urlPath = pathParts.slice(6, -1).join('/');
+                if (urlPath === '_root') {
+                    return `https://${domain}/`;
+                } else {
+                    return `https://${domain}/${urlPath}`;
+                }
+            }
+            return null;
+        }
+        
+        // 获取文件类型
+        function getFileType(fileName) {
+            const pathParts = fileName.split('/');
+            const actualFileName = pathParts[pathParts.length - 1];
+            
+            if (actualFileName === 'index.json') return '页面内容';
+            if (actualFileName === 'index.png') return '页面截图';
+            if (actualFileName === 'metadata.json') return '页面元数据';
+            if (actualFileName.startsWith('session-')) return '会话数据';
+            if (actualFileName.includes('index.json')) return '索引文件';
+            
+            const ext = actualFileName.toLowerCase().split('.').pop();
+            return ext.toUpperCase() + ' 文件';
         }
         
         function showDownloadResult(downloadUrl, fileName) {

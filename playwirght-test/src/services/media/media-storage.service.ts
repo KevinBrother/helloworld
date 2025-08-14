@@ -159,9 +159,9 @@ export class MediaStorageService {
   }
 
   /**
-   * 保存媒体文件元数据到MinIO
+   * 保存媒体文件元数据到MinIO（新的混合方案）
    */
-  async saveMediaMetadata(sessionId: string): Promise<string | null> {
+  async saveMediaMetadata(sessionId: string, domain?: string): Promise<string | null> {
     const mediaFiles = this.mediaFiles.get(sessionId);
     
     if (!mediaFiles || mediaFiles.length === 0) {
@@ -172,23 +172,41 @@ export class MediaStorageService {
       const client = await this.storageService.getClient();
       const bucketName = this.storageService.getBucketName();
       
+      // 如果没有提供域名，尝试从媒体文件中提取
+      if (!domain && mediaFiles.length > 0) {
+        try {
+          const firstFileUrl = new URL(mediaFiles[0].sourceUrl);
+          domain = firstFileUrl.hostname;
+        } catch (error) {
+          domain = 'unknown-domain';
+        }
+      }
+      
+      // 使用新的路径生成方式
+      const { PathGenerator } = await import('../../shared/utils/path-generator.util');
+      const sessionPath = PathGenerator.generateSessionPath(sessionId, domain);
+      const filePath = `${sessionPath}/media-metadata-${sessionId}.json`;
+      
       const metadata = {
         sessionId,
+        domain,
         totalFiles: mediaFiles.length,
         filesByType: this.groupFilesByType(mediaFiles),
         files: mediaFiles,
-        createdAt: new Date().toISOString()
+        createdAt: new Date().toISOString(),
+        storagePath: filePath
       };
       
       const jsonData = JSON.stringify(metadata, null, 2);
       const buffer = Buffer.from(jsonData, 'utf-8');
-      const filePath = `sessions/${sessionId}/media-metadata.json`;
       
       const objectMetadata = {
         'Content-Type': 'application/json',
         'X-Amz-Meta-Session-Id': this.sanitizeMetadataValue(sessionId),
+        'X-Amz-Meta-Domain': this.sanitizeMetadataValue(domain || ''),
         'X-Amz-Meta-Total-Files': this.sanitizeMetadataValue(mediaFiles.length.toString()),
         'X-Amz-Meta-Created-At': this.sanitizeMetadataValue(new Date().toISOString()),
+        'X-Amz-Meta-File-Type': 'media-metadata',
       };
       
       await client.putObject(

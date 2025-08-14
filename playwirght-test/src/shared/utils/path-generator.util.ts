@@ -22,41 +22,84 @@ export class PathGenerator {
   }
 
   /**
-   * 生成页面数据存储路径
+   * URL路径安全化处理
    */
-  static generatePagePath(url: string, sessionId: string): string {
+  static sanitizePath(urlPath: string): string {
+    return urlPath
+      .replace(/^\/+/g, '')           // 移除开头的 /
+      .replace(/\/+$/g, '')           // 移除结尾的 /
+      .replace(/[<>:"|?*]/g, '_')     // 替换非法字符
+      .replace(/\.{2,}/g, '_')        // 替换连续的点
+      .replace(/\s+/g, '_')           // 替换空格
+      .split('/')
+      .map(segment => {
+        if (segment === '' || segment === '.' || segment === '..') {
+          return '_';
+        }
+        return segment.length > 100 ? segment.substring(0, 100) + '_hash' : segment;
+      })
+      .join('/');
+  }
+
+  /**
+   * 获取URL路径的目录路径
+   */
+  static getDirectoryPath(url: string): string {
+    try {
+      const urlObj = new URL(url);
+      const path = urlObj.pathname;
+      
+      if (path === '/' || path === '') {
+        return '_root';  // 根路径特殊处理
+      }
+      
+      return this.sanitizePath(path);
+    } catch (error) {
+      return '_unknown';
+    }
+  }
+
+  /**
+   * 生成页面数据存储路径（新的混合方案）
+   */
+  static generatePagePath(url: string, sessionId?: string): string {
     const domain = this.extractDomain(url);
     const now = new Date();
     const year = now.getFullYear();
     const month = String(now.getMonth() + 1).padStart(2, '0');
     const day = String(now.getDate()).padStart(2, '0');
+    const urlPath = this.getDirectoryPath(url);
     
-    return `domain/${domain}/${year}/${month}/${day}/pages/${sessionId}`;
+    return `domain/${domain}/${year}/${month}/${day}/pages/${urlPath}`;
   }
 
   /**
-   * 生成截图存储路径
+   * 生成会话路径（按域名组织）
    */
-  static generateScreenshotPath(url: string, sessionId: string): string {
-    const domain = this.extractDomain(url);
+  static generateSessionPath(sessionId: string, domain?: string): string {
     const now = new Date();
     const year = now.getFullYear();
     const month = String(now.getMonth() + 1).padStart(2, '0');
     const day = String(now.getDate()).padStart(2, '0');
     
-    return `domain/${domain}/${year}/${month}/${day}/screenshots/${sessionId}`;
+    if (domain) {
+      return `domain/${domain}/${year}/${month}/${day}/sessions`;
+    }
+    
+    // 兼容旧版本，如果没有域名则使用旧路径
+    return `sessions/${year}/${month}/${day}`;
   }
 
   /**
-   * 生成会话路径
+   * 生成索引文件路径
    */
-  static generateSessionPath(sessionId: string): string {
+  static generateIndexPath(domain: string): string {
     const now = new Date();
     const year = now.getFullYear();
     const month = String(now.getMonth() + 1).padStart(2, '0');
     const day = String(now.getDate()).padStart(2, '0');
     
-    return `sessions/${year}/${month}/${day}/${sessionId}`;
+    return `domain/${domain}/${year}/${month}/${day}/index`;
   }
 
   /**
