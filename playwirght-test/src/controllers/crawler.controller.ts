@@ -9,6 +9,7 @@ import {
   HttpStatus,
   Logger,
   BadRequestException,
+  Res,
 } from '@nestjs/common';
 import { WebsiteCrawlerService } from '../services/crawler/website-crawler.service';
 import { StorageService } from '../core/storage/storage.service';
@@ -143,17 +144,44 @@ export class CrawlerController {
   @Get('files/:fileName/download')
   async getFileDownloadUrl(@Param('fileName') fileName: string): Promise<{ downloadUrl: string }> {
     try {
-      const client = await this.storageService.getClient();
-      const bucketName = this.storageService.getBucketName();
-      
-      // 生成预签名URL，有效期1小时
-      const downloadUrl = await client.presignedGetObject(bucketName, fileName, 3600);
+      // 返回通过后端代理的下载链接，而不是直接的MinIO预签名URL
+      const downloadUrl = `http://localhost:3000/api/crawler/files/${encodeURIComponent(fileName)}/stream`;
       
       this.logger.log(`生成文件下载链接: ${fileName}`);
       return { downloadUrl };
     } catch (error) {
       this.logger.error(`生成下载链接失败: ${error.message}`);
       throw new BadRequestException(`生成下载链接失败: ${error.message}`);
+    }
+  }
+
+  /**
+   * 直接流式传输文件内容
+   */
+  @Get('files/:fileName/stream')
+  async streamFile(@Param('fileName') fileName: string, @Res() res: any): Promise<void> {
+    try {
+      const client = await this.storageService.getClient();
+      const bucketName = this.storageService.getBucketName();
+      
+      // 获取文件对象
+      const dataStream = await client.getObject(bucketName, fileName);
+      
+      // 获取文件信息以设置正确的Content-Type
+      const stat = await client.statObject(bucketName, fileName);
+      
+      // 设置响应头
+      res.setHeader('Content-Type', stat.metaData['content-type'] || 'application/octet-stream');
+      res.setHeader('Content-Length', stat.size);
+      res.setHeader('Content-Disposition', `attachment; filename="${fileName.split('/').pop()}"`);
+      
+      // 流式传输文件
+      dataStream.pipe(res);
+      
+      this.logger.log(`流式传输文件: ${fileName}`);
+    } catch (error) {
+      this.logger.error(`流式传输文件失败: ${error.message}`);
+      res.status(404).json({ error: `文件不存在或无法访问: ${error.message}` });
     }
   }
 
@@ -279,11 +307,15 @@ export class CrawlerController {
     @Param('fileName') fileName: string
   ): Promise<{ downloadUrl: string }> {
     try {
-      const downloadUrl = await this.mediaStorageService.getMediaFileDownloadUrl(sessionId, fileName);
+      // 检查文件是否存在
+      const mediaFile = this.mediaStorageService.getMediaFile(sessionId, fileName);
       
-      if (!downloadUrl) {
+      if (!mediaFile || !mediaFile.storagePath) {
         throw new BadRequestException('文件不存在或无法生成下载链接');
       }
+      
+      // 返回通过后端代理的下载链接
+      const downloadUrl = `http://localhost:3000/api/crawler/media/${sessionId}/${encodeURIComponent(fileName)}/stream`;
       
       return {
         downloadUrl,
@@ -291,6 +323,48 @@ export class CrawlerController {
     } catch (error) {
       this.logger.error(`获取媒体文件下载链接失败: ${error.message}`);
       throw new BadRequestException(`获取媒体文件下载链接失败: ${error.message}`);
+    }
+  }
+
+  /**
+   * 直接流式传输媒体文件内容
+   */
+  @Get('media/:sessionId/:fileName/stream')
+  async streamMediaFile(
+    @Param('sessionId') sessionId: string,
+    @Param('fileName') fileName: string,
+    @Res() res: any
+  ): Promise<void> {
+    try {
+      // 获取媒体文件信息
+      const mediaFile = this.mediaStorageService.getMediaFile(sessionId, fileName);
+      
+      if (!mediaFile || !mediaFile.storagePath) {
+        res.status(404).json({ error: '文件不存在' });
+        return;
+      }
+      
+      const client = await this.storageService.getClient();
+      const bucketName = this.storageService.getBucketName();
+      
+      // 获取文件对象
+      const dataStream = await client.getObject(bucketName, mediaFile.storagePath);
+      
+      // 获取文件信息以设置正确的Content-Type
+      const stat = await client.statObject(bucketName, mediaFile.storagePath);
+      
+      // 设置响应头
+      res.setHeader('Content-Type', stat.metaData['content-type'] || 'application/octet-stream');
+      res.setHeader('Content-Length', stat.size);
+      res.setHeader('Content-Disposition', `attachment; filename="${fileName}"`);
+      
+      // 流式传输文件
+      dataStream.pipe(res);
+      
+      this.logger.log(`流式传输媒体文件: ${sessionId}/${fileName}`);
+    } catch (error) {
+      this.logger.error(`流式传输媒体文件失败: ${error.message}`);
+      res.status(404).json({ error: `文件不存在或无法访问: ${error.message}` });
     }
   }
 }

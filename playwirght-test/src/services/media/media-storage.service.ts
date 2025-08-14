@@ -123,11 +123,18 @@ export class MediaStorageService {
   }
 
   /**
+   * 获取单个媒体文件信息
+   */
+  getMediaFile(sessionId: string, fileName: string): MediaFileInfo | null {
+    const files = this.mediaFiles.get(sessionId) || [];
+    return files.find(f => f.fileName === fileName) || null;
+  }
+
+  /**
    * 获取媒体文件下载URL
    */
   async getMediaFileDownloadUrl(sessionId: string, fileName: string): Promise<string | null> {
-    const files = this.mediaFiles.get(sessionId) || [];
-    const file = files.find(f => f.fileName === fileName);
+    const file = this.getMediaFile(sessionId, fileName);
     
     if (!file || !file.storagePath) {
       return null;

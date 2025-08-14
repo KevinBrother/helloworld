@@ -140,6 +140,90 @@
             color: #666;
             font-style: italic;
         }
+        .preview-modal {
+            display: none;
+            position: fixed;
+            z-index: 1000;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0,0,0,0.8);
+        }
+        .preview-content {
+            position: relative;
+            margin: 5% auto;
+            padding: 20px;
+            width: 80%;
+            max-width: 900px;
+            background-color: white;
+            border-radius: 8px;
+            max-height: 80vh;
+            overflow-y: auto;
+        }
+        .preview-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+            padding-bottom: 10px;
+            border-bottom: 1px solid #ddd;
+        }
+        .preview-close {
+            background: #dc3545;
+            color: white;
+            border: none;
+            padding: 8px 16px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 14px;
+        }
+        .preview-close:hover {
+            background: #c82333;
+        }
+        .preview-body {
+            text-align: center;
+        }
+        .preview-image {
+            max-width: 100%;
+            max-height: 60vh;
+            border-radius: 4px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        .preview-video {
+            max-width: 100%;
+            max-height: 60vh;
+            border-radius: 4px;
+        }
+        .preview-audio {
+            width: 100%;
+            max-width: 500px;
+        }
+        .preview-document {
+            width: 100%;
+            height: 60vh;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+        }
+        .preview-text {
+            text-align: left;
+            background: #f8f9fa;
+            padding: 20px;
+            border-radius: 4px;
+            font-family: 'Courier New', monospace;
+            font-size: 14px;
+            white-space: pre-wrap;
+            max-height: 50vh;
+            overflow-y: auto;
+        }
+        .preview-unsupported {
+            padding: 40px;
+            text-align: center;
+            color: #666;
+        }
+        .file-type-icon {
+            margin-right: 8px;
+        }
     </style>
 </head>
 <body>
@@ -184,6 +268,19 @@
         
         <!-- 结果显示区域 -->
         <div id="results"></div>
+    </div>
+
+    <!-- 预览模态框 -->
+    <div id="previewModal" class="preview-modal">
+        <div class="preview-content">
+            <div class="preview-header">
+                <h3 id="previewTitle">文件预览</h3>
+                <button class="preview-close" onclick="closePreview()">✕ 关闭</button>
+            </div>
+            <div class="preview-body" id="previewBody">
+                <!-- 预览内容将在这里动态加载 -->
+            </div>
+        </div>
     </div>
 
     <script>
@@ -273,11 +370,13 @@
                 data.files.forEach(file => {
                     const sizeKB = (file.size / 1024).toFixed(2);
                     const lastModified = new Date(file.lastModified).toLocaleString();
+                    const fileIcon = getFileIcon(file.name);
+                    const canPreview = canPreviewFile(file.name);
                     
                     html += `
                         <div class="file-item">
                             <div class="file-info">
-                                <div class="file-name">📄 ${file.name}</div>
+                                <div class="file-name">${fileIcon} ${file.name}</div>
                                 <div class="file-meta">
                                     大小: ${sizeKB} KB | 
                                     修改时间: ${lastModified} | 
@@ -285,6 +384,7 @@
                                 </div>
                             </div>
                             <div class="file-actions">
+                                ${canPreview ? `<button onclick="previewFile('${file.name}')">👁️ 预览</button>` : ''}
                                 <button onclick="downloadFile('${file.name}')">⬇️ 下载</button>
                                 <button onclick="copyFileName('${file.name}')" class="secondary">📋 复制名称</button>
                             </div>
@@ -303,15 +403,18 @@
         function showDownloadResult(downloadUrl, fileName) {
             const resultsDiv = document.getElementById('results');
             
+            // 修复域名问题
+            const fixedUrl = downloadUrl.replace('http://minio:9000', 'http://localhost:9001');
+            
             const html = `
                 <div class="response success">
                     <h3>✅ 下载链接生成成功</h3>
                     <p><strong>文件名:</strong> ${fileName}</p>
                     <p><strong>下载链接:</strong></p>
-                    <p><a href="${downloadUrl}" target="_blank" style="word-break: break-all;">${downloadUrl}</a></p>
+                    <p><a href="${fixedUrl}" target="_blank" style="word-break: break-all;">${fixedUrl}</a></p>
                     <p><em>注意: 链接有效期为1小时</em></p>
-                    <button onclick="window.open('${downloadUrl}', '_blank')">🚀 打开下载链接</button>
-                    <button onclick="copyToClipboard('${downloadUrl}')" class="secondary">📋 复制链接</button>
+                    <button onclick="window.open('${fixedUrl}', '_blank')">🚀 打开下载链接</button>
+                    <button onclick="copyToClipboard('${fixedUrl}')" class="secondary">📋 复制链接</button>
                 </div>
             `;
             
@@ -338,7 +441,9 @@
                 const data = await response.json();
                 
                 if (response.ok) {
-                    window.open(data.downloadUrl, '_blank');
+                    // 修复域名问题：将 minio:9000 替换为 localhost:9001
+                    const fixedUrl = data.downloadUrl.replace('http://minio:9000', 'http://localhost:9001');
+                    window.open(fixedUrl, '_blank');
                 } else {
                     alert(`生成下载链接失败: ${data.message || '未知错误'}`);
                 }
@@ -375,6 +480,167 @@
                 document.body.removeChild(textArea);
                 alert('链接已复制到剪贴板');
             });
+        }
+        
+        // 获取文件类型图标
+        function getFileIcon(fileName) {
+            const ext = fileName.toLowerCase().split('.').pop();
+            
+            // 图片文件
+            if (['jpg', 'jpeg', 'png', 'gif', 'webp', 'svg', 'bmp', 'ico'].includes(ext)) {
+                return '🖼️';
+            }
+            // 视频文件
+            if (['mp4', 'avi', 'mov', 'wmv', 'flv', 'webm', 'mkv'].includes(ext)) {
+                return '🎬';
+            }
+            // 音频文件
+            if (['mp3', 'wav', 'aac', 'ogg', 'm4a'].includes(ext)) {
+                return '🎵';
+            }
+            // 文档文件
+            if (['pdf', 'doc', 'docx', 'xls', 'xlsx', 'ppt', 'pptx'].includes(ext)) {
+                return '📄';
+            }
+            // 压缩包文件
+            if (['zip', 'rar', '7z', 'tar', 'gz'].includes(ext)) {
+                return '📦';
+            }
+            // 文本文件
+            if (['txt', 'md', 'json', 'xml', 'html', 'css', 'js', 'ts'].includes(ext)) {
+                return '📝';
+            }
+            // 默认文件图标
+            return '📄';
+        }
+        
+        // 检查文件是否可以预览
+        function canPreviewFile(fileName) {
+            const ext = fileName.toLowerCase().split('.').pop();
+            
+            // 支持预览的文件类型
+            const previewableTypes = [
+                // 图片
+                'jpg', 'jpeg', 'png', 'gif', 'webp', 'svg', 'bmp',
+                // 视频
+                'mp4', 'webm', 'ogg',
+                // 音频
+                'mp3', 'wav', 'ogg', 'm4a',
+                // 文档
+                'pdf',
+                // 文本
+                'txt', 'md', 'json', 'xml', 'html', 'css', 'js', 'ts'
+            ];
+            
+            return previewableTypes.includes(ext);
+        }
+        
+        // 预览文件
+        async function previewFile(fileName) {
+            try {
+                const response = await fetch(`${API_BASE}/files/${encodeURIComponent(fileName)}/download`);
+                const data = await response.json();
+                
+                if (response.ok) {
+                    // 修复域名问题
+                    const fixedUrl = data.downloadUrl.replace('http://minio:9000', 'http://localhost:9001');
+                    showPreview(fileName, fixedUrl);
+                } else {
+                    alert(`获取预览链接失败: ${data.message || '未知错误'}`);
+                }
+            } catch (error) {
+                alert(`网络错误: ${error.message}`);
+            }
+        }
+        
+        // 显示预览模态框
+        function showPreview(fileName, fileUrl) {
+            const modal = document.getElementById('previewModal');
+            const title = document.getElementById('previewTitle');
+            const body = document.getElementById('previewBody');
+            
+            title.textContent = `预览: ${fileName}`;
+            
+            const ext = fileName.toLowerCase().split('.').pop();
+            let previewContent = '';
+            
+            // 根据文件类型生成预览内容
+            if (['jpg', 'jpeg', 'png', 'gif', 'webp', 'svg', 'bmp'].includes(ext)) {
+                // 图片预览
+                previewContent = `<img src="${fileUrl}" alt="${fileName}" class="preview-image" onerror="showPreviewError('图片加载失败')">`;
+            } else if (['mp4', 'webm', 'ogg'].includes(ext)) {
+                // 视频预览
+                previewContent = `
+                    <video controls class="preview-video" preload="metadata">
+                        <source src="${fileUrl}" type="video/${ext}">
+                        您的浏览器不支持视频播放。
+                    </video>
+                `;
+            } else if (['mp3', 'wav', 'ogg', 'm4a'].includes(ext)) {
+                // 音频预览
+                previewContent = `
+                    <audio controls class="preview-audio" preload="metadata">
+                        <source src="${fileUrl}" type="audio/${ext}">
+                        您的浏览器不支持音频播放。
+                    </audio>
+                `;
+            } else if (ext === 'pdf') {
+                // PDF预览
+                previewContent = `<iframe src="${fileUrl}" class="preview-document" frameborder="0"></iframe>`;
+            } else if (['txt', 'md', 'json', 'xml', 'html', 'css', 'js', 'ts'].includes(ext)) {
+                // 文本文件预览
+                previewContent = '<div class="loading">⏳ 正在加载文本内容...</div>';
+                
+                // 异步加载文本内容
+                fetch(fileUrl)
+                    .then(response => response.text())
+                    .then(text => {
+                        body.innerHTML = `<div class="preview-text">${escapeHtml(text)}</div>`;
+                    })
+                    .catch(error => {
+                        body.innerHTML = '<div class="preview-unsupported">❌ 文本内容加载失败</div>';
+                    });
+            } else {
+                // 不支持的文件类型
+                previewContent = `
+                    <div class="preview-unsupported">
+                        <h3>🚫 暂不支持预览此文件类型</h3>
+                        <p>文件类型: .${ext}</p>
+                        <p>请点击下载按钮下载文件查看</p>
+                        <button onclick="window.open('${fileUrl}', '_blank')">⬇️ 下载文件</button>
+                    </div>
+                `;
+            }
+            
+            body.innerHTML = previewContent;
+            modal.style.display = 'block';
+        }
+        
+        // 关闭预览模态框
+        function closePreview() {
+            const modal = document.getElementById('previewModal');
+            modal.style.display = 'none';
+        }
+        
+        // 显示预览错误
+        function showPreviewError(message) {
+            const body = document.getElementById('previewBody');
+            body.innerHTML = `<div class="preview-unsupported">❌ ${message}</div>`;
+        }
+        
+        // HTML转义函数
+        function escapeHtml(text) {
+            const div = document.createElement('div');
+            div.textContent = text;
+            return div.innerHTML;
+        }
+        
+        // 点击模态框外部关闭预览
+        window.onclick = function(event) {
+            const modal = document.getElementById('previewModal');
+            if (event.target === modal) {
+                closePreview();
+            }
         }
         
         // 页面加载时自动查询所有文件
