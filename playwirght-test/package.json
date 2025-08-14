@@ -4,6 +4,7 @@
     "description": "Crawl website pages and sync data to knowledge base",
     "main": "dist/main.js",
     "scripts": {
+        "dev": "nest start",
         "build": "nest build",
         "start": "nest start",
         "start:dev": "nest start --watch",
