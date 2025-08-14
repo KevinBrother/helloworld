@@ -119,7 +119,7 @@ export class MediaDownloaderService {
         };
       }
 
-      // 生成存储路径
+      // 生成存储路径（使用新的混合方案）
       const storagePath = this.generateStoragePath(sessionId, mediaFile, md5Hash);
       
       // 上传到MinIO
@@ -205,18 +205,33 @@ export class MediaDownloaderService {
   }
 
   /**
-   * 生成存储路径
+   * 生成存储路径（新的混合方案）
    */
   private generateStoragePath(
     sessionId: string,
     mediaFile: MediaFileInfo,
-    md5Hash: string
+    md5Hash: string,
+    domain?: string
   ): string {
-    const timestamp = new Date().toISOString().split('T')[0]; // YYYY-MM-DD
+    // 如果没有提供域名，尝试从源URL中提取
+    if (!domain) {
+      try {
+        const sourceUrl = new URL(mediaFile.sourceUrl);
+        domain = sourceUrl.hostname;
+      } catch (error) {
+        domain = 'unknown-domain';
+      }
+    }
+    
+    const now = new Date();
+    const year = now.getFullYear();
+    const month = String(now.getMonth() + 1).padStart(2, '0');
+    const day = String(now.getDate()).padStart(2, '0');
+    
     const shortHash = md5Hash.substring(0, 8);
     const fileName = `${shortHash}_${mediaFile.fileName}`;
     
-    return `sessions/${sessionId}/media/${mediaFile.type}/${timestamp}/${fileName}`;
+    return `domain/${domain}/${year}/${month}/${day}/media/${mediaFile.type}/${fileName}`;
   }
 
   /**

@@ -331,7 +331,8 @@ export class WebsiteCrawlerService {
       
       // 保存媒体文件元数据
       if (session.mediaOptions?.enabled) {
-        await this.mediaStorage.saveMediaMetadata(session.sessionId);
+        const domain = PathGenerator.extractDomain(session.startUrl);
+        await this.mediaStorage.saveMediaMetadata(session.sessionId, domain);
       }
       
       const metadata = {

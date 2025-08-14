@@ -214,7 +214,16 @@ export class StorageService {
     }
     
     try {
-      const domain = metadata.domain || PathGenerator.extractDomain(metadata.base_url || '');
+      // 从会话的 startUrl 中提取域名
+      let domain = 'unknown-domain';
+      if (metadata.session && metadata.session.startUrl) {
+        domain = PathGenerator.extractDomain(metadata.session.startUrl);
+      } else if (metadata.domain) {
+        domain = metadata.domain;
+      } else if (metadata.base_url) {
+        domain = PathGenerator.extractDomain(metadata.base_url);
+      }
+      
       const sessionPath = PathGenerator.generateSessionPath(sessionId, domain);
       const filePath = `${sessionPath}/session-${sessionId}.json`;
       
