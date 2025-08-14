@@ -1,0 +1,386 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>MinIO 文件查询测试</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: #f5f5f5;
+        }
+        .container {
+            background: white;
+            border-radius: 8px;
+            padding: 30px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        h1 {
+            color: #333;
+            text-align: center;
+            margin-bottom: 30px;
+        }
+        .section {
+            margin-bottom: 30px;
+            padding: 20px;
+            border: 1px solid #ddd;
+            border-radius: 6px;
+            background-color: #fafafa;
+        }
+        .section h2 {
+            color: #555;
+            margin-top: 0;
+            margin-bottom: 15px;
+        }
+        .form-group {
+            margin-bottom: 15px;
+        }
+        label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: bold;
+            color: #333;
+        }
+        input[type="text"], select {
+            width: 100%;
+            padding: 10px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            font-size: 14px;
+            box-sizing: border-box;
+        }
+        button {
+            background-color: #007bff;
+            color: white;
+            padding: 12px 24px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 14px;
+            margin-right: 10px;
+            margin-bottom: 10px;
+        }
+        button:hover {
+            background-color: #0056b3;
+        }
+        button.secondary {
+            background-color: #6c757d;
+        }
+        button.secondary:hover {
+            background-color: #545b62;
+        }
+        .response {
+            margin-top: 20px;
+            padding: 15px;
+            border-radius: 4px;
+            white-space: pre-wrap;
+            font-family: 'Courier New', monospace;
+            font-size: 12px;
+            max-height: 400px;
+            overflow-y: auto;
+        }
+        .success {
+            background-color: #d4edda;
+            border: 1px solid #c3e6cb;
+            color: #155724;
+        }
+        .error {
+            background-color: #f8d7da;
+            border: 1px solid #f5c6cb;
+            color: #721c24;
+        }
+        .file-list {
+            margin-top: 20px;
+        }
+        .file-item {
+            padding: 10px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            margin-bottom: 10px;
+            background-color: white;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .file-info {
+            flex: 1;
+        }
+        .file-name {
+            font-weight: bold;
+            color: #333;
+            margin-bottom: 5px;
+        }
+        .file-meta {
+            font-size: 12px;
+            color: #666;
+        }
+        .file-actions {
+            margin-left: 15px;
+        }
+        .file-actions button {
+            padding: 6px 12px;
+            font-size: 12px;
+            margin: 0 2px;
+        }
+        .stats {
+            background-color: #e9ecef;
+            padding: 15px;
+            border-radius: 4px;
+            margin-bottom: 20px;
+        }
+        .stats h3 {
+            margin: 0 0 10px 0;
+            color: #495057;
+        }
+        .loading {
+            text-align: center;
+            color: #666;
+            font-style: italic;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🗂️ MinIO 文件查询测试</h1>
+        
+        <!-- 文件查询部分 -->
+        <div class="section">
+            <h2>📁 文件查询</h2>
+            <div class="form-group">
+                <label for="queryType">查询类型:</label>
+                <select id="queryType" onchange="toggleQueryInputs()">
+                    <option value="all">查询所有文件</option>
+                    <option value="session">按会话ID查询</option>
+                    <option value="prefix">按前缀查询</option>
+                </select>
+            </div>
+            
+            <div class="form-group" id="sessionGroup" style="display: none;">
+                <label for="sessionId">会话ID:</label>
+                <input type="text" id="sessionId" placeholder="例如: me9mkkrv-h0hsi7">
+            </div>
+            
+            <div class="form-group" id="prefixGroup" style="display: none;">
+                <label for="prefix">文件前缀:</label>
+                <input type="text" id="prefix" placeholder="例如: domain/example.com/">
+            </div>
+            
+            <button onclick="listFiles()">🔍 查询文件</button>
+            <button onclick="clearResults()" class="secondary">🗑️ 清空结果</button>
+        </div>
+        
+        <!-- 文件下载测试部分 -->
+        <div class="section">
+            <h2>⬇️ 文件下载测试</h2>
+            <div class="form-group">
+                <label for="fileName">文件名:</label>
+                <input type="text" id="fileName" placeholder="例如: domain/example.com/2025/08/13/pages/session-id/file.json">
+            </div>
+            <button onclick="getDownloadUrl()">🔗 生成下载链接</button>
+        </div>
+        
+        <!-- 结果显示区域 -->
+        <div id="results"></div>
+    </div>
+
+    <script>
+        const API_BASE = 'http://localhost:3000/api/crawler';
+        
+        function toggleQueryInputs() {
+            const queryType = document.getElementById('queryType').value;
+            const sessionGroup = document.getElementById('sessionGroup');
+            const prefixGroup = document.getElementById('prefixGroup');
+            
+            sessionGroup.style.display = queryType === 'session' ? 'block' : 'none';
+            prefixGroup.style.display = queryType === 'prefix' ? 'block' : 'none';
+        }
+        
+        async function listFiles() {
+            const queryType = document.getElementById('queryType').value;
+            const sessionId = document.getElementById('sessionId').value;
+            const prefix = document.getElementById('prefix').value;
+            
+            let url = `${API_BASE}/files`;
+            const params = new URLSearchParams();
+            
+            if (queryType === 'session' && sessionId) {
+                params.append('sessionId', sessionId);
+            } else if (queryType === 'prefix' && prefix) {
+                params.append('prefix', prefix);
+            }
+            
+            if (params.toString()) {
+                url += '?' + params.toString();
+            }
+            
+            showLoading('正在查询文件...');
+            
+            try {
+                const response = await fetch(url);
+                const data = await response.json();
+                
+                if (response.ok) {
+                    displayFileList(data);
+                } else {
+                    showError(`查询失败: ${data.message || '未知错误'}`);
+                }
+            } catch (error) {
+                showError(`网络错误: ${error.message}`);
+            }
+        }
+        
+        async function getDownloadUrl() {
+            const fileName = document.getElementById('fileName').value;
+            
+            if (!fileName) {
+                showError('请输入文件名');
+                return;
+            }
+            
+            showLoading('正在生成下载链接...');
+            
+            try {
+                const response = await fetch(`${API_BASE}/files/${encodeURIComponent(fileName)}/download`);
+                const data = await response.json();
+                
+                if (response.ok) {
+                    showDownloadResult(data.downloadUrl, fileName);
+                } else {
+                    showError(`生成下载链接失败: ${data.message || '未知错误'}`);
+                }
+            } catch (error) {
+                showError(`网络错误: ${error.message}`);
+            }
+        }
+        
+        function displayFileList(data) {
+            const resultsDiv = document.getElementById('results');
+            
+            let html = `
+                <div class="stats">
+                    <h3>📊 查询统计</h3>
+                    <p>总文件数: <strong>${data.total}</strong></p>
+                    <p>查询时间: <strong>${new Date().toLocaleString()}</strong></p>
+                </div>
+            `;
+            
+            if (data.files && data.files.length > 0) {
+                html += '<div class="file-list">';
+                
+                data.files.forEach(file => {
+                    const sizeKB = (file.size / 1024).toFixed(2);
+                    const lastModified = new Date(file.lastModified).toLocaleString();
+                    
+                    html += `
+                        <div class="file-item">
+                            <div class="file-info">
+                                <div class="file-name">📄 ${file.name}</div>
+                                <div class="file-meta">
+                                    大小: ${sizeKB} KB | 
+                                    修改时间: ${lastModified} | 
+                                    ETag: ${file.etag}
+                                </div>
+                            </div>
+                            <div class="file-actions">
+                                <button onclick="downloadFile('${file.name}')">⬇️ 下载</button>
+                                <button onclick="copyFileName('${file.name}')" class="secondary">📋 复制名称</button>
+                            </div>
+                        </div>
+                    `;
+                });
+                
+                html += '</div>';
+            } else {
+                html += '<p style="text-align: center; color: #666; font-style: italic;">📭 没有找到文件</p>';
+            }
+            
+            resultsDiv.innerHTML = html;
+        }
+        
+        function showDownloadResult(downloadUrl, fileName) {
+            const resultsDiv = document.getElementById('results');
+            
+            const html = `
+                <div class="response success">
+                    <h3>✅ 下载链接生成成功</h3>
+                    <p><strong>文件名:</strong> ${fileName}</p>
+                    <p><strong>下载链接:</strong></p>
+                    <p><a href="${downloadUrl}" target="_blank" style="word-break: break-all;">${downloadUrl}</a></p>
+                    <p><em>注意: 链接有效期为1小时</em></p>
+                    <button onclick="window.open('${downloadUrl}', '_blank')">🚀 打开下载链接</button>
+                    <button onclick="copyToClipboard('${downloadUrl}')" class="secondary">📋 复制链接</button>
+                </div>
+            `;
+            
+            resultsDiv.innerHTML = html;
+        }
+        
+        function showLoading(message) {
+            const resultsDiv = document.getElementById('results');
+            resultsDiv.innerHTML = `<div class="loading">⏳ ${message}</div>`;
+        }
+        
+        function showError(message) {
+            const resultsDiv = document.getElementById('results');
+            resultsDiv.innerHTML = `<div class="response error">❌ ${message}</div>`;
+        }
+        
+        function clearResults() {
+            document.getElementById('results').innerHTML = '';
+        }
+        
+        async function downloadFile(fileName) {
+            try {
+                const response = await fetch(`${API_BASE}/files/${encodeURIComponent(fileName)}/download`);
+                const data = await response.json();
+                
+                if (response.ok) {
+                    window.open(data.downloadUrl, '_blank');
+                } else {
+                    alert(`生成下载链接失败: ${data.message || '未知错误'}`);
+                }
+            } catch (error) {
+                alert(`网络错误: ${error.message}`);
+            }
+        }
+        
+        function copyFileName(fileName) {
+            navigator.clipboard.writeText(fileName).then(() => {
+                alert('文件名已复制到剪贴板');
+            }).catch(() => {
+                // 降级方案
+                const textArea = document.createElement('textarea');
+                textArea.value = fileName;
+                document.body.appendChild(textArea);
+                textArea.select();
+                document.execCommand('copy');
+                document.body.removeChild(textArea);
+                alert('文件名已复制到剪贴板');
+            });
+        }
+        
+        function copyToClipboard(text) {
+            navigator.clipboard.writeText(text).then(() => {
+                alert('链接已复制到剪贴板');
+            }).catch(() => {
+                // 降级方案
+                const textArea = document.createElement('textarea');
+                textArea.value = text;
+                document.body.appendChild(textArea);
+                textArea.select();
+                document.execCommand('copy');
+                document.body.removeChild(textArea);
+                alert('链接已复制到剪贴板');
+            });
+        }
+        
+        // 页面加载时自动查询所有文件
+        window.onload = function() {
+            console.log('MinIO 文件查询测试页面已加载');
+        };
+    </script>
+</body>
+</html>

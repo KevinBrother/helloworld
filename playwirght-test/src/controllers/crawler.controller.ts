@@ -4,12 +4,14 @@ import {
   Get,
   Body,
   Param,
+  Query,
   HttpCode,
   HttpStatus,
   Logger,
   BadRequestException,
 } from '@nestjs/common';
 import { WebsiteCrawlerService } from '../services/crawler/website-crawler.service';
+import { StorageService } from '../core/storage/storage.service';
 import {
   CrawlRequest,
   CrawlResponse,
@@ -20,7 +22,10 @@ import {
 export class CrawlerController {
   private readonly logger = new Logger(CrawlerController.name);
 
-  constructor(private readonly crawlerService: WebsiteCrawlerService) {}
+  constructor(
+    private readonly crawlerService: WebsiteCrawlerService,
+    private readonly storageService: StorageService,
+  ) {}
 
   /**
    * 开始爬取网站
@@ -78,6 +83,75 @@ export class CrawlerController {
       status: 'ok',
       timestamp: new Date().toISOString(),
     };
+  }
+
+  /**
+   * 查询MinIO中的文件
+   */
+  @Get('files')
+  async listFiles(
+    @Query('prefix') prefix?: string,
+    @Query('sessionId') sessionId?: string,
+  ): Promise<{ files: any[]; total: number }> {
+    try {
+      const client = await this.storageService.getClient();
+      const bucketName = this.storageService.getBucketName();
+      
+      let searchPrefix = '';
+      if (sessionId) {
+        searchPrefix = `sessions/${sessionId}/`;
+      } else if (prefix) {
+        searchPrefix = prefix;
+      }
+      
+      const files: any[] = [];
+      
+      return new Promise((resolve, reject) => {
+        const stream = client.listObjects(bucketName, searchPrefix, true);
+        
+        stream.on('data', (obj) => {
+          files.push({
+            name: obj.name,
+            size: obj.size,
+            lastModified: obj.lastModified,
+            etag: obj.etag,
+          });
+        });
+        
+        stream.on('end', () => {
+          this.logger.log(`查询到 ${files.length} 个文件，前缀: ${searchPrefix}`);
+          resolve({ files, total: files.length });
+        });
+        
+        stream.on('error', (error) => {
+          this.logger.error(`查询文件失败: ${error.message}`);
+          reject(new BadRequestException(`查询文件失败: ${error.message}`));
+        });
+      });
+    } catch (error) {
+      this.logger.error(`查询文件失败: ${error.message}`);
+      throw new BadRequestException(`查询文件失败: ${error.message}`);
+    }
+  }
+
+  /**
+   * 获取文件下载链接
+   */
+  @Get('files/:fileName/download')
+  async getFileDownloadUrl(@Param('fileName') fileName: string): Promise<{ downloadUrl: string }> {
+    try {
+      const client = await this.storageService.getClient();
+      const bucketName = this.storageService.getBucketName();
+      
+      // 生成预签名URL，有效期1小时
+      const downloadUrl = await client.presignedGetObject(bucketName, fileName, 3600);
+      
+      this.logger.log(`生成文件下载链接: ${fileName}`);
+      return { downloadUrl };
+    } catch (error) {
+      this.logger.error(`生成下载链接失败: ${error.message}`);
+      throw new BadRequestException(`生成下载链接失败: ${error.message}`);
+    }
   }
 
   /**

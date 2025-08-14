@@ -8,8 +8,8 @@ async function bootstrap() {
   
   // 配置静态文件服务
   app.useStaticAssets(join(__dirname, '..'), {
-    index: false,
-    prefix: '/static'
+    // prefix: '/static'
+    index: false
   });
   
   // 等待应用程序完全初始化（包括所有 onModuleInit 钩子）
