@@ -1,0 +1,426 @@
+<style>
+  .media-config {
+    border: 1px solid #ddd;
+    padding: 15px;
+    margin-top: 10px;
+    border-radius: 5px;
+    background-color: #f9f9f9;
+  }
+
+  .media-type-group {
+    margin-bottom: 15px;
+    padding: 10px;
+    border: 1px solid #eee;
+    border-radius: 3px;
+    background-color: white;
+  }
+
+  .media-extensions {
+    margin-left: 20px;
+    margin-top: 10px;
+  }
+
+  .extensions-config {
+    margin-left: 20px;
+    margin-top: 10px;
+    padding: 10px;
+    background-color: #fafafa;
+    border-radius: 3px;
+    border: 1px solid #e0e0e0;
+  }
+
+  .extensions-input {
+    width: 100%;
+    padding: 8px;
+    margin-bottom: 5px;
+    border: 1px solid #ccc;
+    border-radius: 3px;
+    font-size: 14px;
+  }
+
+  .mode-hint {
+    display: block;
+    color: #666;
+    font-size: 12px;
+    margin-top: 5px;
+    line-height: 1.4;
+  }
+
+  .download-config {
+    margin-top: 20px;
+    padding: 15px;
+    border: 1px solid #ddd;
+    border-radius: 5px;
+    background-color: #f5f5f5;
+  }
+
+  .form-row {
+    display: flex;
+    gap: 15px;
+    margin-bottom: 10px;
+  }
+
+  .form-row .form-group {
+    flex: 1;
+  }
+</style>
+
+<div class="form-section">
+  <h3>媒体文件爬取配置</h3>
+
+  <!-- 启用媒体爬取开关 -->
+  <div class="form-group">
+    <label>
+      <input type="checkbox" id="enableMediaCrawl" /> 启用媒体文件爬取
+    </label>
+  </div>
+
+  <!-- 媒体类型配置 -->
+  <div id="mediaTypesConfig" class="media-config" style="display: none">
+    <!-- 图片配置 -->
+    <div class="media-type-group">
+      <label>
+        <input type="checkbox" class="media-type-checkbox" data-type="image" />
+        图片文件
+      </label>
+      <div class="media-extensions" data-type="image" style="display: none">
+        <label>
+          <input type="radio" name="image-mode" value="inherit" checked />
+          继承预设格式 (JPG, PNG, GIF, WebP, SVG, BMP, ICO)
+        </label>
+        <label>
+          <input type="radio" name="image-mode" value="override" />
+          覆盖为自定义格式
+        </label>
+        <div class="extensions-config">
+          <input
+            type="text"
+            placeholder="继承模式：在预设基础上增加格式，如: tiff,raw"
+            class="extensions-input"
+            data-type="image"
+          />
+          <small class="mode-hint"
+            >继承模式：在预设格式基础上增加新格式 |
+            覆盖模式：只使用指定格式</small
+          >
+        </div>
+      </div>
+    </div>
+
+    <!-- 视频配置 -->
+    <div class="media-type-group">
+      <label>
+        <input type="checkbox" class="media-type-checkbox" data-type="video" />
+        视频文件
+      </label>
+      <div class="media-extensions" data-type="video" style="display: none">
+        <label>
+          <input type="radio" name="video-mode" value="inherit" checked />
+          继承预设格式 (MP4, AVI, MOV, WMV, FLV, WebM, MKV)
+        </label>
+        <label>
+          <input type="radio" name="video-mode" value="override" />
+          覆盖为自定义格式
+        </label>
+        <div class="extensions-config">
+          <input
+            type="text"
+            placeholder="输入文件扩展名，用逗号分隔"
+            class="extensions-input"
+            data-type="video"
+          />
+          <small class="mode-hint"
+            >继承模式：在预设格式基础上增加新格式 |
+            覆盖模式：只使用指定格式</small
+          >
+        </div>
+      </div>
+    </div>
+
+    <!-- 音频配置 -->
+    <div class="media-type-group">
+      <label>
+        <input type="checkbox" class="media-type-checkbox" data-type="audio" />
+        音频文件
+      </label>
+      <div class="media-extensions" data-type="audio" style="display: none">
+        <label>
+          <input type="radio" name="audio-mode" value="inherit" checked />
+          继承预设格式 (MP3, WAV, AAC, OGG, M4A)
+        </label>
+        <label>
+          <input type="radio" name="audio-mode" value="override" />
+          覆盖为自定义格式
+        </label>
+        <div class="extensions-config">
+          <input
+            type="text"
+            placeholder="继承模式：在预设基础上增加格式，如: flac,ape"
+            class="extensions-input"
+            data-type="audio"
+          />
+          <small class="mode-hint"
+            >继承模式：在预设格式基础上增加新格式 |
+            覆盖模式：只使用指定格式</small
+          >
+        </div>
+      </div>
+    </div>
+
+    <!-- 文档配置 -->
+    <div class="media-type-group">
+      <label>
+        <input
+          type="checkbox"
+          class="media-type-checkbox"
+          data-type="document"
+        />
+        文档文件
+      </label>
+      <div class="media-extensions" data-type="document" style="display: none">
+        <label>
+          <input type="radio" name="document-mode" value="inherit" checked />
+          继承预设格式 (PDF, DOC, DOCX, XLS, XLSX, PPT, PPTX)
+        </label>
+        <label>
+          <input type="radio" name="document-mode" value="override" />
+          覆盖为自定义格式
+        </label>
+        <div class="extensions-config">
+          <input
+            type="text"
+            placeholder="继承模式：在预设基础上增加格式，如: txt,rtf"
+            class="extensions-input"
+            data-type="document"
+          />
+          <small class="mode-hint"
+            >继承模式：在预设格式基础上增加新格式 |
+            覆盖模式：只使用指定格式</small
+          >
+        </div>
+      </div>
+    </div>
+
+    <!-- 压缩包配置 -->
+    <div class="media-type-group">
+      <label>
+        <input
+          type="checkbox"
+          class="media-type-checkbox"
+          data-type="archive"
+        />
+        压缩包文件
+      </label>
+      <div class="media-extensions" data-type="archive" style="display: none">
+        <label>
+          <input type="radio" name="archive-mode" value="inherit" checked />
+          继承预设格式 (ZIP, RAR, 7Z, TAR, GZ)
+        </label>
+        <label>
+          <input type="radio" name="archive-mode" value="override" />
+          覆盖为自定义格式
+        </label>
+        <div class="extensions-config">
+          <input
+            type="text"
+            placeholder="继承模式：在预设基础上增加格式，如: bz2,xz"
+            class="extensions-input"
+            data-type="archive"
+          />
+          <small class="mode-hint"
+            >继承模式：在预设格式基础上增加新格式 |
+            覆盖模式：只使用指定格式</small
+          >
+        </div>
+      </div>
+    </div>
+
+    <!-- 下载配置 -->
+    <div class="download-config">
+      <h4>下载配置</h4>
+      <div class="form-row">
+        <div class="form-group">
+          <label for="maxFileSize">单个文件最大大小 (MB):</label>
+          <input type="number" id="maxFileSize" value="50" min="1" max="1000" />
+        </div>
+        <div class="form-group">
+          <label for="maxTotalSize">总下载大小限制 (MB):</label>
+          <input
+            type="number"
+            id="maxTotalSize"
+            value="500"
+            min="1"
+            max="10000"
+          />
+        </div>
+      </div>
+      <div class="form-row">
+        <div class="form-group">
+          <label for="downloadTimeout">下载超时时间 (秒):</label>
+          <input
+            type="number"
+            id="downloadTimeout"
+            value="30"
+            min="5"
+            max="300"
+          />
+        </div>
+        <div class="form-group">
+          <label for="concurrent">并发下载数量:</label>
+          <input type="number" id="concurrent" value="3" min="1" max="10" />
+        </div>
+      </div>
+      <div class="form-group">
+        <label>
+          <input type="checkbox" id="skipDuplicates" checked /> 跳过重复文件
+        </label>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+  // 启用/禁用媒体爬取
+  document
+    .getElementById("enableMediaCrawl")
+    .addEventListener("change", function (e) {
+      const mediaConfig = document.getElementById("mediaTypesConfig");
+      mediaConfig.style.display = e.target.checked ? "block" : "none";
+    });
+
+  // 媒体类型选择
+  document.querySelectorAll(".media-type-checkbox").forEach((checkbox) => {
+    checkbox.addEventListener("change", function (e) {
+      const type = e.target.dataset.type;
+      const extensionsDiv = document.querySelector(
+        `.media-extensions[data-type="${type}"]`
+      );
+      extensionsDiv.style.display = e.target.checked ? "block" : "none";
+    });
+  });
+
+  // 继承/覆盖模式切换
+  document.querySelectorAll('input[type="radio"]').forEach((radio) => {
+    radio.addEventListener("change", function (e) {
+      const extensionsDiv =
+        e.target.parentElement.parentElement.querySelector(
+          ".extensions-config"
+        );
+      const input = extensionsDiv.querySelector(".extensions-input");
+      const hint = extensionsDiv.querySelector(".mode-hint");
+
+      if (e.target.value === "inherit") {
+        input.placeholder = input.placeholder.replace(
+          "覆盖模式：只使用指定格式",
+          "继承模式：在预设基础上增加格式"
+        );
+      } else {
+        input.placeholder = input.placeholder.replace(
+          "继承模式：在预设基础上增加格式",
+          "覆盖模式：只使用指定格式"
+        );
+      }
+    });
+  });
+
+  // 构建媒体配置对象
+  function buildMediaOptions() {
+    const enableMediaCrawl =
+      document.getElementById("enableMediaCrawl").checked;
+
+    if (!enableMediaCrawl) {
+      return { enableMediaCrawl: false };
+    }
+
+    const mediaTypes = [];
+
+    document
+      .querySelectorAll(".media-type-checkbox:checked")
+      .forEach((checkbox) => {
+        const type = checkbox.dataset.type;
+        const modeRadio = document.querySelector(
+          `input[name="${type}-mode"]:checked`
+        );
+
+        const extensionsInput = document.querySelector(
+          `.extensions-input[data-type="${type}"]`
+        );
+        const extensions = extensionsInput.value
+          .split(",")
+          .map((ext) => ext.trim())
+          .filter((ext) => ext);
+
+        const config = {
+          type: type,
+          mode: modeRadio.value,
+        };
+
+        if (extensions.length > 0) {
+          config.extensions = extensions;
+        }
+
+        mediaTypes.push(config);
+      });
+
+    return {
+      enableMediaCrawl: true,
+      mediaTypes: mediaTypes,
+      maxFileSize: parseInt(document.getElementById("maxFileSize").value),
+      maxTotalSize: parseInt(document.getElementById("maxTotalSize").value),
+      downloadTimeout: parseInt(
+        document.getElementById("downloadTimeout").value
+      ),
+      concurrent: parseInt(document.getElementById("concurrent").value),
+      skipDuplicates: document.getElementById("skipDuplicates").checked,
+    };
+  }
+
+  // 修改现有的爬取函数，添加媒体配置
+  function startCrawl() {
+    const crawlData = {
+      startUrl: document.getElementById("startUrl").value,
+      maxDepth: parseInt(document.getElementById("maxDepth").value),
+      maxPages: parseInt(document.getElementById("maxPages").value),
+      takeScreenshots: document.getElementById("takeScreenshots").checked,
+      mediaOptions: buildMediaOptions(), // 添加媒体配置
+    };
+
+    // 发送爬取请求...
+  }
+</script>
+
+<script>
+  function displayMediaFiles(mediaFiles) {
+    const container = document.getElementById("mediaFilesList");
+    container.innerHTML = "";
+
+    mediaFiles.forEach((file) => {
+      const fileElement = document.createElement("div");
+      fileElement.className = "media-file-item";
+      fileElement.innerHTML = `
+      <div class="file-info">
+        <div class="file-name">${file.fileName}</div>
+        <div class="file-details">
+          <span class="file-type">${file.fileType}</span>
+          <span class="file-size">${formatFileSize(file.fileSize)}</span>
+          <span class="file-source">来源: ${file.sourcePageUrl}</span>
+        </div>
+      </div>
+      <div class="file-actions">
+        <button onclick="downloadMediaFile('${file.id}')">下载</button>
+        ${file.thumbnailPath ? `<button onclick="viewThumbnail('${file.id}')">预览</button>` : ""}
+      </div>
+    `;
+      container.appendChild(fileElement);
+    });
+  }
+
+  // 格式化文件大小
+  function formatFileSize(bytes) {
+    if (bytes === 0) return "0 B";
+    const k = 1024;
+    const sizes = ["B", "KB", "MB", "GB"];
+    const i = Math.floor(Math.log(bytes) / Math.log(k));
+    return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + " " + sizes[i];
+  }
+</script>
