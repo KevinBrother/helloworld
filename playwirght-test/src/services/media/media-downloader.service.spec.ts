@@ -1,15 +1,22 @@
-import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
+import { Test, TestingModule } from '@nestjs/testing';
+import { describe, it, expect, beforeEach, afterAll, vi } from 'vitest';
 import { MediaDownloaderService } from './media-downloader.service';
 import { StorageService } from '../../core/storage/storage.service';
 import { MediaFileInfo, MediaCrawlOptions } from '../../shared/interfaces/crawler.interface';
 import axios from 'axios';
 
 // Mock axios
-vi.mock('axios');
+vi.mock('axios', () => ({
+  default: {
+    head: vi.fn(),
+    get: vi.fn(),
+  },
+}));
 const mockedAxios = vi.mocked(axios, true);
 
 describe('MediaDownloaderService', () => {
   let service: MediaDownloaderService;
+  let module: TestingModule;
   let mockStorageService: any;
 
   const mockMediaFile: MediaFileInfo = {
@@ -36,16 +43,36 @@ describe('MediaDownloaderService', () => {
       getBucketName: vi.fn().mockReturnValue('test-bucket'),
     };
 
-    // 直接创建服务实例而不是使用 NestJS 测试模块
-    service = new MediaDownloaderService(mockStorageService);
+    module = await Test.createTestingModule({
+      providers: [
+        MediaDownloaderService,
+        {
+          provide: StorageService,
+          useValue: mockStorageService,
+        },
+      ],
+    }).compile();
+
+    service = module.get<MediaDownloaderService>(MediaDownloaderService);
   });
 
-  afterEach(() => {
-    vi.clearAllMocks();
+  afterAll(async () => {
+    if (module) {
+      await module.close();
+    }
   });
 
   it('should be defined', () => {
     expect(service).toBeDefined();
+  });
+
+  it('should have storageService injected', () => {
+    expect(service).toBeDefined();
+    // 通过反射检查 storageService 是否被注入
+    const storageService = (service as any).storageService;
+    expect(storageService).toBeDefined();
+    expect(typeof storageService.getClient).toBe('function');
+    expect(typeof storageService.getBucketName).toBe('function');
   });
 
   describe('downloadMediaFiles', () => {
@@ -61,14 +88,8 @@ describe('MediaDownloaderService', () => {
       };
 
       // 确保axios mock正确配置
-      mockedAxios.head.mockResolvedValueOnce(mockHeadResponse);
-      mockedAxios.get.mockResolvedValueOnce(mockGetResponse);
-
-      // 确保storageService mock正确配置
-      mockStorageService.getClient.mockResolvedValueOnce({
-        putObject: vi.fn().mockResolvedValue({ etag: 'test-etag' })
-      });
-      mockStorageService.getBucketName.mockReturnValueOnce('test-bucket');
+      (mockedAxios.head as any).mockResolvedValueOnce(mockHeadResponse);
+      (mockedAxios.get as any).mockResolvedValueOnce(mockGetResponse);
 
       const results = await service.downloadMediaFiles([mockMediaFile], 'test-session', mockOptions);
 
@@ -79,7 +100,7 @@ describe('MediaDownloaderService', () => {
     });
 
     it('should handle download failure', async () => {
-      mockedAxios.head.mockRejectedValue(new Error('Network error'));
+      (mockedAxios.head as any).mockRejectedValue(new Error('Network error'));
 
       const results = await service.downloadMediaFiles([mockMediaFile], 'test-session', mockOptions);
 

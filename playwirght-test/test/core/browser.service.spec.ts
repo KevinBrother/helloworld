@@ -1,3 +1,4 @@
+import { Test, TestingModule } from '@nestjs/testing';
 import { BrowserService } from '../../src/core/browser/browser.service';
 import { vi, describe, beforeEach, afterEach, it, expect } from 'vitest';
 import { chromium } from 'playwright';
@@ -34,6 +35,7 @@ const mockPage = {
 
 describe('BrowserService', () => {
   let service: BrowserService;
+  let module: TestingModule;
 
   beforeEach(async () => {
     // Reset all mocks
@@ -51,8 +53,11 @@ describe('BrowserService', () => {
     mockPage.waitForSelector.mockRejectedValue(new Error('Selector not found')); // Mock selector timeout
     mockPage.evaluate.mockResolvedValue(undefined);
 
-    // 直接创建服务实例，避免 NestJS 依赖注入问题
-    service = new BrowserService();
+    module = await Test.createTestingModule({
+      providers: [BrowserService],
+    }).compile();
+
+    service = module.get<BrowserService>(BrowserService);
   });
 
   afterEach(async () => {
@@ -60,6 +65,7 @@ describe('BrowserService', () => {
     if (service) {
       await service.close();
     }
+    await module.close();
   });
 
   describe('launch', () => {

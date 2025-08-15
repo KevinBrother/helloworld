@@ -1,4 +1,4 @@
-import { Injectable, Logger } from '@nestjs/common';
+import { Inject, Injectable, Logger } from '@nestjs/common';
 import { BrowserService } from '../../core/browser/browser.service';
 import { StorageService } from '../../core/storage/storage.service';
 import { ContentExtractorService } from '../content/content-extractor.service';
@@ -22,7 +22,7 @@ export class WebsiteCrawlerService {
 
   constructor(
     private readonly browserService: BrowserService,
-    private readonly storageService: StorageService,
+    @Inject(StorageService) private readonly storageService: StorageService,
     private readonly contentExtractor: ContentExtractorService,
     private readonly linkManager: LinkManagerService,
     private readonly mediaDetector: MediaDetectorService,

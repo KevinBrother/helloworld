@@ -1,4 +1,4 @@
-import { Injectable, Logger } from '@nestjs/common';
+import { Injectable, Logger, Inject } from '@nestjs/common';
 import { StorageService } from '../../core/storage/storage.service';
 import { MediaFileInfo, MediaDownloadResult, MediaCrawlOptions } from '../../shared/interfaces/crawler.interface';
 import { PathGenerator } from '../../shared/utils/path-generator.util';
@@ -12,7 +12,7 @@ export class MediaDownloaderService {
   private readonly activeDownloads = new Set<string>();
   private readonly downloadedFiles = new Map<string, MediaFileInfo>();
 
-  constructor(private readonly storageService: StorageService) {}
+  constructor(@Inject(StorageService) private readonly storageService: StorageService) {}
 
   /**
    * 批量下载媒体文件
