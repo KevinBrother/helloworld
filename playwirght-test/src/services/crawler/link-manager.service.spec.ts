@@ -1,7 +1,6 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import { LinkManagerService } from './link-manager.service';
-import { LinkInfo } from '../../shared/interfaces/crawler.interface';
 
 describe('LinkManagerService', () => {
   let service: LinkManagerService;

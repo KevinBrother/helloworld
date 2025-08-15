@@ -29,11 +29,11 @@ export class ContentExtractorService {
     // 提取标题
     const title = this.extractTitle($);
     
-    // 提取主要内容
-    const content = this.extractMainContent($);
-    
-    // 提取链接
+    // 先提取链接（在移除导航元素之前）
     const links = this.extractLinks($, baseUrl);
+    
+    // 然后提取主要内容（这会移除导航元素）
+    const content = this.extractMainContent($);
     
     // 提取元数据
     const metadata = this.extractMetadata($, content, links);
@@ -42,7 +42,7 @@ export class ContentExtractorService {
       title,
       content,
       links,
-      metadata,
+      metadata
     };
   }
 
@@ -69,6 +69,7 @@ export class ContentExtractorService {
    */
   private extractMainContent($: cheerio.CheerioAPI): string {
     // 移除不需要的元素
+    // TODO 为什么要移除元素？ 这样会影响后续的操作的
     $('script, style, nav, header, footer, aside, .advertisement, .ads, .sidebar').remove();
     
     // 尝试找到主要内容区域
