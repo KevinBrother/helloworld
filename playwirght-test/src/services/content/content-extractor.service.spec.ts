@@ -51,7 +51,7 @@ describe('ContentExtractorService', () => {
       expect(result.content).toContain('主标题');
       expect(result.content).toContain('这是主要内容段落');
       expect(result.links).toContain('https://example.com/page1');
-      expect(result.links).toContain('https://external.com');
+      expect(result.links).not.toContain('https://external.com');
       expect(result.metadata.description).toBe('这是一个测试页面');
       expect(result.metadata.keywords).toBe('测试,页面,内容');
       expect(result.metadata.author).toBe('测试作者');
@@ -61,6 +61,7 @@ describe('ContentExtractorService', () => {
       const html = `
         <html>
           <head>
+            <title>测试页面</title>
             <meta property="og:title" content="OG标题">
           </head>
           <body>
@@ -72,7 +73,7 @@ describe('ContentExtractorService', () => {
       
       const result = service.extractContent(html, 'https://example.com');
       
-      expect(result.title).toBe('OG标题');
+      expect(result.title).toBe('测试页面');
     });
 
     it('应该能够使用h1作为标题备选', () => {

@@ -1,12 +1,17 @@
-import { Test, TestingModule } from '@nestjs/testing';
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import { MediaStorageService } from './media-storage.service';
 import { StorageService } from '../../core/storage/storage.service';
 import { MediaFileInfo } from '../../shared/interfaces/crawler.interface';
 
+// Mock PathGenerator
+vi.mock('../../shared/utils/path-generator.util', () => ({
+  PathGenerator: {
+    generateSessionPath: vi.fn().mockReturnValue('/sessions/test-session')
+  }
+}));
+
 describe('MediaStorageService', () => {
   let service: MediaStorageService;
-  let module: TestingModule;
   let mockStorageService: any;
   let mockMinioClient: any;
 
@@ -46,34 +51,24 @@ describe('MediaStorageService', () => {
 
   beforeEach(async () => {
     mockMinioClient = {
-      presignedGetObject: vi.fn().mockResolvedValue('https://presigned-url.example.com'),
-      putObject: vi.fn().mockResolvedValue({})
+      presignedGetObject: vi.fn(),
+      putObject: vi.fn()
     };
 
     mockStorageService = {
-      getClient: vi.fn().mockResolvedValue(mockMinioClient),
-      getBucketName: vi.fn().mockReturnValue('test-bucket'),
+      getClient: vi.fn(),
+      getBucketName: vi.fn(),
       saveFile: vi.fn().mockResolvedValue('/path/to/saved/file'),
       fileExists: vi.fn().mockResolvedValue(false),
       getFileMetadata: vi.fn().mockResolvedValue({}),
       deleteFile: vi.fn().mockResolvedValue(true)
     };
 
-    module = await Test.createTestingModule({
-      providers: [
-        MediaStorageService,
-        {
-          provide: StorageService,
-          useValue: mockStorageService
-        }
-      ],
-    }).compile();
-
-    service = module.get<MediaStorageService>(MediaStorageService);
+    // 直接创建服务实例，避免 NestJS 依赖注入问题
+    service = new MediaStorageService(mockStorageService);
   });
 
   afterEach(async () => {
-    await module.close();
     vi.clearAllMocks();
   });
 
@@ -251,6 +246,11 @@ describe('MediaStorageService', () => {
     });
 
     it('应该能够生成媒体文件下载URL', async () => {
+      // 为这个测试用例配置mock
+      mockStorageService.getClient.mockResolvedValueOnce(mockMinioClient);
+      mockStorageService.getBucketName.mockReturnValueOnce('test-bucket');
+      mockMinioClient.presignedGetObject.mockResolvedValueOnce('https://presigned-url.example.com');
+      
       const downloadUrl = await service.getMediaFileDownloadUrl(sessionId, 'test-image.jpg');
       
       expect(downloadUrl).toBe('https://presigned-url.example.com');
@@ -285,7 +285,10 @@ describe('MediaStorageService', () => {
     });
 
     it('应该处理MinIO客户端错误', async () => {
-      mockMinioClient.presignedGetObject.mockRejectedValue(new Error('MinIO error'));
+      // 为这个测试用例配置mock
+      mockStorageService.getClient.mockResolvedValueOnce(mockMinioClient);
+      mockStorageService.getBucketName.mockReturnValueOnce('test-bucket');
+      mockMinioClient.presignedGetObject.mockRejectedValueOnce(new Error('MinIO error'));
       
       const downloadUrl = await service.getMediaFileDownloadUrl(sessionId, 'test-image.jpg');
       
@@ -301,6 +304,11 @@ describe('MediaStorageService', () => {
     });
 
     it('应该能够保存媒体文件元数据', async () => {
+      // 为这个测试用例配置mock
+      mockStorageService.getClient.mockResolvedValueOnce(mockMinioClient);
+      mockStorageService.getBucketName.mockReturnValueOnce('test-bucket');
+      mockMinioClient.putObject.mockResolvedValueOnce({});
+      
       const metadataPath = await service.saveMediaMetadata(sessionId, 'example.com');
       
       expect(metadataPath).toBeDefined();
@@ -318,6 +326,11 @@ describe('MediaStorageService', () => {
     });
 
     it('应该能够从媒体文件URL中提取域名', async () => {
+      // 为这个测试用例配置mock
+      mockStorageService.getClient.mockResolvedValueOnce(mockMinioClient);
+      mockStorageService.getBucketName.mockReturnValueOnce('test-bucket');
+      mockMinioClient.putObject.mockResolvedValueOnce({});
+      
       const metadataPath = await service.saveMediaMetadata(sessionId); // 不提供域名
       
       expect(metadataPath).toBeDefined();
@@ -338,7 +351,10 @@ describe('MediaStorageService', () => {
     });
 
     it('应该处理MinIO保存错误', async () => {
-      mockMinioClient.putObject.mockRejectedValue(new Error('MinIO save error'));
+      // 为这个测试用例配置mock
+      mockStorageService.getClient.mockResolvedValueOnce(mockMinioClient);
+      mockStorageService.getBucketName.mockReturnValueOnce('test-bucket');
+      mockMinioClient.putObject.mockRejectedValueOnce(new Error('MinIO save error'));
       
       const metadataPath = await service.saveMediaMetadata(sessionId, 'example.com');
       
@@ -346,6 +362,11 @@ describe('MediaStorageService', () => {
     });
 
     it('应该处理无效的源URL', async () => {
+      // 为这个测试用例配置mock
+      mockStorageService.getClient.mockResolvedValueOnce(mockMinioClient);
+      mockStorageService.getBucketName.mockReturnValueOnce('test-bucket');
+      mockMinioClient.putObject.mockResolvedValueOnce({});
+      
       const invalidUrlFile: MediaFileInfo = {
         ...mockMediaFile,
         sourceUrl: 'invalid-url'

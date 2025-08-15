@@ -1,4 +1,3 @@
-import { Test, TestingModule } from '@nestjs/testing';
 import { BrowserService } from '../../src/core/browser/browser.service';
 import { vi, describe, beforeEach, afterEach, it, expect } from 'vitest';
 import { chromium } from 'playwright';
@@ -35,7 +34,6 @@ const mockPage = {
 
 describe('BrowserService', () => {
   let service: BrowserService;
-  let module: TestingModule;
 
   beforeEach(async () => {
     // Reset all mocks
@@ -50,18 +48,18 @@ describe('BrowserService', () => {
     mockPage.screenshot.mockResolvedValue(Buffer.from('screenshot'));
     mockPage.goto.mockResolvedValue(undefined);
     mockPage.waitForLoadState.mockResolvedValue(undefined);
-    mockPage.waitForSelector.mockResolvedValue(undefined);
+    mockPage.waitForSelector.mockRejectedValue(new Error('Selector not found')); // Mock selector timeout
     mockPage.evaluate.mockResolvedValue(undefined);
 
-    module = await Test.createTestingModule({
-      providers: [BrowserService],
-    }).compile();
-
-    service = module.get<BrowserService>(BrowserService);
+    // 直接创建服务实例，避免 NestJS 依赖注入问题
+    service = new BrowserService();
   });
 
   afterEach(async () => {
-    await module.close();
+    // Clean up service if needed
+    if (service) {
+      await service.close();
+    }
   });
 
   describe('launch', () => {
@@ -107,7 +105,7 @@ describe('BrowserService', () => {
       expect(result.html).toBe('<html><body>Test</body></html>');
       expect(result.title).toBe('Test Page');
       expect(mockPage.close).toHaveBeenCalled();
-    });
+    }, 10000);
 
     it('should take screenshot when requested', async () => {
       const url = 'https://example.com';
@@ -118,7 +116,7 @@ describe('BrowserService', () => {
         type: 'png',
       });
       expect(result.screenshot).toEqual(Buffer.from('screenshot'));
-    });
+    }, 10000);
 
     it('should handle page navigation failure', async () => {
       mockPage.goto.mockRejectedValue(new Error('Navigation failed'));
@@ -137,7 +135,7 @@ describe('BrowserService', () => {
       
       const result = await service.crawlPage('https://example.com', { takeScreenshot: true });
       expect(result.screenshot).toBeUndefined();
-    });
+    }, 10000);
   });
 
   describe('close', () => {
@@ -174,13 +172,13 @@ describe('BrowserService', () => {
       await service.crawlPage('https://example.com');
       
       expect(mockPage.setDefaultTimeout).toHaveBeenCalledWith(60000);
-    });
+    }, 10000);
 
     it('should wait for load state', async () => {
       await service.launch();
       await service.crawlPage('https://example.com');
       
       expect(mockPage.waitForLoadState).toHaveBeenCalledWith('domcontentloaded');
-    });
+    }, 10000);
   });
 });

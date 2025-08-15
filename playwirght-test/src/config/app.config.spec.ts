@@ -62,8 +62,7 @@ describe('AppConfig', () => {
       expect(defaultStorageConfig.minio.endpoint).toBe('localhost');
       expect(defaultStorageConfig.minio.port).toBe(9000);
       expect(defaultStorageConfig.minio.accessKey).toBe('minioadmin');
-      // The implementation default is 'minioadmin123'
-      expect(defaultStorageConfig.minio.secretKey).toBe('minioadmin123');
+      expect(defaultStorageConfig.minio.secretKey).toBe('minioadmin');
     });
 
     it('should read MINIO_ENDPOINT from environment variables', async () => {

@@ -1,4 +1,3 @@
-import { Test, TestingModule } from '@nestjs/testing';
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import { MediaDownloaderService } from './media-downloader.service';
 import { StorageService } from '../../core/storage/storage.service';
@@ -11,7 +10,6 @@ const mockedAxios = vi.mocked(axios, true);
 
 describe('MediaDownloaderService', () => {
   let service: MediaDownloaderService;
-  let module: TestingModule;
   let mockStorageService: any;
 
   const mockMediaFile: MediaFileInfo = {
@@ -38,14 +36,8 @@ describe('MediaDownloaderService', () => {
       getBucketName: vi.fn().mockReturnValue('test-bucket'),
     };
 
-    module = await Test.createTestingModule({
-      providers: [
-        MediaDownloaderService,
-        { provide: StorageService, useValue: mockStorageService },
-      ],
-    }).compile();
-
-    service = module.get<MediaDownloaderService>(MediaDownloaderService);
+    // 直接创建服务实例而不是使用 NestJS 测试模块
+    service = new MediaDownloaderService(mockStorageService);
   });
 
   afterEach(() => {
@@ -58,11 +50,25 @@ describe('MediaDownloaderService', () => {
 
   describe('downloadMediaFiles', () => {
     it('should download a single file successfully', async () => {
-      const mockHeadResponse = { headers: { 'content-length': '1024' } };
-      const mockGetResponse = { data: Buffer.from('fake image data'), headers: { 'content-type': 'image/jpeg' }, status: 200 };
+      const mockHeadResponse = { 
+        headers: { 'content-length': '1024' },
+        status: 200
+      };
+      const mockGetResponse = { 
+        data: Buffer.from('fake image data'), 
+        headers: { 'content-type': 'image/jpeg' }, 
+        status: 200 
+      };
 
-      mockedAxios.head.mockResolvedValue(mockHeadResponse);
-      mockedAxios.get.mockResolvedValue(mockGetResponse);
+      // 确保axios mock正确配置
+      mockedAxios.head.mockResolvedValueOnce(mockHeadResponse);
+      mockedAxios.get.mockResolvedValueOnce(mockGetResponse);
+
+      // 确保storageService mock正确配置
+      mockStorageService.getClient.mockResolvedValueOnce({
+        putObject: vi.fn().mockResolvedValue({ etag: 'test-etag' })
+      });
+      mockStorageService.getBucketName.mockReturnValueOnce('test-bucket');
 
       const results = await service.downloadMediaFiles([mockMediaFile], 'test-session', mockOptions);
 
