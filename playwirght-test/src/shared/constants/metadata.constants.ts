@@ -6,6 +6,7 @@
 // 存储时使用的字段名（带 x-amz-meta- 前缀）
 export const METADATA_KEYS_STORAGE = {
   ORIGINAL_URL: 'x-amz-meta-original-url',
+  // 来源于哪个 html 页面
   SOURCE_URL: 'x-amz-meta-source-url',
   TITLE: 'x-amz-meta-title',
   SESSION_ID: 'x-amz-meta-session-id',

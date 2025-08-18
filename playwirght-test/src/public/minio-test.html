@@ -557,7 +557,7 @@
             
             <div class="form-group">
                 <label>
-                    <input type="checkbox" id="useStreamMode" onchange="toggleStreamMode()"> 
+                    <input type="checkbox" id="useStreamMode" checked onchange="toggleStreamMode()"> 
                     启用流式加载模式 (适用于大量文件)
                 </label>
                 <small style="color: #666; display: block; margin-top: 5px;">
@@ -565,7 +565,7 @@
                 </small>
             </div>
             
-            <div id="streamOptions" style="display: none; margin-top: 15px; padding: 15px; background: #f8f9fa; border-radius: 6px;">
+            <div id="streamOptions" style="margin-top: 15px; padding: 15px; background: #f8f9fa; border-radius: 6px;">
                 <h4 style="margin: 0 0 10px 0; color: #495057;">🚀 流式加载选项</h4>
                 <div class="form-group">
                     <label for="maxKeys">最大文件数量:</label>
@@ -668,7 +668,7 @@
          let currentQueryParams = {};
          let streamEventSource = null;
          let streamedFiles = [];
-         let isStreamMode = false;
+         let isStreamMode = true;
          let virtualScrollEnabled = false;
          let visibleStartIndex = 0;
          let visibleEndIndex = 50;

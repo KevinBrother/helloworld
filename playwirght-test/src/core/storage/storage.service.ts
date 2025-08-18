@@ -148,7 +148,7 @@ export class StorageService {
         {
           'Content-Type': 'application/json',
           [METADATA_KEYS_STORAGE.ORIGINAL_URL]: this.sanitizeMetadataValue(pageData.url),
-          [METADATA_KEYS_STORAGE.SOURCE_URL]: this.sanitizeMetadataValue(pageData.url),
+          [METADATA_KEYS_STORAGE.SOURCE_URL]: this.sanitizeMetadataValue(pageData.metadata.parentUrl),
           [METADATA_KEYS_STORAGE.SESSION_ID]: this.sanitizeMetadataValue(sessionId),
           [METADATA_KEYS_STORAGE.FILE_TYPE]: FILE_TYPES.METADATA,
         }
