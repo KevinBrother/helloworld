@@ -927,7 +927,7 @@
             }
 
             try {
-                const response = await fetch(`${API_BASE}/media/${sessionId}/${fileName}/download`);
+                const response = await fetch(`/api/media/media/${sessionId}/${fileName}/download`);
                 const data = await response.json();
                 
                 if (response.ok && data.downloadUrl) {

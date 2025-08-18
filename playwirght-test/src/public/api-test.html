@@ -189,7 +189,7 @@
             resultDiv.textContent = '正在爬取，请稍候...';
             
             try {
-                const response = await fetch('/crawler/crawl', {
+                const response = await fetch('/api/crawler/crawl', {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json'
@@ -230,7 +230,7 @@
             
             requestBody += '}';
             
-            const curlCommand = `curl -X POST http://localhost:3000/crawler/crawl \\
+            const curlCommand = `curl -X POST http://localhost:3000/api/crawler/crawl \\
   -H "Content-Type: application/json" \\
   -d '${requestBody}'`;
             

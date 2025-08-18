@@ -145,7 +145,7 @@ describe('CrawlerModule', () => {
     it('应该包含所有必需的控制器', () => {
       const controllers = Reflect.getMetadata('controllers', CrawlerModule);
       expect(controllers).toContain(CrawlerController);
-      expect(controllers).toHaveLength(1);
+      expect(controllers).toHaveLength(3); // CrawlerController, FileController, MediaController
     });
 
     it('应该包含所有必需的提供者', () => {

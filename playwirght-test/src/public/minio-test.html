@@ -646,7 +646,7 @@
     </div>
 
     <script>
-        const API_BASE = 'http://localhost:3000/api/crawler';
+        const API_BASE = 'http://localhost:3000/api/files';
         
         function toggleQueryInputs() {
             const queryType = document.getElementById('queryType').value;
@@ -705,7 +705,7 @@
         async function listFilesNormal(page = 1) {
             const { queryType, sessionId, prefix, pageSize } = currentQueryParams;
             
-            let url = `${API_BASE}/files`;
+            let url = `${API_BASE}`;
             const params = new URLSearchParams();
             
             if (queryType === 'session' && sessionId) {
@@ -740,7 +740,7 @@
             const maxKeys = document.getElementById('maxKeys').value;
             const batchSize = document.getElementById('batchSize').value;
             
-            let url = `${API_BASE}/files/stream`;
+            let url = `${API_BASE}/stream`;
             const params = new URLSearchParams();
             
             if (queryType === 'session' && sessionId) {
@@ -799,7 +799,7 @@
             showLoading('正在生成下载链接...');
             
             try {
-                const response = await fetch(`${API_BASE}/files/${encodeURIComponent(fileName)}/download`);
+                const response = await fetch(`${API_BASE}/${encodeURIComponent(fileName)}/download`);
                 const data = await response.json();
                 
                 if (response.ok) {
@@ -1573,7 +1573,7 @@
         
         async function downloadFile(fileName) {
             try {
-                const response = await fetch(`${API_BASE}/files/${encodeURIComponent(fileName)}/download`);
+                const response = await fetch(`${API_BASE}/${encodeURIComponent(fileName)}/download`);
                 const data = await response.json();
                 
                 if (response.ok) {
@@ -1674,7 +1674,7 @@
         // 预览文件
         async function previewFile(fileName) {
             try {
-                const response = await fetch(`${API_BASE}/files/${encodeURIComponent(fileName)}/download`);
+                const response = await fetch(`${API_BASE}/${encodeURIComponent(fileName)}/download`);
                 const data = await response.json();
                 
                 if (response.ok) {
@@ -1774,7 +1774,7 @@
         // 会话管理相关函数
         async function getActiveSessions() {
             try {
-                const response = await fetch(`${API_BASE}/sessions`);
+                const response = await fetch(`/api/crawler/sessions`);
                 const data = await response.json();
                 displayResults('活跃会话列表', data);
             } catch (error) {
@@ -1790,7 +1790,7 @@
             }
             
             try {
-                const response = await fetch(`${API_BASE}/session/${sessionId}`);
+                const response = await fetch(`/api/crawler/session/${sessionId}`);
                 const data = await response.json();
                 displayResults(`会话状态 - ${sessionId}`, data);
             } catch (error) {
@@ -1806,7 +1806,7 @@
             }
             
             try {
-                const response = await fetch(`${API_BASE}/session/${sessionId}/media`);
+                const response = await fetch(`/api/media/session/${sessionId}/media`);
                 const data = await response.json();
                 displayResults(`会话媒体文件 - ${sessionId}`, data);
             } catch (error) {
@@ -1816,7 +1816,7 @@
         
         async function getMediaStats() {
             try {
-                const response = await fetch(`${API_BASE}/media/stats`);
+                const response = await fetch(`/api/media/media/stats`);
                 const data = await response.json();
                 displayResults('媒体文件统计', data);
             } catch (error) {
@@ -1834,7 +1834,7 @@
             }
             
             try {
-                let url = `${API_BASE}/media/search?query=${encodeURIComponent(query)}`;
+                let url = `/api/media/media/search?query=${encodeURIComponent(query)}`;
                 if (sessionId) {
                     url += `&sessionId=${encodeURIComponent(sessionId)}`;
                 }
