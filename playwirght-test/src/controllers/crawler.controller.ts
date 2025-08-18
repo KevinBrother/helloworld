@@ -20,6 +20,7 @@ import {
   CrawlSession,
   MediaFileInfo,
 } from '../shared/interfaces/crawler.interface';
+import { METADATA_KEYS_RETRIEVAL } from '../shared/constants/metadata.constants';
 
 @Controller('api/crawler')
 export class CrawlerController {
@@ -143,11 +144,18 @@ export class CrawlerController {
       const processObject = async (obj: any) => {
         isProcessing = true;
         try {
+          // 尝试从文件路径中提取溯源信息
+          const traceabilityInfo = await this.extractTraceabilityInfo(obj.name);
+          
           const fileInfo = {
             name: obj.name,
             size: obj.size,
             lastModified: obj.lastModified,
             etag: obj.etag,
+            // 添加溯源信息
+            originalUrl: traceabilityInfo?.originalUrl || null,
+            sourcePageUrl: traceabilityInfo?.sourcePageUrl || null,
+            traceability: traceabilityInfo
           };
           
           batch.push(fileInfo);
@@ -392,6 +400,109 @@ export class CrawlerController {
       this.logger.error(`流式传输文件失败: ${error.message}`);
       res.status(404).json({ error: `文件不存在或无法访问: ${error.message}` });
     }
+  }
+
+  /**
+   * 从文件路径中提取溯源信息
+   */
+  private async extractTraceabilityInfo(filePath: string): Promise<any> {
+    try {
+      // 优先从MinIO对象metadata中读取溯源信息
+      const traceabilityFromMetadata = await this.getTraceabilityFromMetadata(filePath);
+      if (traceabilityFromMetadata) {
+        return traceabilityFromMetadata;
+      }
+      
+      // 后备方案：从文件路径解析溯源信息
+      return this.parseTraceabilityFromPath(filePath);
+    } catch (error) {
+      this.logger.warn(`提取溯源信息失败: ${error.message}`);
+      return null;
+    }
+  }
+  
+  /**
+   * 从MinIO对象metadata中获取溯源信息
+   */
+  private async getTraceabilityFromMetadata(filePath: string): Promise<any> {
+    try {
+      const client = await this.storageService.getClient();
+      const bucketName = this.storageService.getBucketName();
+      
+      const objectStat = await client.statObject(bucketName, filePath);
+      const metadata = objectStat.metaData;
+      
+      // 统一使用小写key读取metadata
+      const originalUrl = metadata[METADATA_KEYS_RETRIEVAL.ORIGINAL_URL];
+      const sourcePageUrl = metadata[METADATA_KEYS_RETRIEVAL.SOURCE_URL];
+      
+      if (originalUrl) {
+        const { domain, type } = this.extractPathInfo(filePath);
+        
+        return {
+          originalUrl, // 原始资源URL
+          sourcePageUrl: sourcePageUrl || originalUrl, // 来源页面URL
+          domain,
+          type
+        };
+      }
+      
+      return null;
+    } catch (error) {
+      this.logger.debug(`读取对象metadata失败: ${error.message}`);
+      return null;
+    }
+  }
+  
+  /**
+   * 从文件路径解析溯源信息（后备方案）
+   */
+  private parseTraceabilityFromPath(filePath: string): any {
+    const pathParts = filePath.split('/');
+    if (pathParts.length < 6 || pathParts[0] !== 'domain') {
+      return null;
+    }
+    
+    const domain = pathParts[1];
+    const type = pathParts[5];
+    
+    if (type === 'pages') {
+      const urlPath = pathParts.slice(6, -1).join('/');
+      const originalUrl = urlPath === '_root' ? `https://${domain}/` : `https://${domain}/${urlPath}`;
+      
+      return {
+        originalUrl,
+        sourcePageUrl: originalUrl, // 页面的原始URL和来源URL相同
+        domain,
+        type: 'page'
+      };
+    }
+    
+    if (type === 'media' && pathParts.length >= 8) {
+      const fileName = pathParts[7];
+      const originalFileName = fileName.includes('_') ? fileName.split('_').slice(1).join('_') : fileName;
+      
+      return {
+        originalUrl: `https://${domain}/${originalFileName}`, // 媒体文件的原始URL
+        sourcePageUrl: `https://${domain}/`, // 媒体文件的来源页面URL（默认为域名根路径）
+        domain,
+        type: 'media',
+        fileName: originalFileName
+      };
+    }
+    
+    return null;
+  }
+  
+  /**
+   * 从文件路径提取基本信息
+   */
+  private extractPathInfo(filePath: string): { domain: string; type: string } {
+    const pathParts = filePath.split('/');
+    const domain = pathParts.length >= 2 && pathParts[0] === 'domain' ? pathParts[1] : 'unknown';
+    const type = pathParts.includes('media') ? 'media' : 'page';
+    
+    return { domain, type };
   }
 
   /**

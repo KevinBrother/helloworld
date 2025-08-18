@@ -373,7 +373,7 @@ describe('MediaStorageService', () => {
       // 验证元数据中包含从URL提取的域名
       const putObjectCall = mockMinioClient.putObject.mock.calls[0];
       const metadata = putObjectCall[4];
-      expect(metadata).toHaveProperty('X-Amz-Meta-Domain');
+      expect(metadata).toHaveProperty('domain');
     });
 
     it('应该在没有媒体文件时返回null', async () => {

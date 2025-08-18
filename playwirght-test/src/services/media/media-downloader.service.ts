@@ -4,6 +4,7 @@ import { MediaFileInfo, MediaDownloadResult, MediaCrawlOptions } from '../../sha
 import { PathGenerator } from '../../shared/utils/path-generator.util';
 import * as crypto from 'crypto';
 import axios from 'axios';
+import { METADATA_KEYS_STORAGE } from '../../shared/constants/metadata.constants';
 
 @Injectable()
 export class MediaDownloaderService {
@@ -128,13 +129,13 @@ export class MediaDownloaderService {
       
       const metadata = {
         'Content-Type': response.headers['content-type'] || 'application/octet-stream',
-        'X-Amz-Meta-Original-Url': this.sanitizeMetadataValue(mediaFile.url),
-        'X-Amz-Meta-Source-Url': this.sanitizeMetadataValue(mediaFile.sourceUrl),
-        'X-Amz-Meta-Media-Type': this.sanitizeMetadataValue(mediaFile.type),
-        'X-Amz-Meta-File-Extension': this.sanitizeMetadataValue(mediaFile.extension),
-        'X-Amz-Meta-Session-Id': this.sanitizeMetadataValue(sessionId),
-        'X-Amz-Meta-Downloaded-At': this.sanitizeMetadataValue(new Date().toISOString()),
-        'X-Amz-Meta-MD5-Hash': this.sanitizeMetadataValue(md5Hash),
+        [METADATA_KEYS_STORAGE.ORIGINAL_URL]: mediaFile.url,
+        [METADATA_KEYS_STORAGE.SOURCE_URL]: this.sanitizeMetadataValue(mediaFile.sourceUrl),
+        [METADATA_KEYS_STORAGE.MEDIA_TYPE]: this.sanitizeMetadataValue(mediaFile.type),
+        [METADATA_KEYS_STORAGE.FILE_EXTENSION]: this.sanitizeMetadataValue(mediaFile.extension),
+        [METADATA_KEYS_STORAGE.SESSION_ID]: this.sanitizeMetadataValue(sessionId),
+        [METADATA_KEYS_STORAGE.DOWNLOADED_AT]: this.sanitizeMetadataValue(new Date().toISOString()),
+        [METADATA_KEYS_STORAGE.MD5_HASH]: this.sanitizeMetadataValue(md5Hash),
       };
       
       await client.putObject(

@@ -1,6 +1,7 @@
 import { Inject, Injectable, Logger } from "@nestjs/common";
 import { StorageService } from "../../core/storage/storage.service";
 import { MediaFileInfo } from "../../shared/interfaces/crawler.interface";
+import { METADATA_KEYS_STORAGE, FILE_TYPES } from '../../shared/constants/metadata.constants';
 
 @Injectable()
 export class MediaStorageService {
@@ -224,6 +225,23 @@ export class MediaStorageService {
         files: mediaFiles,
         createdAt: new Date().toISOString(),
         storagePath: filePath,
+        // 新增溯源信息
+        traceability: {
+          originalUrls: mediaFiles.map(file => ({
+            fileName: file.fileName,
+            originalUrl: file.url,
+            sourcePageUrl: file.sourceUrl,
+            storagePath: file.storagePath || '',
+            downloadedAt: file.downloadedAt || new Date().toISOString(),
+            md5Hash: file.md5Hash || ''
+          })),
+          crawlSession: {
+            sessionId,
+            domain,
+            crawlTime: new Date().toISOString(),
+            totalFiles: mediaFiles.length
+          }
+        }
       };
 
       const jsonData = JSON.stringify(metadata, null, 2);
@@ -231,15 +249,15 @@ export class MediaStorageService {
 
       const objectMetadata = {
         "Content-Type": "application/json",
-        "X-Amz-Meta-Session-Id": this.sanitizeMetadataValue(sessionId),
-        "X-Amz-Meta-Domain": this.sanitizeMetadataValue(domain || ""),
-        "X-Amz-Meta-Total-Files": this.sanitizeMetadataValue(
+        [METADATA_KEYS_STORAGE.SESSION_ID]: this.sanitizeMetadataValue(sessionId),
+        [METADATA_KEYS_STORAGE.DOMAIN]: this.sanitizeMetadataValue(domain || ""),
+        [METADATA_KEYS_STORAGE.TOTAL_FILES]: this.sanitizeMetadataValue(
           mediaFiles.length.toString()
         ),
-        "X-Amz-Meta-Created-At": this.sanitizeMetadataValue(
+        [METADATA_KEYS_STORAGE.CREATED_AT]: this.sanitizeMetadataValue(
           new Date().toISOString()
         ),
-        "X-Amz-Meta-File-Type": "media-metadata",
+        [METADATA_KEYS_STORAGE.FILE_TYPE]: FILE_TYPES.MEDIA_METADATA,
       };
 
       await client.putObject(

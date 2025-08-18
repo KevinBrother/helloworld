@@ -162,14 +162,22 @@
             font-style: italic;
         }
         .storage-path {
-            color: #6c757d;
+            color: #0066cc;
             font-size: 0.85em;
             margin-top: 5px;
             font-family: monospace;
-            background-color: #f8f9fa;
+            background-color: #e7f3ff;
             padding: 2px 6px;
             border-radius: 3px;
             word-break: break-all;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+        
+        .storage-path:hover {
+            color: #004499;
+            background-color: #cce7ff;
+            text-decoration: underline;
         }
         .file-info {
             flex: 1;
@@ -1211,7 +1219,7 @@
                                      <div class="file-item" style="min-height: ${itemHeight}px;">
                                          <div class="file-info">
                                              <div class="file-name">${fileIcon} ${getDisplayName(file.name)}</div>
-                                             <div class="storage-path">📁 存储路径: ${getStoragePath(file.name)}</div>
+                                             <div class="storage-path">🔗 原始链接: <a href="${getOriginalUrl(file)}" target="_blank">${getOriginalUrl(file)}</a></div>
                                              <div class="file-meta">
                                                  大小: ${sizeKB} KB | 
                                                  修改时间: ${lastModified} | 
@@ -1221,7 +1229,7 @@
                                          <div class="file-actions">
                                              ${canPreview ? `<button onclick="previewFile('${file.name}')">👁️ 预览</button>` : ''}
                                              <button onclick="downloadFile('${file.name}')">⬇️ 下载</button>
-                                             <button onclick="copyFileName('${file.name}')" class="secondary">📋 复制路径</button>
+                                             <button onclick="copyOriginalUrl('${file.name}', '${getOriginalUrl(file)}')" class="secondary">📋 复制链接</button>
                                          </div>
                                      </div>
                                  `;
@@ -1391,8 +1399,14 @@
                     }
                 } else if (type === 'media') {
                     // 对于媒体文件，尝试从文件名中提取原始URL
-                    // 媒体文件名格式通常包含hash，我们需要显示来源URL
-                    return `https://${domain}/ (媒体文件: ${actualFileName})`;
+                    // 媒体文件路径格式: domain/{domain}/{year}/{month}/{day}/media/{type}/{hash_fileName}
+                    if (pathParts.length >= 8) {
+                        const fileName = pathParts[7]; // 获取文件名
+                        // 尝试从文件名中移除hash前缀来获取原始文件名
+                        const originalFileName = fileName.includes('_') ? fileName.split('_').slice(1).join('_') : fileName;
+                        return `https://${domain}/${originalFileName}`;
+                    }
+                    return `https://${domain}/`;
                 } else if (type === 'sessions') {
                     return `会话数据: ${actualFileName}`;
                 } else {
@@ -1405,6 +1419,78 @@
         // 获取存储路径描述
         function getStoragePath(fileName) {
             return fileName;
+        }
+        
+        // 获取原始URL
+        function getOriginalUrl(file) {
+            // 优先使用traceability信息中的原始URL
+            if (file.traceability && file.traceability.originalUrl) {
+                return file.traceability.originalUrl;
+            }
+            
+            // 如果文件对象直接包含原始URL信息
+            if (file.originalUrl) {
+                return file.originalUrl;
+            }
+            
+            // 后备方案：从文件名解析URL（兼容旧数据）
+            const pathParts = file.name.split('/');
+            if (pathParts.length >= 6 && pathParts[0] === 'domain') {
+                const domain = pathParts[1];
+                const type = pathParts[5];
+                
+                if (type === 'pages') {
+                    const urlPath = pathParts.slice(6, -1).join('/');
+                    if (urlPath === '_root') {
+                        return `https://${domain}/`;
+                    } else {
+                        return `https://${domain}/${urlPath}`;
+                    }
+                } else if (type === 'media') {
+                    // 对于媒体文件，尝试从文件名中提取原始信息
+                    if (pathParts.length >= 8) {
+                        const fileName = pathParts[7];
+                        const originalFileName = fileName.includes('_') ? fileName.split('_').slice(1).join('_') : fileName;
+                        return `https://${domain}/${originalFileName}`;
+                    }
+                    return `https://${domain}/`;
+                } else if (type === 'sessions') {
+                    return `会话数据: ${pathParts[pathParts.length - 1]}`;
+                }
+            }
+            
+            // 默认返回文件名
+            return file.name;
+        }
+        
+        // 复制原始URL到剪贴板
+        function copyOriginalUrl(fileName, originalUrl) {
+            if (navigator.clipboard) {
+                navigator.clipboard.writeText(originalUrl).then(() => {
+                    showResult('成功', `已复制原始链接: ${originalUrl}`, 'success');
+                }).catch(err => {
+                    console.error('复制失败:', err);
+                    fallbackCopyText(originalUrl);
+                });
+            } else {
+                fallbackCopyText(originalUrl);
+            }
+        }
+        
+        // 备用复制方法
+        function fallbackCopyText(text) {
+            const textArea = document.createElement('textarea');
+            textArea.value = text;
+            document.body.appendChild(textArea);
+            textArea.select();
+            try {
+                document.execCommand('copy');
+                showResult('成功', `已复制原始链接: ${text}`, 'success');
+            } catch (err) {
+                console.error('复制失败:', err);
+                showResult('错误', '复制失败，请手动复制', 'error');
+            }
+            document.body.removeChild(textArea);
         }
         
         // 提取URL信息

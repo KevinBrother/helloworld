@@ -2,6 +2,7 @@ import { Injectable, Logger } from '@nestjs/common';
 import * as Minio from 'minio';
 import { PageData } from '../../shared/interfaces/crawler.interface';
 import { PathGenerator } from '../../shared/utils/path-generator.util';
+import { METADATA_KEYS_STORAGE, FILE_TYPES } from '../../shared/constants/metadata.constants';
 
 @Injectable()
 export class StorageService {
@@ -102,11 +103,12 @@ export class StorageService {
         contentBuffer.length,
         {
           'Content-Type': 'application/json',
-          'X-Amz-Meta-Url': this.sanitizeMetadataValue(pageData.url),
-          'X-Amz-Meta-Title': this.sanitizeMetadataValue(pageData.title || ''),
-          'X-Amz-Meta-Session-Id': this.sanitizeMetadataValue(sessionId),
-          'X-Amz-Meta-Crawled-At': this.sanitizeMetadataValue(new Date().toISOString()),
-          'X-Amz-Meta-File-Type': 'content',
+          [METADATA_KEYS_STORAGE.ORIGINAL_URL]: this.sanitizeMetadataValue(pageData.url),
+          [METADATA_KEYS_STORAGE.SOURCE_URL]: this.sanitizeMetadataValue(pageData.url),
+          [METADATA_KEYS_STORAGE.TITLE]: this.sanitizeMetadataValue(pageData.title || ''),
+          [METADATA_KEYS_STORAGE.SESSION_ID]: this.sanitizeMetadataValue(sessionId),
+          [METADATA_KEYS_STORAGE.CRAWLED_AT]: this.sanitizeMetadataValue(new Date().toISOString()),
+          [METADATA_KEYS_STORAGE.FILE_TYPE]: FILE_TYPES.CONTENT,
         }
       );
       
@@ -145,9 +147,10 @@ export class StorageService {
         metadataBuffer.length,
         {
           'Content-Type': 'application/json',
-          'X-Amz-Meta-Url': this.sanitizeMetadataValue(pageData.url),
-          'X-Amz-Meta-Session-Id': this.sanitizeMetadataValue(sessionId),
-          'X-Amz-Meta-File-Type': 'metadata',
+          [METADATA_KEYS_STORAGE.ORIGINAL_URL]: this.sanitizeMetadataValue(pageData.url),
+          [METADATA_KEYS_STORAGE.SOURCE_URL]: this.sanitizeMetadataValue(pageData.url),
+          [METADATA_KEYS_STORAGE.SESSION_ID]: this.sanitizeMetadataValue(sessionId),
+          [METADATA_KEYS_STORAGE.FILE_TYPE]: FILE_TYPES.METADATA,
         }
       );
       
@@ -178,10 +181,11 @@ export class StorageService {
 
       const metadata = {
         'Content-Type': 'image/png',
-        'X-Amz-Meta-Url': this.sanitizeMetadataValue(url),
-        'X-Amz-Meta-Session-Id': this.sanitizeMetadataValue(sessionId),
-        'X-Amz-Meta-Captured-At': this.sanitizeMetadataValue(new Date().toISOString()),
-        'X-Amz-Meta-File-Type': 'screenshot',
+        [METADATA_KEYS_STORAGE.ORIGINAL_URL]: this.sanitizeMetadataValue(url),
+        [METADATA_KEYS_STORAGE.SOURCE_URL]: this.sanitizeMetadataValue(url),
+        [METADATA_KEYS_STORAGE.SESSION_ID]: this.sanitizeMetadataValue(sessionId),
+        [METADATA_KEYS_STORAGE.CAPTURED_AT]: this.sanitizeMetadataValue(new Date().toISOString()),
+        [METADATA_KEYS_STORAGE.FILE_TYPE]: FILE_TYPES.SCREENSHOT,
       };
 
       await this.minioClient.putObject(
@@ -242,10 +246,10 @@ export class StorageService {
 
       const objectMetadata = {
         'Content-Type': 'application/json',
-        'X-Amz-Meta-Session-Id': this.sanitizeMetadataValue(sessionId),
-        'X-Amz-Meta-Domain': this.sanitizeMetadataValue(domain),
-        'X-Amz-Meta-Created-At': this.sanitizeMetadataValue(new Date().toISOString()),
-        'X-Amz-Meta-File-Type': 'session',
+        [METADATA_KEYS_STORAGE.SESSION_ID]: this.sanitizeMetadataValue(sessionId),
+        [METADATA_KEYS_STORAGE.DOMAIN]: this.sanitizeMetadataValue(domain),
+        [METADATA_KEYS_STORAGE.CREATED_AT]: this.sanitizeMetadataValue(new Date().toISOString()),
+        [METADATA_KEYS_STORAGE.FILE_TYPE]: FILE_TYPES.SESSION,
       };
 
       await this.minioClient.putObject(
@@ -332,8 +336,8 @@ export class StorageService {
         indexBuffer.length,
         {
           'Content-Type': 'application/json',
-          'X-Amz-Meta-Domain': this.sanitizeMetadataValue(domain),
-          'X-Amz-Meta-File-Type': 'url_index',
+          [METADATA_KEYS_STORAGE.DOMAIN]: this.sanitizeMetadataValue(domain),
+          [METADATA_KEYS_STORAGE.FILE_TYPE]: FILE_TYPES.URL_INDEX,
         }
       );
       
@@ -374,7 +378,7 @@ export class StorageService {
         metadataBuffer.length,
         {
           'Content-Type': 'application/json',
-          'X-Amz-Meta-File-Type': 'metadata',
+          [METADATA_KEYS_STORAGE.FILE_TYPE]: FILE_TYPES.METADATA,
         }
       );
       
