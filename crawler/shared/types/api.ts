@@ -11,7 +11,7 @@ export interface ApiResponse<T = any> {
 
 // 爬虫相关类型 - 统一的爬取请求接口
 export interface CrawlRequest {
-  url: string;
+  startUrl: string;
   options: {
     waitFor?: number;
     screenshot?: boolean;

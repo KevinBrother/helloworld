@@ -161,10 +161,15 @@ export class MediaDetectorService {
       
       return {
         url,
+        originalUrl: url,
         type: mediaType,
         extension,
         fileName,
         sourceUrl,
+        fileSize: 0, // 将在下载时更新
+        downloadTime: new Date().toISOString(),
+        sessionId: '', // 将在调用时设置
+        mimeType: '', // 将在下载时确定
         metadata: {
           tagName: element.tagName,
           alt: element.alt,

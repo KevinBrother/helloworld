@@ -147,7 +147,7 @@ describe('WebsiteCrawlerService', () => {
 
   describe('爬取会话管理测试', () => {
     const mockCrawlRequest: CrawlRequest = {
-      url: 'https://example.com',
+      startUrl: 'https://example.com',
       options: {
         maxDepth: 2,
         maxPages: 10,
@@ -185,7 +185,7 @@ describe('WebsiteCrawlerService', () => {
       expect(session).toBeDefined();
       expect(session!.sessionId).toBe(response.sessionId);
       expect(session!.status).toBe('running');
-      expect(session!.startUrl).toBe(mockCrawlRequest.url);
+      expect(session!.startUrl).toBe(mockCrawlRequest.startUrl);
       expect(session!.maxDepth).toBe(mockCrawlRequest.options.maxDepth);
       expect(session!.maxPages).toBe(mockCrawlRequest.options.maxPages);
     });
@@ -223,7 +223,7 @@ describe('WebsiteCrawlerService', () => {
   describe('异常处理测试', () => {
     it('应该处理无效的起始URL', async () => {
       const invalidRequest: CrawlRequest = {
-        url: 'invalid-url',
+        startUrl: 'invalid-url',
         options: {
           maxDepth: 1
         }
@@ -238,7 +238,7 @@ describe('WebsiteCrawlerService', () => {
       (mockBrowserService.launch as any).mockRejectedValue(new Error('Browser launch failed'));
       
       const request: CrawlRequest = {
-        url: 'https://example.com',
+        startUrl: 'https://example.com',
         options: {
           maxDepth: 1
         }
@@ -252,7 +252,7 @@ describe('WebsiteCrawlerService', () => {
   describe('配置选项测试', () => {
     it('应该正确处理默认配置', async () => {
       const minimalRequest: CrawlRequest = {
-        url: 'https://example.com',
+        startUrl: 'https://example.com',
         options: {}
       };
 
@@ -270,7 +270,7 @@ describe('WebsiteCrawlerService', () => {
 
     it('应该正确处理媒体选项', async () => {
       const requestWithMedia: CrawlRequest = {
-        url: 'https://example.com',
+        startUrl: 'https://example.com',
         options: {
           enableMediaCrawl: true,
           mediaTypes: {
@@ -297,7 +297,7 @@ describe('WebsiteCrawlerService', () => {
 
     it('应该正确处理域名限制', async () => {
       const requestWithDomains: CrawlRequest = {
-        url: 'https://example.com',
+        startUrl: 'https://example.com',
         options: {
           allowedDomains: ['example.com', 'subdomain.example.com'],
           excludePatterns: ['/private/*', '/admin/*']
@@ -316,7 +316,7 @@ describe('WebsiteCrawlerService', () => {
   describe('会话生命周期测试', () => {
     it('应该正确设置会话的开始时间', async () => {
       const request: CrawlRequest = {
-        url: 'https://example.com',
+        startUrl: 'https://example.com',
         options: {}
       };
 
@@ -334,7 +334,7 @@ describe('WebsiteCrawlerService', () => {
 
     it('应该正确初始化会话统计信息', async () => {
       const request: CrawlRequest = {
-        url: 'https://example.com',
+        startUrl: 'https://example.com',
         options: {}
       };
 
@@ -355,7 +355,7 @@ describe('WebsiteCrawlerService', () => {
     it('应该在停止时设置结束时间', async () => {
       // 测试stopCrawling方法的功能
       const request: CrawlRequest = {
-        url: 'https://example.com',
+        startUrl: 'https://example.com',
         options: {}
       };
 

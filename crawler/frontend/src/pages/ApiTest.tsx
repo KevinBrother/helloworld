@@ -59,12 +59,12 @@ const ApiTest = () => {
 
   const testCrawlerStart = () => {
     testEndpoint("POST /api/crawler/start", () =>
-      crawlerApi.crawl({ 
-        url: testParams.startUrl,
+      crawlerApi.crawl({
+        startUrl: testParams.startUrl,
         options: {
           maxDepth: 2,
-          maxPages: 10
-        }
+          maxPages: 10,
+        },
       })
     );
   };

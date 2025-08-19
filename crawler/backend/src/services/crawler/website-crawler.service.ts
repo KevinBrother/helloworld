@@ -41,7 +41,7 @@ export class WebsiteCrawlerService {
       const session = this.createSession(sessionId, request);
       this.activeSessions.set(sessionId, session);
       
-      this.logger.log(`开始爬取会话: ${sessionId}, 起始URL: ${request.url}`);
+      this.logger.log(`开始爬取会话: ${sessionId}, 起始URL: ${request.startUrl}`);
       
       // 异步执行爬取任务
       this.executeCrawling(session).catch(error => {
@@ -127,7 +127,7 @@ export class WebsiteCrawlerService {
    * 创建爬取会话
    */
   private createSession(sessionId: string, request: CrawlRequest): CrawSession {
-    const startUrlObj = new URL(request.url);
+    const startUrlObj = new URL(request.startUrl);
     const { options } = request;
     const allowedDomains = options.allowedDomains || [startUrlObj.hostname];
     
@@ -155,15 +155,13 @@ export class WebsiteCrawlerService {
     return {
       id: sessionId,
       sessionId,
-      url: request.url,
+      startUrl: request.startUrl,
       config: request,
       startTime: new Date(),
       status: 'running',
       pagesProcessed: 0,
       totalPages: 0,
       errors: [],
-      // 向后兼容字段
-      startUrl: request.url,
       maxDepth: options.maxDepth || defaultCrawlerConfig.crawler.maxDepth,
       maxPages: effectiveMaxPages,
       isCompleteCrawl,

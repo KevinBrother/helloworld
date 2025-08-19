@@ -127,7 +127,7 @@ const CrawlerTest = () => {
   // 构建爬取配置
   const buildCrawlConfig = () => {
     const config: CrawlConfig = {
-      url: url.trim(),
+      startUrl: url.trim(),
       options: {
         waitFor,
         screenshot,

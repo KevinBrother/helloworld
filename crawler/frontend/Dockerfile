@@ -8,16 +8,16 @@ WORKDIR /app
 RUN npm install -g pnpm
 
 # 复制共享类型定义（必须在安装依赖之前）
-COPY shared ../shared
+COPY ../shared ../shared
 
 # 复制 package.json 和 pnpm-lock.yaml
-COPY frontend/package.json frontend/pnpm-lock.yaml ./
+COPY ./frontend/package.json ./frontend/pnpm-lock.yaml ./
 
 # 安装所有依赖（包括开发依赖，构建时需要）
 RUN pnpm install --frozen-lockfile
 
 # 复制源代码
-COPY frontend .
+COPY ./frontend .
 
 # 构建应用
 RUN pnpm run build

@@ -105,12 +105,12 @@ export class CrawlerController {
    * 验证爬取请求参数
    */
   private validateCrawlRequest(request: CrawlRequest): void {
-    if (!request.url) {
-      throw new BadRequestException('url 是必需的');
+    if (!request.startUrl) {
+      throw new BadRequestException('startUrl 是必需的');
     }
 
     try {
-      new URL(request.url);
+      new URL(request.startUrl);
     } catch (error) {
       throw new BadRequestException('url 必须是有效的URL');
     }

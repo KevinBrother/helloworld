@@ -38,7 +38,7 @@ describe("CrawlerController", () => {
   describe("crawlWebsite", () => {
     it("should start a crawl job successfully", async () => {
       const request: CrawlRequest = { 
-        url: "https://example.com",
+        startUrl: "https://example.com",
         options: {}
       };
       const response: CrawlResponse = {
@@ -55,7 +55,7 @@ describe("CrawlerController", () => {
 
     it("should throw BadRequestException for invalid URL", async () => {
       const request: CrawlRequest = { 
-        url: "invalid-url",
+        startUrl: "invalid-url",
         options: {}
       };
 
@@ -75,7 +75,7 @@ describe("CrawlerController", () => {
         sessionId,
         url: "https://example.com",
         config: {
-          url: "https://example.com",
+          startUrl: "https://example.com",
           options: {
             maxDepth: 2,
             maxPages: 10
