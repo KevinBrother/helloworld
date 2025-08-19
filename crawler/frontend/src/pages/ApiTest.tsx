@@ -1,11 +1,11 @@
-import { useState } from 'react';
-import { crawlerApi, mediaApi, fileApi } from '@/services/api';
-import { cn } from '@/lib/utils';
+import { useState } from "react";
+import { crawlerApi, mediaApi, fileApi } from "@/services/api";
+import { cn } from "@/lib/utils";
 
 interface ApiTestResult {
   endpoint: string;
   method: string;
-  status: 'success' | 'error' | 'pending';
+  status: "success" | "error" | "pending";
   response?: unknown;
   error?: string;
   timestamp: string;
@@ -15,117 +15,120 @@ const ApiTest = () => {
   const [testResults, setTestResults] = useState<ApiTestResult[]>([]);
   const [isTestingAll, setIsTestingAll] = useState(false);
   const [testParams, setTestParams] = useState({
-    url: 'https://example.com',
-    sessionId: '',
-    fileName: '',
-    query: 'test',
-    fileType: 'image',
+    startUrl: "https://example.com",
+    sessionId: "",
+    fileName: "",
+    query: "test",
+    fileType: "image",
   });
 
-  const addTestResult = (result: Omit<ApiTestResult, 'timestamp'>) => {
-    setTestResults(prev => [{
-      ...result,
-      timestamp: new Date().toLocaleTimeString()
-    }, ...prev]);
+  const addTestResult = (result: Omit<ApiTestResult, "timestamp">) => {
+    setTestResults((prev) => [
+      {
+        ...result,
+        timestamp: new Date().toLocaleTimeString(),
+      },
+      ...prev,
+    ]);
   };
 
   const testEndpoint = async (name: string, testFn: () => Promise<unknown>) => {
-    const result: Omit<ApiTestResult, 'timestamp'> = {
+    const result: Omit<ApiTestResult, "timestamp"> = {
       endpoint: name,
-      method: 'GET',
-      status: 'pending'
+      method: "GET",
+      status: "pending",
     };
-    
+
     addTestResult(result);
-    
+
     try {
       const response = await testFn();
       addTestResult({
         ...result,
-        status: 'success',
-        response: response
+        status: "success",
+        response: response,
       });
     } catch (error: unknown) {
       addTestResult({
         ...result,
-        status: 'error',
-        error: error instanceof Error ? error.message : '请求失败'
+        status: "error",
+        error: error instanceof Error ? error.message : "请求失败",
       });
     }
   };
 
   const testCrawlerStart = () => {
-    testEndpoint('POST /api/crawler/start', () => 
-      crawlerApi.crawl({ url: testParams.url })
+    testEndpoint("POST /api/crawler/start", () =>
+      crawlerApi.crawl({ 
+        url: testParams.startUrl,
+        options: {
+          maxDepth: 2,
+          maxPages: 10
+        }
+      })
     );
   };
 
   const testCrawlerSessions = () => {
-    testEndpoint('GET /api/crawler/sessions', () => 
-      crawlerApi.getSessions()
-    );
+    testEndpoint("GET /api/crawler/sessions", () => crawlerApi.getSessions());
   };
 
   const testCrawlerStop = () => {
-    testEndpoint('POST /api/crawler/stop', () => 
-      crawlerApi.stopCrawl('test-session-id')
+    testEndpoint("POST /api/crawler/stop", () =>
+      crawlerApi.stopCrawl("test-session-id")
     );
   };
 
   const testCrawlerStatus = () => {
-    testEndpoint('GET /api/crawler/sessions', () => 
-      crawlerApi.getSessions()
-    );
+    testEndpoint("GET /api/crawler/sessions", () => crawlerApi.getSessions());
   };
 
   const testMediaStats = () => {
-    testEndpoint('GET /api/media/stats', () => 
-      mediaApi.getStats()
-    );
+    testEndpoint("GET /api/media/stats", () => mediaApi.getStats());
   };
 
   const testMediaSearch = () => {
-    testEndpoint('GET /api/media/search', () => 
+    testEndpoint("GET /api/media/search", () =>
       mediaApi.search({
         query: testParams.query,
         fileType: testParams.fileType,
         page: 1,
-        limit: 10
+        limit: 10,
       })
     );
   };
 
   const testMediaDownload = () => {
     if (!testParams.sessionId || !testParams.fileName) {
-      alert('请输入会话ID和文件名');
+      alert("请输入会话ID和文件名");
       return;
     }
-    testEndpoint('GET /api/media/download', () => 
+    testEndpoint("GET /api/media/download", () =>
       mediaApi.downloadMedia(testParams.sessionId, testParams.fileName)
     );
   };
 
   const testMediaStream = () => {
     if (!testParams.sessionId || !testParams.fileName) {
-      alert('请输入会话ID和文件名');
+      alert("请输入会话ID和文件名");
       return;
     }
     const url = mediaApi.streamMedia(testParams.sessionId, testParams.fileName);
-    window.open(url, '_blank');
+    window.open(url, "_blank");
     addTestResult({
-      endpoint: 'GET /api/media/stream',
-      method: 'GET',
-      status: 'success',
-      response: { message: '已在新窗口打开流媒体链接', url }
+      endpoint: "GET /api/media/stream",
+      method: "GET",
+      status: "success",
+      response: { message: "已在新窗口打开流媒体链接", url },
     });
   };
 
   const testFileDownload = () => {
     if (!testParams.fileName) {
-      alert('请输入文件名');
+      alert("请输入文件名");
       return;
     }
-    testEndpoint('GET /api/files/download', () => 
+    testEndpoint("GET /api/files/download", () =>
       fileApi.downloadFile(testParams.fileName)
     );
   };
@@ -133,19 +136,19 @@ const ApiTest = () => {
   const testAllEndpoints = async () => {
     setIsTestingAll(true);
     setTestResults([]);
-    
+
     const tests = [
-      { name: '爬虫状态', fn: testCrawlerStatus },
-      { name: '会话列表', fn: testCrawlerSessions },
-      { name: '媒体统计', fn: testMediaStats },
-      { name: '媒体搜索', fn: testMediaSearch },
+      { name: "爬虫状态", fn: testCrawlerStatus },
+      { name: "会话列表", fn: testCrawlerSessions },
+      { name: "媒体统计", fn: testMediaStats },
+      { name: "媒体搜索", fn: testMediaSearch },
     ];
-    
+
     for (const test of tests) {
-      await new Promise(resolve => setTimeout(resolve, 500)); // 延迟500ms
+      await new Promise((resolve) => setTimeout(resolve, 500)); // 延迟500ms
       test.fn();
     }
-    
+
     setIsTestingAll(false);
   };
 
@@ -153,21 +156,29 @@ const ApiTest = () => {
     setTestResults([]);
   };
 
-  const getStatusColor = (status: ApiTestResult['status']) => {
+  const getStatusColor = (status: ApiTestResult["status"]) => {
     switch (status) {
-      case 'success': return 'text-green-600';
-      case 'error': return 'text-red-600';
-      case 'pending': return 'text-yellow-600';
-      default: return 'text-gray-600';
+      case "success":
+        return "text-green-600";
+      case "error":
+        return "text-red-600";
+      case "pending":
+        return "text-yellow-600";
+      default:
+        return "text-gray-600";
     }
   };
 
-  const getStatusIcon = (status: ApiTestResult['status']) => {
+  const getStatusIcon = (status: ApiTestResult["status"]) => {
     switch (status) {
-      case 'success': return '✓';
-      case 'error': return '✗';
-      case 'pending': return '⏳';
-      default: return '?';
+      case "success":
+        return "✓";
+      case "error":
+        return "✗";
+      case "pending":
+        return "⏳";
+      default:
+        return "?";
     }
   };
 
@@ -188,8 +199,10 @@ const ApiTest = () => {
             <label className="block text-sm font-medium mb-2">测试URL</label>
             <input
               type="text"
-              value={testParams.url}
-              onChange={(e) => setTestParams(prev => ({ ...prev, url: e.target.value }))}
+              value={testParams.startUrl}
+              onChange={(e) =>
+                setTestParams((prev) => ({ ...prev, startUrl: e.target.value }))
+              }
               className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2"
               placeholder="https://example.com"
             />
@@ -199,7 +212,12 @@ const ApiTest = () => {
             <input
               type="text"
               value={testParams.sessionId}
-              onChange={(e) => setTestParams(prev => ({ ...prev, sessionId: e.target.value }))}
+              onChange={(e) =>
+                setTestParams((prev) => ({
+                  ...prev,
+                  sessionId: e.target.value,
+                }))
+              }
               className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2"
               placeholder="输入会话ID"
             />
@@ -209,7 +227,9 @@ const ApiTest = () => {
             <input
               type="text"
               value={testParams.fileName}
-              onChange={(e) => setTestParams(prev => ({ ...prev, fileName: e.target.value }))}
+              onChange={(e) =>
+                setTestParams((prev) => ({ ...prev, fileName: e.target.value }))
+              }
               className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2"
               placeholder="输入文件名"
             />
@@ -219,7 +239,9 @@ const ApiTest = () => {
             <input
               type="text"
               value={testParams.query}
-              onChange={(e) => setTestParams(prev => ({ ...prev, query: e.target.value }))}
+              onChange={(e) =>
+                setTestParams((prev) => ({ ...prev, query: e.target.value }))
+              }
               className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2"
               placeholder="搜索关键词"
             />
@@ -236,13 +258,13 @@ const ApiTest = () => {
               onClick={testAllEndpoints}
               disabled={isTestingAll}
               className={cn(
-                'rounded-md px-4 py-2 text-sm font-medium text-primary-foreground transition-colors',
+                "rounded-md px-4 py-2 text-sm font-medium text-primary-foreground transition-colors",
                 isTestingAll
-                  ? 'bg-muted cursor-not-allowed'
-                  : 'bg-primary hover:bg-primary/90'
+                  ? "bg-muted cursor-not-allowed"
+                  : "bg-primary hover:bg-primary/90"
               )}
             >
-              {isTestingAll ? '测试中...' : '测试所有'}
+              {isTestingAll ? "测试中..." : "测试所有"}
             </button>
             <button
               onClick={clearResults}
@@ -252,11 +274,13 @@ const ApiTest = () => {
             </button>
           </div>
         </div>
-        
+
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
           {/* 爬虫相关API */}
           <div className="space-y-2">
-            <h3 className="font-medium text-sm text-muted-foreground">爬虫 API</h3>
+            <h3 className="font-medium text-sm text-muted-foreground">
+              爬虫 API
+            </h3>
             <button
               onClick={testCrawlerStart}
               className="w-full text-left rounded-md border border-border bg-background px-3 py-2 text-sm hover:bg-accent hover:text-accent-foreground"
@@ -285,7 +309,9 @@ const ApiTest = () => {
 
           {/* 媒体相关API */}
           <div className="space-y-2">
-            <h3 className="font-medium text-sm text-muted-foreground">媒体 API</h3>
+            <h3 className="font-medium text-sm text-muted-foreground">
+              媒体 API
+            </h3>
             <button
               onClick={testMediaStats}
               className="w-full text-left rounded-md border border-border bg-background px-3 py-2 text-sm hover:bg-accent hover:text-accent-foreground"
@@ -314,7 +340,9 @@ const ApiTest = () => {
 
           {/* 文件相关API */}
           <div className="space-y-2">
-            <h3 className="font-medium text-sm text-muted-foreground">文件 API</h3>
+            <h3 className="font-medium text-sm text-muted-foreground">
+              文件 API
+            </h3>
             <button
               onClick={testFileDownload}
               className="w-full text-left rounded-md border border-border bg-background px-3 py-2 text-sm hover:bg-accent hover:text-accent-foreground"
@@ -336,24 +364,32 @@ const ApiTest = () => {
             >
               <div className="flex items-center justify-between mb-2">
                 <div className="flex items-center gap-2">
-                  <span className={cn('text-lg', getStatusColor(result.status))}>
+                  <span
+                    className={cn("text-lg", getStatusColor(result.status))}
+                  >
                     {getStatusIcon(result.status)}
                   </span>
                   <span className="font-medium text-sm">{result.endpoint}</span>
-                  <span className="text-xs text-muted-foreground">{result.method}</span>
+                  <span className="text-xs text-muted-foreground">
+                    {result.method}
+                  </span>
                 </div>
-                <span className="text-xs text-muted-foreground">{result.timestamp}</span>
+                <span className="text-xs text-muted-foreground">
+                  {result.timestamp}
+                </span>
               </div>
-              
+
               {result.response && (
                 <div className="mt-2">
                   <p className="text-xs text-muted-foreground mb-1">响应:</p>
                   <pre className="text-xs bg-muted p-2 rounded overflow-x-auto">
-                    {typeof result.response === 'string' ? result.response : JSON.stringify(result.response, null, 2) as string}
+                    {typeof result.response === "string"
+                      ? result.response
+                      : (JSON.stringify(result.response, null, 2) as string)}
                   </pre>
                 </div>
               )}
-              
+
               {result.error && (
                 <div className="mt-2">
                   <p className="text-xs text-muted-foreground mb-1">错误:</p>
@@ -364,7 +400,7 @@ const ApiTest = () => {
               )}
             </div>
           ))}
-          
+
           {testResults.length === 0 && (
             <p className="text-sm text-muted-foreground text-center py-8">
               暂无测试结果

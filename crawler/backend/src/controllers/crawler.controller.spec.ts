@@ -37,7 +37,10 @@ describe("CrawlerController", () => {
 
   describe("crawlWebsite", () => {
     it("should start a crawl job successfully", async () => {
-      const request: CrawlRequest = { startUrl: "https://example.com" };
+      const request: CrawlRequest = { 
+        url: "https://example.com",
+        options: {}
+      };
       const response: CrawlResponse = {
         sessionId: "123",
         status: "started",
@@ -51,7 +54,10 @@ describe("CrawlerController", () => {
     });
 
     it("should throw BadRequestException for invalid URL", async () => {
-      const request: CrawlRequest = { startUrl: "invalid-url" };
+      const request: CrawlRequest = { 
+        url: "invalid-url",
+        options: {}
+      };
 
       await expect(controller.crawlWebsite(request)).rejects.toThrow(
         BadRequestException
@@ -65,13 +71,23 @@ describe("CrawlerController", () => {
     it("should return session status", async () => {
       const sessionId = "test-session";
       const mockSession: CrawSession = {
+        id: sessionId,
         sessionId,
-        startUrl: "https://example.com",
+        url: "https://example.com",
+        config: {
+          url: "https://example.com",
+          options: {
+            maxDepth: 2,
+            maxPages: 10
+          }
+        },
         status: "running",
         startTime: new Date(),
         pagesProcessed: 0,
         totalPages: 1,
         errors: [],
+        // 向后兼容字段
+        startUrl: "https://example.com",
         maxDepth: 2,
         maxPages: 10,
         isCompleteCrawl: false,

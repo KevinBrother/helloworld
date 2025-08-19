@@ -211,7 +211,7 @@ const FileManager = () => {
             <option value="">所有会话</option>
             {sessions.map((session) => (
               <option key={session.id} value={session.id}>
-                {session.url.substring(0, 50)}...
+                {session.startUrl.substring(0, 50)}...
               </option>
             ))}
           </select>

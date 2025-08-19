@@ -9,16 +9,38 @@ export interface ApiResponse<T = any> {
   timestamp?: string;
 }
 
-// 爬虫相关类型
+// 爬虫相关类型 - 统一的爬取请求接口
 export interface CrawlRequest {
-  startUrl: string;
-  maxDepth?: number;
-  maxPages?: number;
-  takeScreenshots?: boolean;
-  userAgent?: string;
-  allowedDomains?: string[];
-  excludePatterns?: string[];
-  mediaOptions?: MediaCrawlOptions;
+  url: string;
+  options: {
+    waitFor?: number;
+    screenshot?: boolean;
+    fullPage?: boolean;
+    maxDepth?: number;
+    maxPages?: number;
+    enableMediaCrawl?: boolean;
+    userAgent?: string;
+    headers?: Record<string, string>;
+    cookies?: Array<{
+      name: string;
+      value: string;
+      domain?: string;
+      path?: string;
+    }>;
+    allowedDomains?: string[];
+    excludePatterns?: string[];
+    mediaTypes?: Record<string, {
+      mode: 'inherit' | 'override';
+      extensions?: string[];
+    }>;
+    downloadLimits?: {
+      maxFileSize?: number;
+      maxTotalSize?: number;
+      downloadTimeout?: number;
+      maxConcurrent?: number;
+      skipDuplicates?: boolean;
+    };
+  };
 }
 
 export interface CrawlResponse {
@@ -31,22 +53,25 @@ export interface CrawlResponse {
 }
 
 export interface CrawSession {
+  id: string; // 会话ID（用于列表显示）
   sessionId: string;
-  startUrl: string;
-  maxDepth: number;
-  maxPages: number;
-  isCompleteCrawl: boolean;
-  takeScreenshots: boolean;
-  userAgent?: string;
-  allowedDomains: string[];
-  excludePatterns: string[];
-  mediaOptions?: MediaCrawlOptions;
+  config: CrawlRequest; // 爬取配置
   startTime: Date | string;
   endTime?: Date | string;
   status: 'running' | 'completed' | 'failed' | 'stopped';
   pagesProcessed: number;
   totalPages: number;
   errors: string[];
+  // 为了向后兼容，保留一些常用字段
+  startUrl: string; // 等同于 config.url
+  maxDepth: number; // 等同于 config.options.maxDepth
+  maxPages: number; // 等同于 config.options.maxPages
+  isCompleteCrawl: boolean;
+  takeScreenshots: boolean; // 等同于 config.options.screenshot
+  userAgent?: string; // 等同于 config.options.userAgent
+  allowedDomains: string[]; // 等同于 config.options.allowedDomains
+  excludePatterns: string[]; // 等同于 config.options.excludePatterns
+  mediaOptions?: MediaCrawlOptions; // 从 config.options 派生
 }
 
 // 媒体相关类型
@@ -66,14 +91,19 @@ export interface MediaCrawlOptions {
 
 export interface MediaFileInfo {
   url: string;
+  originalUrl: string; // 原始URL
   type: 'image' | 'video' | 'audio' | 'document' | 'archive';
   extension: string;
   fileName: string;
   sourceUrl: string;
   size?: number;
+  fileSize: number; // 文件大小
   downloadedAt?: string;
+  downloadTime: string; // 下载时间
   storagePath?: string;
   md5Hash?: string;
+  sessionId: string; // 会话ID
+  mimeType: string; // MIME类型
   metadata?: {
     [key: string]: any;
   };
@@ -82,8 +112,10 @@ export interface MediaFileInfo {
 export interface MediaStats {
   totalFiles: number;
   totalSessions: number;
+  totalSize: number; // 总大小（字节）
   filesByType: Record<string, number>;
   filesBySession: Record<string, number>;
+  fileTypes: Record<string, number>; // 按文件类型统计
 }
 
 // 搜索和分页相关类型
@@ -91,6 +123,7 @@ export interface SearchParams {
   query?: string;
   sessionId?: string;
   type?: string;
+  fileType?: string; // 文件类型过滤
   page?: number;
   limit?: number;
 }
@@ -164,3 +197,6 @@ export interface StopCrawlResponse {
   success: boolean;
   message: string;
 }
+
+// 爬取配置类型 - 与CrawlRequest保持一致
+export type CrawlConfig = CrawlRequest;

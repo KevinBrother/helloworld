@@ -1,6 +1,11 @@
 import { useState, useEffect } from "react";
 import { crawlerApi, mediaApi } from "@/services/api";
-import type { CrawlResponse, CrawSession, MediaFileInfo } from "@/types/api";
+import type {
+  CrawlResponse,
+  CrawSession,
+  MediaFileInfo,
+  CrawlConfig,
+} from "@/types/api";
 import { cn } from "@/lib/utils";
 
 const CrawlerTest = () => {
@@ -121,7 +126,7 @@ const CrawlerTest = () => {
 
   // 构建爬取配置
   const buildCrawlConfig = () => {
-    const config: any = {
+    const config: CrawlConfig = {
       url: url.trim(),
       options: {
         waitFor,

@@ -8,6 +8,7 @@ export type {
   CrawlRequest,
   CrawlResponse,
   CrawSession,
+  CrawlConfig,
   MediaFileInfo,
   MediaStats,
   SearchParams,

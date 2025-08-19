@@ -41,7 +41,7 @@ export class WebsiteCrawlerService {
       const session = this.createSession(sessionId, request);
       this.activeSessions.set(sessionId, session);
       
-      this.logger.log(`开始爬取会话: ${sessionId}, 起始URL: ${request.startUrl}`);
+      this.logger.log(`开始爬取会话: ${sessionId}, 起始URL: ${request.url}`);
       
       // 异步执行爬取任务
       this.executeCrawling(session).catch(error => {
@@ -127,33 +127,51 @@ export class WebsiteCrawlerService {
    * 创建爬取会话
    */
   private createSession(sessionId: string, request: CrawlRequest): CrawSession {
-    const startUrlObj = new URL(request.startUrl);
-    const allowedDomains = request.allowedDomains || [startUrlObj.hostname];
+    const startUrlObj = new URL(request.url);
+    const { options } = request;
+    const allowedDomains = options.allowedDomains || [startUrlObj.hostname];
     
     // 判断是否为完全爬取模式
-    const isCompleteCrawl = !request.maxPages;
+    const isCompleteCrawl = !options.maxPages;
     
     // 计算有效的最大页面数
-    const effectiveMaxPages = request.maxPages 
-      ? Math.min(request.maxPages, defaultCrawlerConfig.crawler.maxPagesLimit)
+    const effectiveMaxPages = options.maxPages 
+      ? Math.min(options.maxPages, defaultCrawlerConfig.crawler.maxPagesLimit)
       : defaultCrawlerConfig.crawler.maxPagesLimit;
     
+    // 构建媒体选项
+    const mediaOptions = options.enableMediaCrawl ? {
+      enabled: true,
+      mediaTypes: options.mediaTypes ? Object.entries(options.mediaTypes).map(([type, config]) => ({
+        type: type as any,
+        mode: config.mode,
+        extensions: config.extensions
+      })) : [],
+      maxFileSize: options.downloadLimits?.maxFileSize,
+      downloadTimeout: options.downloadLimits?.downloadTimeout,
+      concurrent: options.downloadLimits?.maxConcurrent
+    } : undefined;
+    
     return {
+      id: sessionId,
       sessionId,
-      startUrl: request.startUrl,
-      maxDepth: request.maxDepth || defaultCrawlerConfig.crawler.maxDepth,
-      maxPages: effectiveMaxPages,
-      isCompleteCrawl,
-      takeScreenshots: request.takeScreenshots || false,
-      userAgent: request.userAgent,
-      allowedDomains,
-      excludePatterns: request.excludePatterns || [],
-      mediaOptions: request.mediaOptions,
+      url: request.url,
+      config: request,
       startTime: new Date(),
       status: 'running',
       pagesProcessed: 0,
       totalPages: 0,
       errors: [],
+      // 向后兼容字段
+      startUrl: request.url,
+      maxDepth: options.maxDepth || defaultCrawlerConfig.crawler.maxDepth,
+      maxPages: effectiveMaxPages,
+      isCompleteCrawl,
+      takeScreenshots: options.screenshot || false,
+      userAgent: options.userAgent,
+      allowedDomains,
+      excludePatterns: options.excludePatterns || [],
+      mediaOptions,
     };
   }
 

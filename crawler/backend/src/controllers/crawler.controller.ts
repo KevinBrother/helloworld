@@ -105,33 +105,55 @@ export class CrawlerController {
    * 验证爬取请求参数
    */
   private validateCrawlRequest(request: CrawlRequest): void {
-    if (!request.startUrl) {
-      throw new BadRequestException('startUrl 是必需的');
+    if (!request.url) {
+      throw new BadRequestException('url 是必需的');
     }
 
     try {
-      new URL(request.startUrl);
+      new URL(request.url);
     } catch (error) {
-      throw new BadRequestException('startUrl 必须是有效的URL');
+      throw new BadRequestException('url 必须是有效的URL');
     }
 
-    if (request.maxDepth !== undefined) {
-      if (request.maxDepth < 1 || request.maxDepth > 10) {
+    if (!request.options) {
+      throw new BadRequestException('options 是必需的');
+    }
+
+    const { options } = request;
+
+    if (options.maxDepth !== undefined) {
+      if (options.maxDepth < 1 || options.maxDepth > 10) {
         throw new BadRequestException('maxDepth 必须在 1-10 之间');
       }
     }
 
-    if (request.maxPages !== undefined) {
-      if (request.maxPages < 1 || request.maxPages > 1000) {
+    if (options.maxPages !== undefined) {
+      if (options.maxPages < 1 || options.maxPages > 1000) {
         throw new BadRequestException('maxPages 必须在 1-1000 之间');
       }
     }
 
-    if (request.allowedDomains) {
-      for (const domain of request.allowedDomains) {
+    if (options.allowedDomains) {
+      for (const domain of options.allowedDomains) {
         if (!/^[a-zA-Z0-9.-]+$/.test(domain)) {
           throw new BadRequestException(`无效的域名: ${domain}`);
         }
+      }
+    }
+
+    if (options.waitFor !== undefined) {
+      if (options.waitFor < 0 || options.waitFor > 30000) {
+        throw new BadRequestException('waitFor 必须在 0-30000 毫秒之间');
+      }
+    }
+
+    if (options.downloadLimits) {
+      const { downloadLimits } = options;
+      if (downloadLimits.maxFileSize !== undefined && downloadLimits.maxFileSize <= 0) {
+        throw new BadRequestException('maxFileSize 必须大于 0');
+      }
+      if (downloadLimits.maxTotalSize !== undefined && downloadLimits.maxTotalSize <= 0) {
+        throw new BadRequestException('maxTotalSize 必须大于 0');
       }
     }
   }

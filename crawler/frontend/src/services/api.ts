@@ -1,4 +1,4 @@
-import axios, { type AxiosResponse } from 'axios';
+import axios, { type AxiosResponse } from "axios";
 import type {
   ApiResponse,
   CrawlRequest,
@@ -8,15 +8,16 @@ import type {
   MediaStats,
   SearchParams,
   PaginatedResponse,
-  FileDownloadResponse
-} from '@/types/api';
+  FileDownloadResponse,
+} from "@/types/api";
+import { toast } from "sonner";
 
 // 创建 axios 实例
 const api = axios.create({
-  baseURL: 'api',
+  baseURL: "api",
   timeout: 30000,
   headers: {
-    'Content-Type': 'application/json',
+    "Content-Type": "application/json",
   },
 });
 
@@ -24,7 +25,22 @@ const api = axios.create({
 api.interceptors.response.use(
   (response: AxiosResponse) => response,
   (error) => {
-    console.error('API Error:', error);
+    console.error("API Error:", error);
+    // TODO 处理错误提示
+    if (error.response) {
+      toast.error("123123123");
+      toast.error(error.response.data.message);
+    }
+    // if (error.response) {
+    //   // 服务器返回错误
+    //   toast("Event has been created", {
+    //     description: "Sunday, December 03, 2023 at 9:00 AM",
+    //     action: {
+    //       label: "Undo",
+    //       onClick: () => console.log("Undo"),
+    //     },
+    //   });
+    // }
     return Promise.reject(error);
   }
 );
@@ -33,7 +49,7 @@ api.interceptors.response.use(
 export const crawlerApi = {
   // 开始爬取
   crawl: async (request: CrawlRequest): Promise<ApiResponse<CrawlResponse>> => {
-    const response = await api.post('/crawler/crawl', request);
+    const response = await api.post("/crawler/crawl", request);
     return response.data;
   },
 
@@ -45,7 +61,7 @@ export const crawlerApi = {
 
   // 获取所有会话
   getSessions: async (): Promise<ApiResponse<CrawSession[]>> => {
-    const response = await api.get('/crawler/sessions');
+    const response = await api.get("/crawler/sessions");
     return response.data;
   },
 
@@ -56,7 +72,9 @@ export const crawlerApi = {
   },
 
   // 获取会话媒体文件
-  getSessionMedia: async (sessionId: string): Promise<ApiResponse<MediaFileInfo[]>> => {
+  getSessionMedia: async (
+    sessionId: string
+  ): Promise<ApiResponse<MediaFileInfo[]>> => {
     const response = await api.get(`/crawler/session/${sessionId}/media`);
     return response.data;
   },
@@ -66,21 +84,26 @@ export const crawlerApi = {
 export const mediaApi = {
   // 获取媒体统计
   getStats: async (): Promise<ApiResponse<MediaStats>> => {
-    const response = await api.get('/media/stats');
+    const response = await api.get("/media/stats");
     return response.data;
   },
 
   // 搜索媒体文件
-  search: async (params: SearchParams): Promise<ApiResponse<PaginatedResponse<MediaFileInfo>>> => {
-    const response = await api.get('/media/search', { params });
+  search: async (
+    params: SearchParams
+  ): Promise<ApiResponse<PaginatedResponse<MediaFileInfo>>> => {
+    const response = await api.get("/media/search", { params });
     return response.data;
   },
 
   // 下载媒体文件
   downloadMedia: async (sessionId: string, fileName: string): Promise<Blob> => {
-    const response = await api.get(`/media/media/${sessionId}/${fileName}/download`, {
-      responseType: 'blob',
-    });
+    const response = await api.get(
+      `/media/media/${sessionId}/${fileName}/download`,
+      {
+        responseType: "blob",
+      }
+    );
     return response.data;
   },
 
@@ -94,15 +117,22 @@ export const mediaApi = {
 export const fileApi = {
   // 下载文件
   downloadFile: async (fileName: string): Promise<Blob> => {
-    const response = await api.get(`/files/files/${encodeURIComponent(fileName)}/download`, {
-      responseType: 'blob',
-    });
+    const response = await api.get(
+      `/files/files/${encodeURIComponent(fileName)}/download`,
+      {
+        responseType: "blob",
+      }
+    );
     return response.data;
   },
 
   // 获取文件信息
-  getFileInfo: async (fileName: string): Promise<ApiResponse<FileDownloadResponse>> => {
-    const response = await api.get(`/files/files/${encodeURIComponent(fileName)}/info`);
+  getFileInfo: async (
+    fileName: string
+  ): Promise<ApiResponse<FileDownloadResponse>> => {
+    const response = await api.get(
+      `/files/files/${encodeURIComponent(fileName)}/info`
+    );
     return response.data;
   },
 };
@@ -110,7 +140,7 @@ export const fileApi = {
 // 工具函数
 export const downloadBlob = (blob: Blob, fileName: string) => {
   const url = window.URL.createObjectURL(blob);
-  const link = document.createElement('a');
+  const link = document.createElement("a");
   link.href = url;
   link.download = fileName;
   document.body.appendChild(link);
