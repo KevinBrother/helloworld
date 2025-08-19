@@ -210,9 +210,9 @@ minio://crawler-pages/
 
 ### 3. 数据模型
 
-#### MediaFile
+#### MediaFileInfo
 ```typescript
-interface MediaFile {
+interface MediaFileInfo {
   id: string;                    // 唯一标识
   originalUrl: string;           // 原始URL
   fileName: string;              // 存储文件名
@@ -240,7 +240,7 @@ interface MediaCrawlSession {
     downloadErrors: number;
     skippedFiles: number;
   };
-  mediaFiles: MediaFile[];
+  mediaFiles: MediaFileInfo[];
 }
 ```
 
@@ -301,8 +301,8 @@ export class MediaDownloaderService {
     resources: MediaResource[], 
     options: MediaCrawlOptions,
     sessionId: string
-  ): Promise<MediaFile[]> {
-    const downloadedFiles: MediaFile[] = [];
+  ): Promise<MediaFileInfo[]> {
+    const downloadedFiles: MediaFileInfo[] = [];
     
     for (const resource of resources) {
       if (!this.shouldDownload(resource, options)) continue;
@@ -323,7 +323,7 @@ export class MediaDownloaderService {
   private async downloadSingleFile(
     resource: MediaResource, 
     sessionId: string
-  ): Promise<MediaFile> {
+  ): Promise<MediaFileInfo> {
     // 实现单个文件下载逻辑
     // 包括：URL解析、文件下载、大小验证、哈希计算、存储
   }

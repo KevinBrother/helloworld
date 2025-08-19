@@ -1,10 +1,10 @@
 import { useState, useEffect } from 'react';
 import { mediaApi } from '@/services/api';
-import type { MediaFile, MediaStats, SearchParams } from '@/types/api';
+import type { MediaFileInfo, MediaStats, SearchParams } from '@/types/api';
 import { cn } from '@/lib/utils';
 
 const MediaTest = () => {
-  const [mediaFiles, setMediaFiles] = useState<MediaFile[]>([]);
+  const [mediaFiles, setMediaFiles] = useState<MediaFileInfo[]>([]);
   const [stats, setStats] = useState<MediaStats | null>(null);
   const [searchParams, setSearchParams] = useState<SearchParams>({
     query: '',
@@ -14,7 +14,7 @@ const MediaTest = () => {
   });
   const [isLoading, setIsLoading] = useState(false);
   const [selectedFiles, setSelectedFiles] = useState<Set<string>>(new Set());
-  const [previewFile, setPreviewFile] = useState<MediaFile | null>(null);
+  const [previewFile, setPreviewFile] = useState<MediaFileInfo | null>(null);
 
   // 获取统计信息
   const fetchStats = async () => {
@@ -44,7 +44,7 @@ const MediaTest = () => {
   };
 
   // 下载单个文件
-  const handleDownloadFile = async (file: MediaFile) => {
+  const handleDownloadFile = async (file: MediaFileInfo) => {
     try {
       const blob = await mediaApi.downloadMedia(file.sessionId, file.fileName);
       const url = window.URL.createObjectURL(blob);
@@ -81,7 +81,7 @@ const MediaTest = () => {
   };
 
   // 预览文件
-  const handlePreviewFile = (file: MediaFile) => {
+  const handlePreviewFile = (file: MediaFileInfo) => {
     if (file.mimeType.startsWith('image/') || file.mimeType.startsWith('video/')) {
       setPreviewFile(file);
     } else {
@@ -90,13 +90,13 @@ const MediaTest = () => {
   };
 
   // 在新窗口中打开文件
-  const handleOpenInNewWindow = (file: MediaFile) => {
+  const handleOpenInNewWindow = (file: MediaFileInfo) => {
     const url = mediaApi.streamMedia(file.sessionId, file.fileName);
     window.open(url, '_blank');
   };
 
   // 切换文件选择
-  const toggleFileSelection = (file: MediaFile) => {
+  const toggleFileSelection = (file: MediaFileInfo) => {
     const fileKey = `${file.sessionId}-${file.fileName}`;
     const newSelected = new Set(selectedFiles);
     if (newSelected.has(fileKey)) {
