@@ -60,10 +60,10 @@ function Calendar({
         ...classNames,
       }}
       components={{
-        IconLeft: ({ className, ...props }) => (
+        Chevron: ({ className, ...props }: { className?: string; [key: string]: any }) => (
           <ChevronLeft className={cn("size-4", className)} {...props} />
         ),
-        IconRight: ({ className, ...props }) => (
+        ChevronRight: ({ className, ...props }: { className?: string; [key: string]: any }) => (
           <ChevronRight className={cn("size-4", className)} {...props} />
         ),
       }}

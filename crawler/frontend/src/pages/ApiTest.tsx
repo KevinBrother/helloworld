@@ -349,7 +349,7 @@ const ApiTest = () => {
                 <div className="mt-2">
                   <p className="text-xs text-muted-foreground mb-1">响应:</p>
                   <pre className="text-xs bg-muted p-2 rounded overflow-x-auto">
-                    {typeof result.response === 'string' ? result.response : JSON.stringify(result.response, null, 2)}
+                    {typeof result.response === 'string' ? result.response : JSON.stringify(result.response, null, 2) as string}
                   </pre>
                 </div>
               )}

@@ -13,7 +13,7 @@ import type {
 
 // 创建 axios 实例
 const api = axios.create({
-  baseURL: 'http://localhost:3000/api',
+  baseURL: 'api',
   timeout: 30000,
   headers: {
     'Content-Type': 'application/json',
