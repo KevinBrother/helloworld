@@ -1,52 +1,78 @@
-import { useState, useEffect } from 'react';
-import { crawlerApi, mediaApi } from '@/services/api';
-import type { CrawlResponse, Session, MediaFile } from '@/types/api';
-import { cn } from '@/lib/utils';
+import { useState, useEffect } from "react";
+import { crawlerApi, mediaApi } from "@/services/api";
+import type { CrawlResponse, CrawSession, MediaFileInfo } from "@/types/api";
+import { cn } from "@/lib/utils";
 
 const CrawlerTest = () => {
-  const [url, setUrl] = useState('https://rpa-docs.datagrand.com/');
+  const [url, setUrl] = useState("https://rpa-docs.datagrand.com/");
   const [isLoading, setIsLoading] = useState(false);
-  const [sessions, setSessions] = useState<Session[]>([]);
+  const [sessions, setSessions] = useState<CrawSession[]>([]);
   const [selectedSession, setSelectedSession] = useState<string | null>(null);
-  const [sessionMedia, setSessionMedia] = useState<MediaFile[]>([]);
+  const [sessionMedia, setSessionMedia] = useState<MediaFileInfo[]>([]);
   const [crawlResult, setCrawlResult] = useState<CrawlResponse | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
   const [currentSessionId, setCurrentSessionId] = useState<string | null>(null);
-  
+
   // 爬取配置状态
-  const [crawlMode, setCrawlMode] = useState<'complete' | 'limited'>('complete');
+  const [crawlMode, setCrawlMode] = useState<"complete" | "limited">(
+    "complete"
+  );
   const [maxPages, setMaxPages] = useState(50);
   const [maxDepth, setMaxDepth] = useState(6);
   const [enableMediaCrawl, setEnableMediaCrawl] = useState(true);
-  const [mediaConfigMode, setMediaConfigMode] = useState<'all' | 'custom'>('all');
-  const [downloadMode, setDownloadMode] = useState<'unlimited' | 'limited'>('unlimited');
-  
+  const [mediaConfigMode, setMediaConfigMode] = useState<"all" | "custom">(
+    "all"
+  );
+  const [downloadMode, setDownloadMode] = useState<"unlimited" | "limited">(
+    "unlimited"
+  );
+
   // 高级配置选项
   const [waitFor, setWaitFor] = useState(3000);
   const [screenshot, setScreenshot] = useState(true);
   const [fullPage, setFullPage] = useState(true);
-  const [userAgent, setUserAgent] = useState('');
-  const [headers, setHeaders] = useState('');
-  const [cookies, setCookies] = useState('');
+  const [userAgent, setUserAgent] = useState("");
+  const [headers, setHeaders] = useState("");
+  const [cookies, setCookies] = useState("");
   const [showAdvanced, setShowAdvanced] = useState(false);
-  
+
   // 媒体类型配置
   const [mediaTypes, setMediaTypes] = useState({
-    image: { enabled: true, mode: 'inherit' as 'inherit' | 'override', extensions: '' },
-    video: { enabled: true, mode: 'inherit' as 'inherit' | 'override', extensions: '' },
-    audio: { enabled: true, mode: 'inherit' as 'inherit' | 'override', extensions: '' },
-    document: { enabled: true, mode: 'inherit' as 'inherit' | 'override', extensions: '' },
-    archive: { enabled: true, mode: 'inherit' as 'inherit' | 'override', extensions: '' }
+    image: {
+      enabled: true,
+      mode: "inherit" as "inherit" | "override",
+      extensions: "",
+    },
+    video: {
+      enabled: true,
+      mode: "inherit" as "inherit" | "override",
+      extensions: "",
+    },
+    audio: {
+      enabled: true,
+      mode: "inherit" as "inherit" | "override",
+      extensions: "",
+    },
+    document: {
+      enabled: true,
+      mode: "inherit" as "inherit" | "override",
+      extensions: "",
+    },
+    archive: {
+      enabled: true,
+      mode: "inherit" as "inherit" | "override",
+      extensions: "",
+    },
   });
-  
+
   // 下载限制配置
   const [downloadLimits, setDownloadLimits] = useState({
     maxFileSize: 10000,
     maxTotalSize: 100000,
     downloadTimeout: 300,
     maxConcurrent: 10,
-    skipDuplicates: true
+    skipDuplicates: true,
   });
 
   // 清除消息
@@ -77,7 +103,7 @@ const CrawlerTest = () => {
         setSessions(response.data);
       }
     } catch (error) {
-      console.error('获取会话失败:', error);
+      console.error("获取会话失败:", error);
     }
   };
 
@@ -89,7 +115,7 @@ const CrawlerTest = () => {
         setSessionMedia(response.data);
       }
     } catch (error) {
-      console.error('获取会话媒体失败:', error);
+      console.error("获取会话媒体失败:", error);
     }
   };
 
@@ -102,11 +128,11 @@ const CrawlerTest = () => {
         screenshot,
         fullPage,
         maxDepth,
-        enableMediaCrawl
-      }
+        enableMediaCrawl,
+      },
     };
 
-    if (crawlMode === 'limited') {
+    if (crawlMode === "limited") {
       config.options.maxPages = maxPages;
     }
 
@@ -119,7 +145,7 @@ const CrawlerTest = () => {
       try {
         config.options.headers = JSON.parse(headers);
       } catch (e) {
-        console.warn('Invalid headers JSON, ignoring');
+        console.warn("Invalid headers JSON, ignoring");
       }
     }
 
@@ -127,24 +153,26 @@ const CrawlerTest = () => {
       try {
         config.options.cookies = JSON.parse(cookies);
       } catch (e) {
-        console.warn('Invalid cookies JSON, ignoring');
+        console.warn("Invalid cookies JSON, ignoring");
       }
     }
 
-    if (enableMediaCrawl && mediaConfigMode === 'custom') {
+    if (enableMediaCrawl && mediaConfigMode === "custom") {
       const mediaConfig: any = {};
       Object.entries(mediaTypes).forEach(([type, typeConfig]) => {
         if (typeConfig.enabled) {
           mediaConfig[type] = {
             mode: typeConfig.mode,
-            extensions: typeConfig.extensions ? typeConfig.extensions.split(',').map(ext => ext.trim()) : []
+            extensions: typeConfig.extensions
+              ? typeConfig.extensions.split(",").map((ext) => ext.trim())
+              : [],
           };
         }
       });
       config.options.mediaTypes = mediaConfig;
     }
 
-    if (downloadMode === 'limited') {
+    if (downloadMode === "limited") {
       config.options.downloadLimits = downloadLimits;
     }
 
@@ -154,14 +182,16 @@ const CrawlerTest = () => {
   // 开始爬取
   const handleCrawl = async () => {
     if (!url.trim()) {
-      showError('请输入URL');
+      showError("请输入URL");
       return;
     }
 
-    if (enableMediaCrawl && mediaConfigMode === 'custom') {
-      const hasEnabledTypes = Object.values(mediaTypes).some(type => type.enabled);
+    if (enableMediaCrawl && mediaConfigMode === "custom") {
+      const hasEnabledTypes = Object.values(mediaTypes).some(
+        (type) => type.enabled
+      );
       if (!hasEnabledTypes) {
-        showError('启用媒体爬取时请至少选择一种媒体类型');
+        showError("启用媒体爬取时请至少选择一种媒体类型");
         return;
       }
     }
@@ -179,8 +209,8 @@ const CrawlerTest = () => {
         await fetchSessions(); // 刷新会话列表
       }
     } catch (error: any) {
-      console.error('爬取失败:', error);
-      showError(error.message || '爬取失败，请检查URL或网络连接');
+      console.error("爬取失败:", error);
+      showError(error.message || "爬取失败，请检查URL或网络连接");
     } finally {
       setIsLoading(false);
     }
@@ -193,11 +223,11 @@ const CrawlerTest = () => {
       if (sessionId === currentSessionId) {
         setCurrentSessionId(null);
       }
-      showSuccess('爬取任务已停止');
+      showSuccess("爬取任务已停止");
       await fetchSessions(); // 刷新会话列表
     } catch (error: any) {
-      console.error('停止爬取失败:', error);
-      showError(error.message || '停止爬取失败');
+      console.error("停止爬取失败:", error);
+      showError(error.message || "停止爬取失败");
     }
   };
 
@@ -206,7 +236,7 @@ const CrawlerTest = () => {
     try {
       const blob = await mediaApi.downloadMedia(sessionId, fileName);
       const url = window.URL.createObjectURL(blob);
-      const link = document.createElement('a');
+      const link = document.createElement("a");
       link.href = url;
       link.download = fileName;
       document.body.appendChild(link);
@@ -214,8 +244,8 @@ const CrawlerTest = () => {
       document.body.removeChild(link);
       window.URL.revokeObjectURL(url);
     } catch (error) {
-      console.error('下载失败:', error);
-      alert('下载失败');
+      console.error("下载失败:", error);
+      alert("下载失败");
     }
   };
 
@@ -232,7 +262,9 @@ const CrawlerTest = () => {
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-3xl font-bold text-foreground">🕷️ 网页爬取功能测试</h1>
+        <h1 className="text-3xl font-bold text-foreground">
+          🕷️ 网页爬取功能测试
+        </h1>
         <p className="mt-2 text-muted-foreground">
           测试网站爬虫的页面爬取和媒体文件检测下载功能
         </p>
@@ -270,10 +302,12 @@ const CrawlerTest = () => {
       {/* 爬取表单 */}
       <div className="rounded-lg border border-gray-200 bg-white p-6">
         <h2 className="text-lg font-semibold mb-4">🚀 启动媒体爬取任务</h2>
-        
+
         {/* URL输入 */}
         <div className="mb-4">
-          <label className="block text-sm font-medium text-gray-700 mb-2">目标网站URL:</label>
+          <label className="block text-sm font-medium text-gray-700 mb-2">
+            目标网站URL:
+          </label>
           <input
             type="url"
             value={url}
@@ -285,10 +319,14 @@ const CrawlerTest = () => {
 
         {/* 爬取模式 */}
         <div className="mb-4">
-          <label className="block text-sm font-medium text-gray-700 mb-2">爬取模式:</label>
+          <label className="block text-sm font-medium text-gray-700 mb-2">
+            爬取模式:
+          </label>
           <select
             value={crawlMode}
-            onChange={(e) => setCrawlMode(e.target.value as 'complete' | 'limited')}
+            onChange={(e) =>
+              setCrawlMode(e.target.value as "complete" | "limited")
+            }
             className="w-full rounded-md border border-gray-300 bg-white px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
           >
             <option value="complete">完全爬取</option>
@@ -297,9 +335,11 @@ const CrawlerTest = () => {
         </div>
 
         {/* 最大页面数 */}
-        {crawlMode === 'limited' && (
+        {crawlMode === "limited" && (
           <div className="mb-4">
-            <label className="block text-sm font-medium text-gray-700 mb-2">最大页面数:</label>
+            <label className="block text-sm font-medium text-gray-700 mb-2">
+              最大页面数:
+            </label>
             <input
               type="number"
               value={maxPages}
@@ -313,7 +353,9 @@ const CrawlerTest = () => {
 
         {/* 爬取深度 */}
         <div className="mb-4">
-          <label className="block text-sm font-medium text-gray-700 mb-2">爬取深度:</label>
+          <label className="block text-sm font-medium text-gray-700 mb-2">
+            爬取深度:
+          </label>
           <input
             type="number"
             value={maxDepth}
@@ -323,7 +365,9 @@ const CrawlerTest = () => {
             title="爬取深度决定了从起始页面开始，最多跟踪多少层链接"
             className="w-full rounded-md border border-gray-300 bg-white px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
           />
-          <small className="text-xs text-gray-500 mt-1 block">深度1=仅起始页面，深度2=起始页面+直接链接页面，以此类推</small>
+          <small className="text-xs text-gray-500 mt-1 block">
+            深度1=仅起始页面，深度2=起始页面+直接链接页面，以此类推
+          </small>
         </div>
 
         {/* 高级配置切换 */}
@@ -333,7 +377,7 @@ const CrawlerTest = () => {
             onClick={() => setShowAdvanced(!showAdvanced)}
             className="text-sm text-blue-600 hover:text-blue-800 font-medium"
           >
-            {showAdvanced ? '隐藏高级配置' : '显示高级配置'}
+            {showAdvanced ? "隐藏高级配置" : "显示高级配置"}
           </button>
         </div>
 
@@ -341,10 +385,12 @@ const CrawlerTest = () => {
         {showAdvanced && (
           <div className="mb-4 p-4 border border-gray-200 rounded-lg bg-gray-50">
             <h3 className="text-sm font-medium text-gray-700 mb-3">高级配置</h3>
-            
+
             <div className="grid grid-cols-2 gap-4 mb-4">
               <div>
-                <label className="block text-xs font-medium text-gray-700 mb-1">等待时间 (毫秒):</label>
+                <label className="block text-xs font-medium text-gray-700 mb-1">
+                  等待时间 (毫秒):
+                </label>
                 <input
                   type="number"
                   value={waitFor}
@@ -377,7 +423,9 @@ const CrawlerTest = () => {
             </div>
 
             <div className="mb-3">
-              <label className="block text-xs font-medium text-gray-700 mb-1">User Agent:</label>
+              <label className="block text-xs font-medium text-gray-700 mb-1">
+                User Agent:
+              </label>
               <input
                 type="text"
                 value={userAgent}
@@ -388,7 +436,9 @@ const CrawlerTest = () => {
             </div>
 
             <div className="mb-3">
-              <label className="block text-xs font-medium text-gray-700 mb-1">请求头 (JSON格式):</label>
+              <label className="block text-xs font-medium text-gray-700 mb-1">
+                请求头 (JSON格式):
+              </label>
               <textarea
                 value={headers}
                 onChange={(e) => setHeaders(e.target.value)}
@@ -399,7 +449,9 @@ const CrawlerTest = () => {
             </div>
 
             <div>
-              <label className="block text-xs font-medium text-gray-700 mb-1">Cookies (JSON格式):</label>
+              <label className="block text-xs font-medium text-gray-700 mb-1">
+                Cookies (JSON格式):
+              </label>
               <textarea
                 value={cookies}
                 onChange={(e) => setCookies(e.target.value)}
@@ -420,17 +472,23 @@ const CrawlerTest = () => {
               onChange={(e) => setEnableMediaCrawl(e.target.checked)}
               className="mr-2"
             />
-            <span className="text-sm font-medium text-gray-700">启用媒体文件爬取</span>
+            <span className="text-sm font-medium text-gray-700">
+              启用媒体文件爬取
+            </span>
           </label>
         </div>
 
         {/* 媒体爬取模式 */}
         {enableMediaCrawl && (
           <div className="mb-4">
-            <label className="block text-sm font-medium text-gray-700 mb-2">媒体爬取模式:</label>
+            <label className="block text-sm font-medium text-gray-700 mb-2">
+              媒体爬取模式:
+            </label>
             <select
               value={mediaConfigMode}
-              onChange={(e) => setMediaConfigMode(e.target.value as 'all' | 'custom')}
+              onChange={(e) =>
+                setMediaConfigMode(e.target.value as "all" | "custom")
+              }
               className="w-full rounded-md border border-gray-300 bg-white px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
             >
               <option value="all">爬取所有媒体文件</option>
@@ -440,22 +498,43 @@ const CrawlerTest = () => {
         )}
 
         {/* 媒体类型配置 */}
-        {enableMediaCrawl && mediaConfigMode === 'custom' && (
+        {enableMediaCrawl && mediaConfigMode === "custom" && (
           <div className="mb-4 p-4 border border-gray-200 rounded-lg bg-gray-50">
-            <h3 className="text-sm font-medium text-gray-700 mb-3">媒体类型配置</h3>
+            <h3 className="text-sm font-medium text-gray-700 mb-3">
+              媒体类型配置
+            </h3>
             {Object.entries(mediaTypes).map(([type, config]) => (
-              <div key={type} className="mb-4 p-3 border border-gray-200 rounded bg-white">
+              <div
+                key={type}
+                className="mb-4 p-3 border border-gray-200 rounded bg-white"
+              >
                 <label className="flex items-center mb-2">
                   <input
                     type="checkbox"
                     checked={config.enabled}
-                    onChange={(e) => setMediaTypes(prev => ({
-                      ...prev,
-                      [type]: { ...prev[type as keyof typeof prev], enabled: e.target.checked }
-                    }))}
+                    onChange={(e) =>
+                      setMediaTypes((prev) => ({
+                        ...prev,
+                        [type]: {
+                          ...prev[type as keyof typeof prev],
+                          enabled: e.target.checked,
+                        },
+                      }))
+                    }
                     className="mr-2"
                   />
-                  <span className="text-sm font-medium text-gray-700 capitalize">{type === 'image' ? '图片' : type === 'video' ? '视频' : type === 'audio' ? '音频' : type === 'document' ? '文档' : '压缩包'}文件</span>
+                  <span className="text-sm font-medium text-gray-700 capitalize">
+                    {type === "image"
+                      ? "图片"
+                      : type === "video"
+                      ? "视频"
+                      : type === "audio"
+                      ? "音频"
+                      : type === "document"
+                      ? "文档"
+                      : "压缩包"}
+                    文件
+                  </span>
                 </label>
                 {config.enabled && (
                   <div className="ml-6">
@@ -464,37 +543,60 @@ const CrawlerTest = () => {
                         <input
                           type="radio"
                           name={`${type}-mode`}
-                          checked={config.mode === 'inherit'}
-                          onChange={() => setMediaTypes(prev => ({
-                            ...prev,
-                            [type]: { ...prev[type as keyof typeof prev], mode: 'inherit' }
-                          }))}
+                          checked={config.mode === "inherit"}
+                          onChange={() =>
+                            setMediaTypes((prev) => ({
+                              ...prev,
+                              [type]: {
+                                ...prev[type as keyof typeof prev],
+                                mode: "inherit",
+                              },
+                            }))
+                          }
                           className="mr-2"
                         />
-                        <span className="text-xs text-gray-600">继承预设格式</span>
+                        <span className="text-xs text-gray-600">
+                          继承预设格式
+                        </span>
                       </label>
                       <label className="flex items-center">
                         <input
                           type="radio"
                           name={`${type}-mode`}
-                          checked={config.mode === 'override'}
-                          onChange={() => setMediaTypes(prev => ({
-                            ...prev,
-                            [type]: { ...prev[type as keyof typeof prev], mode: 'override' }
-                          }))}
+                          checked={config.mode === "override"}
+                          onChange={() =>
+                            setMediaTypes((prev) => ({
+                              ...prev,
+                              [type]: {
+                                ...prev[type as keyof typeof prev],
+                                mode: "override",
+                              },
+                            }))
+                          }
                           className="mr-2"
                         />
-                        <span className="text-xs text-gray-600">覆盖为自定义格式</span>
+                        <span className="text-xs text-gray-600">
+                          覆盖为自定义格式
+                        </span>
                       </label>
                     </div>
                     <input
                       type="text"
                       value={config.extensions}
-                      onChange={(e) => setMediaTypes(prev => ({
-                        ...prev,
-                        [type]: { ...prev[type as keyof typeof prev], extensions: e.target.value }
-                      }))}
-                      placeholder={config.mode === 'inherit' ? '在预设基础上增加格式，如: tiff,raw' : '输入文件扩展名，用逗号分隔'}
+                      onChange={(e) =>
+                        setMediaTypes((prev) => ({
+                          ...prev,
+                          [type]: {
+                            ...prev[type as keyof typeof prev],
+                            extensions: e.target.value,
+                          },
+                        }))
+                      }
+                      placeholder={
+                        config.mode === "inherit"
+                          ? "在预设基础上增加格式，如: tiff,raw"
+                          : "输入文件扩展名，用逗号分隔"
+                      }
                       className="w-full text-xs rounded border border-gray-300 px-2 py-1 focus:outline-none focus:ring-1 focus:ring-blue-500"
                     />
                   </div>
@@ -507,12 +609,16 @@ const CrawlerTest = () => {
         {/* 下载配置 */}
         <div className="mb-4 p-4 border border-gray-200 rounded-lg bg-gray-50">
           <h3 className="text-sm font-medium text-gray-700 mb-3">下载配置</h3>
-          
+
           <div className="mb-3">
-            <label className="block text-sm font-medium text-gray-700 mb-2">下载限制模式:</label>
+            <label className="block text-sm font-medium text-gray-700 mb-2">
+              下载限制模式:
+            </label>
             <select
               value={downloadMode}
-              onChange={(e) => setDownloadMode(e.target.value as 'unlimited' | 'limited')}
+              onChange={(e) =>
+                setDownloadMode(e.target.value as "unlimited" | "limited")
+              }
               className="w-full rounded-md border border-gray-300 bg-white px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
             >
               <option value="unlimited">不限制下载</option>
@@ -520,47 +626,75 @@ const CrawlerTest = () => {
             </select>
           </div>
 
-          {downloadMode === 'limited' && (
+          {downloadMode === "limited" && (
             <div className="grid grid-cols-2 gap-3 mb-3">
               <div>
-                <label className="block text-xs font-medium text-gray-700 mb-1">单个文件最大大小 (MB):</label>
+                <label className="block text-xs font-medium text-gray-700 mb-1">
+                  单个文件最大大小 (MB):
+                </label>
                 <input
                   type="number"
                   value={downloadLimits.maxFileSize}
-                  onChange={(e) => setDownloadLimits(prev => ({ ...prev, maxFileSize: Number(e.target.value) }))}
+                  onChange={(e) =>
+                    setDownloadLimits((prev) => ({
+                      ...prev,
+                      maxFileSize: Number(e.target.value),
+                    }))
+                  }
                   min="1"
                   max="100000"
                   className="w-full rounded border border-gray-300 px-2 py-1 text-sm focus:outline-none focus:ring-1 focus:ring-blue-500"
                 />
               </div>
               <div>
-                <label className="block text-xs font-medium text-gray-700 mb-1">总下载大小限制 (MB):</label>
+                <label className="block text-xs font-medium text-gray-700 mb-1">
+                  总下载大小限制 (MB):
+                </label>
                 <input
                   type="number"
                   value={downloadLimits.maxTotalSize}
-                  onChange={(e) => setDownloadLimits(prev => ({ ...prev, maxTotalSize: Number(e.target.value) }))}
+                  onChange={(e) =>
+                    setDownloadLimits((prev) => ({
+                      ...prev,
+                      maxTotalSize: Number(e.target.value),
+                    }))
+                  }
                   min="1"
                   max="1000000"
                   className="w-full rounded border border-gray-300 px-2 py-1 text-sm focus:outline-none focus:ring-1 focus:ring-blue-500"
                 />
               </div>
               <div>
-                <label className="block text-xs font-medium text-gray-700 mb-1">下载超时时间 (秒):</label>
+                <label className="block text-xs font-medium text-gray-700 mb-1">
+                  下载超时时间 (秒):
+                </label>
                 <input
                   type="number"
                   value={downloadLimits.downloadTimeout}
-                  onChange={(e) => setDownloadLimits(prev => ({ ...prev, downloadTimeout: Number(e.target.value) }))}
+                  onChange={(e) =>
+                    setDownloadLimits((prev) => ({
+                      ...prev,
+                      downloadTimeout: Number(e.target.value),
+                    }))
+                  }
                   min="5"
                   max="3600"
                   className="w-full rounded border border-gray-300 px-2 py-1 text-sm focus:outline-none focus:ring-1 focus:ring-blue-500"
                 />
               </div>
               <div>
-                <label className="block text-xs font-medium text-gray-700 mb-1">并发下载数量:</label>
+                <label className="block text-xs font-medium text-gray-700 mb-1">
+                  并发下载数量:
+                </label>
                 <input
                   type="number"
                   value={downloadLimits.maxConcurrent}
-                  onChange={(e) => setDownloadLimits(prev => ({ ...prev, maxConcurrent: Number(e.target.value) }))}
+                  onChange={(e) =>
+                    setDownloadLimits((prev) => ({
+                      ...prev,
+                      maxConcurrent: Number(e.target.value),
+                    }))
+                  }
                   min="1"
                   max="50"
                   className="w-full rounded border border-gray-300 px-2 py-1 text-sm focus:outline-none focus:ring-1 focus:ring-blue-500"
@@ -573,7 +707,12 @@ const CrawlerTest = () => {
             <input
               type="checkbox"
               checked={downloadLimits.skipDuplicates}
-              onChange={(e) => setDownloadLimits(prev => ({ ...prev, skipDuplicates: e.target.checked }))}
+              onChange={(e) =>
+                setDownloadLimits((prev) => ({
+                  ...prev,
+                  skipDuplicates: e.target.checked,
+                }))
+              }
               className="mr-2"
             />
             <span className="text-sm text-gray-700">跳过重复文件</span>
@@ -586,13 +725,13 @@ const CrawlerTest = () => {
             onClick={handleCrawl}
             disabled={isLoading}
             className={cn(
-              'rounded-md px-6 py-2 text-sm font-medium text-white transition-colors',
+              "rounded-md px-6 py-2 text-sm font-medium text-white transition-colors",
               isLoading
-                ? 'bg-gray-400 cursor-not-allowed'
-                : 'bg-blue-600 hover:bg-blue-700'
+                ? "bg-gray-400 cursor-not-allowed"
+                : "bg-blue-600 hover:bg-blue-700"
             )}
           >
-            {isLoading ? '爬取中...' : '开始爬取'}
+            {isLoading ? "爬取中..." : "开始爬取"}
           </button>
         </div>
       </div>
@@ -602,22 +741,38 @@ const CrawlerTest = () => {
         <div className="rounded-lg border border-border bg-card p-6">
           <h2 className="text-lg font-semibold mb-4">爬取结果</h2>
           <div className="space-y-2 text-sm">
-            <p><strong>会话ID:</strong> {crawlResult.sessionId}</p>
-            <p><strong>URL:</strong> {crawlResult.url}</p>
-            <p><strong>状态:</strong> 
-              <span className={cn(
-                'ml-2 px-2 py-1 rounded text-xs',
-                crawlResult.status === 'completed' ? 'bg-green-100 text-green-800' :
-                crawlResult.status === 'running' ? 'bg-blue-100 text-blue-800' :
-                crawlResult.status === 'failed' ? 'bg-red-100 text-red-800' :
-                'bg-gray-100 text-gray-800'
-              )}>
+            <p>
+              <strong>会话ID:</strong> {crawlResult.sessionId}
+            </p>
+            <p>
+              <strong>URL:</strong> {crawlResult.url}
+            </p>
+            <p>
+              <strong>状态:</strong>
+              <span
+                className={cn(
+                  "ml-2 px-2 py-1 rounded text-xs",
+                  crawlResult.status === "completed"
+                    ? "bg-green-100 text-green-800"
+                    : crawlResult.status === "running"
+                    ? "bg-blue-100 text-blue-800"
+                    : crawlResult.status === "failed"
+                    ? "bg-red-100 text-red-800"
+                    : "bg-gray-100 text-gray-800"
+                )}
+              >
                 {crawlResult.status}
               </span>
             </p>
-            <p><strong>开始时间:</strong> {new Date(crawlResult.startTime).toLocaleString()}</p>
+            <p>
+              <strong>开始时间:</strong>{" "}
+              {new Date(crawlResult.startTime).toLocaleString()}
+            </p>
             {crawlResult.endTime && (
-              <p><strong>结束时间:</strong> {new Date(crawlResult.endTime).toLocaleString()}</p>
+              <p>
+                <strong>结束时间:</strong>{" "}
+                {new Date(crawlResult.endTime).toLocaleString()}
+              </p>
             )}
           </div>
         </div>
@@ -632,16 +787,18 @@ const CrawlerTest = () => {
               <div
                 key={session.id}
                 className={cn(
-                  'p-3 rounded border cursor-pointer transition-colors',
+                  "p-3 rounded border cursor-pointer transition-colors",
                   selectedSession === session.id
-                    ? 'border-primary bg-primary/5'
-                    : 'border-border hover:border-primary/50'
+                    ? "border-primary bg-primary/5"
+                    : "border-border hover:border-primary/50"
                 )}
                 onClick={() => handleSelectSession(session.id)}
               >
                 <div className="flex justify-between items-start">
                   <div className="flex-1 min-w-0">
-                    <p className="text-sm font-medium truncate">{session.url}</p>
+                    <p className="text-sm font-medium truncate">
+                      {session.url}
+                    </p>
                     <p className="text-xs text-muted-foreground">
                       {new Date(session.startTime).toLocaleString()}
                     </p>
@@ -650,16 +807,21 @@ const CrawlerTest = () => {
                     </p>
                   </div>
                   <div className="flex items-center gap-2">
-                    <span className={cn(
-                      'px-2 py-1 rounded text-xs',
-                      session.status === 'completed' ? 'bg-green-100 text-green-800' :
-                      session.status === 'running' ? 'bg-blue-100 text-blue-800' :
-                      session.status === 'failed' ? 'bg-red-100 text-red-800' :
-                      'bg-gray-100 text-gray-800'
-                    )}>
+                    <span
+                      className={cn(
+                        "px-2 py-1 rounded text-xs",
+                        session.status === "completed"
+                          ? "bg-green-100 text-green-800"
+                          : session.status === "running"
+                          ? "bg-blue-100 text-blue-800"
+                          : session.status === "failed"
+                          ? "bg-red-100 text-red-800"
+                          : "bg-gray-100 text-gray-800"
+                      )}
+                    >
                       {session.status}
                     </span>
-                    {session.status === 'running' && (
+                    {session.status === "running" && (
                       <button
                         onClick={(e) => {
                           e.stopPropagation();
@@ -689,17 +851,21 @@ const CrawlerTest = () => {
                 >
                   <div className="flex justify-between items-start">
                     <div className="flex-1 min-w-0">
-                      <p className="text-sm font-medium truncate">{media.fileName}</p>
+                      <p className="text-sm font-medium truncate">
+                        {media.fileName}
+                      </p>
                       <p className="text-xs text-muted-foreground truncate">
                         {media.originalUrl}
                       </p>
                       <p className="text-xs text-muted-foreground">
-                        大小: {(media.fileSize / 1024).toFixed(1)} KB | 
-                        类型: {media.mimeType}
+                        大小: {(media.fileSize / 1024).toFixed(1)} KB | 类型:{" "}
+                        {media.mimeType}
                       </p>
                     </div>
                     <button
-                      onClick={() => handleDownloadMedia(selectedSession, media.fileName)}
+                      onClick={() =>
+                        handleDownloadMedia(selectedSession, media.fileName)
+                      }
                       className="text-xs px-2 py-1 bg-primary text-primary-foreground rounded hover:bg-primary/90"
                     >
                       下载

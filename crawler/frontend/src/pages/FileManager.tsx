@@ -1,20 +1,25 @@
-import { useState, useEffect } from 'react';
-import { crawlerApi, mediaApi, fileApi } from '@/services/api';
-import type { Session, MediaFile, MediaStats, SearchParams } from '@/types/api';
-import { cn } from '@/lib/utils';
+import { useState, useEffect } from "react";
+import { crawlerApi, mediaApi, fileApi } from "@/services/api";
+import type {
+  CrawSession,
+  MediaFileInfo,
+  MediaStats,
+  SearchParams,
+} from "@/types/api";
+import { cn } from "@/lib/utils";
 
 const FileManager = () => {
-  const [sessions, setSessions] = useState<Session[]>([]);
-  const [mediaFiles, setMediaFiles] = useState<MediaFile[]>([]);
+  const [sessions, setSessions] = useState<CrawSession[]>([]);
+  const [mediaFiles, setMediaFiles] = useState<MediaFileInfo[]>([]);
   const [stats, setStats] = useState<MediaStats | null>(null);
   const [searchParams, setSearchParams] = useState<SearchParams>({
-    query: '',
-    fileType: '',
+    query: "",
+    fileType: "",
     page: 1,
     limit: 20,
   });
   const [isLoading, setIsLoading] = useState(false);
-  const [selectedFile, setSelectedFile] = useState<string>('');
+  const [selectedFile, setSelectedFile] = useState<string>("");
 
   // 获取统计信息
   const fetchStats = async () => {
@@ -24,7 +29,7 @@ const FileManager = () => {
         setStats(response.data);
       }
     } catch (error) {
-      console.error('获取统计信息失败:', error);
+      console.error("获取统计信息失败:", error);
     }
   };
 
@@ -36,7 +41,7 @@ const FileManager = () => {
         setSessions(response.data);
       }
     } catch (error) {
-      console.error('获取会话失败:', error);
+      console.error("获取会话失败:", error);
     }
   };
 
@@ -49,7 +54,7 @@ const FileManager = () => {
         setMediaFiles(response.data.data);
       }
     } catch (error) {
-      console.error('搜索失败:', error);
+      console.error("搜索失败:", error);
     } finally {
       setIsLoading(false);
     }
@@ -60,7 +65,7 @@ const FileManager = () => {
     try {
       const blob = await fileApi.downloadFile(fileName);
       const url = window.URL.createObjectURL(blob);
-      const link = document.createElement('a');
+      const link = document.createElement("a");
       link.href = url;
       link.download = fileName;
       document.body.appendChild(link);
@@ -68,8 +73,8 @@ const FileManager = () => {
       document.body.removeChild(link);
       window.URL.revokeObjectURL(url);
     } catch (error) {
-      console.error('下载失败:', error);
-      alert('下载失败');
+      console.error("下载失败:", error);
+      alert("下载失败");
     }
   };
 
@@ -78,7 +83,7 @@ const FileManager = () => {
     try {
       const blob = await mediaApi.downloadMedia(sessionId, fileName);
       const url = window.URL.createObjectURL(blob);
-      const link = document.createElement('a');
+      const link = document.createElement("a");
       link.href = url;
       link.download = fileName;
       document.body.appendChild(link);
@@ -86,18 +91,18 @@ const FileManager = () => {
       document.body.removeChild(link);
       window.URL.revokeObjectURL(url);
     } catch (error) {
-      console.error('下载失败:', error);
-      alert('下载失败');
+      console.error("下载失败:", error);
+      alert("下载失败");
     }
   };
 
   // 格式化文件大小
   const formatFileSize = (bytes: number): string => {
-    if (bytes === 0) return '0 B';
+    if (bytes === 0) return "0 B";
     const k = 1024;
-    const sizes = ['B', 'KB', 'MB', 'GB'];
+    const sizes = ["B", "KB", "MB", "GB"];
     const i = Math.floor(Math.log(bytes) / Math.log(k));
-    return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
+    return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + " " + sizes[i];
   };
 
   useEffect(() => {
@@ -114,35 +119,45 @@ const FileManager = () => {
     <div className="space-y-6">
       <div>
         <h1 className="text-3xl font-bold text-foreground">文件管理</h1>
-        <p className="mt-2 text-muted-foreground">
-          管理和下载爬取的媒体文件
-        </p>
+        <p className="mt-2 text-muted-foreground">管理和下载爬取的媒体文件</p>
       </div>
 
       {/* 统计信息 */}
       {stats && (
         <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
           <div className="rounded-lg border border-border bg-card p-4">
-            <h3 className="text-sm font-medium text-muted-foreground">总文件数</h3>
-            <p className="text-2xl font-bold text-foreground">{stats.totalFiles}</p>
+            <h3 className="text-sm font-medium text-muted-foreground">
+              总文件数
+            </h3>
+            <p className="text-2xl font-bold text-foreground">
+              {stats.totalFiles}
+            </p>
           </div>
           <div className="rounded-lg border border-border bg-card p-4">
-            <h3 className="text-sm font-medium text-muted-foreground">总大小</h3>
-            <p className="text-2xl font-bold text-foreground">{formatFileSize(stats.totalSize)}</p>
+            <h3 className="text-sm font-medium text-muted-foreground">
+              总大小
+            </h3>
+            <p className="text-2xl font-bold text-foreground">
+              {formatFileSize(stats.totalSize)}
+            </p>
           </div>
           <div className="rounded-lg border border-border bg-card p-4">
-            <h3 className="text-sm font-medium text-muted-foreground">图片文件</h3>
+            <h3 className="text-sm font-medium text-muted-foreground">
+              图片文件
+            </h3>
             <p className="text-2xl font-bold text-foreground">
               {Object.entries(stats.fileTypes)
-                .filter(([type]) => type.startsWith('image/'))
+                .filter(([type]) => type.startsWith("image/"))
                 .reduce((sum, [, count]) => sum + count, 0)}
             </p>
           </div>
           <div className="rounded-lg border border-border bg-card p-4">
-            <h3 className="text-sm font-medium text-muted-foreground">视频文件</h3>
+            <h3 className="text-sm font-medium text-muted-foreground">
+              视频文件
+            </h3>
             <p className="text-2xl font-bold text-foreground">
               {Object.entries(stats.fileTypes)
-                .filter(([type]) => type.startsWith('video/'))
+                .filter(([type]) => type.startsWith("video/"))
                 .reduce((sum, [, count]) => sum + count, 0)}
             </p>
           </div>
@@ -156,13 +171,25 @@ const FileManager = () => {
           <input
             type="text"
             placeholder="搜索文件名..."
-            value={searchParams.query || ''}
-            onChange={(e) => setSearchParams(prev => ({ ...prev, query: e.target.value, page: 1 }))}
+            value={searchParams.query || ""}
+            onChange={(e) =>
+              setSearchParams((prev) => ({
+                ...prev,
+                query: e.target.value,
+                page: 1,
+              }))
+            }
             className="rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2"
           />
           <select
-            value={searchParams.fileType || ''}
-            onChange={(e) => setSearchParams(prev => ({ ...prev, fileType: e.target.value, page: 1 }))}
+            value={searchParams.fileType || ""}
+            onChange={(e) =>
+              setSearchParams((prev) => ({
+                ...prev,
+                fileType: e.target.value,
+                page: 1,
+              }))
+            }
             className="rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2"
           >
             <option value="">所有类型</option>
@@ -171,8 +198,14 @@ const FileManager = () => {
             <option value="audio">音频</option>
           </select>
           <select
-            value={searchParams.sessionId || ''}
-            onChange={(e) => setSearchParams(prev => ({ ...prev, sessionId: e.target.value, page: 1 }))}
+            value={searchParams.sessionId || ""}
+            onChange={(e) =>
+              setSearchParams((prev) => ({
+                ...prev,
+                sessionId: e.target.value,
+                page: 1,
+              }))
+            }
             className="rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2"
           >
             <option value="">所有会话</option>
@@ -186,13 +219,13 @@ const FileManager = () => {
             onClick={searchMediaFiles}
             disabled={isLoading}
             className={cn(
-              'rounded-md px-4 py-2 text-sm font-medium text-primary-foreground transition-colors',
+              "rounded-md px-4 py-2 text-sm font-medium text-primary-foreground transition-colors",
               isLoading
-                ? 'bg-muted cursor-not-allowed'
-                : 'bg-primary hover:bg-primary/90'
+                ? "bg-muted cursor-not-allowed"
+                : "bg-primary hover:bg-primary/90"
             )}
           >
-            {isLoading ? '搜索中...' : '搜索'}
+            {isLoading ? "搜索中..." : "搜索"}
           </button>
         </div>
       </div>
@@ -212,10 +245,10 @@ const FileManager = () => {
             onClick={() => handleDownloadFile(selectedFile)}
             disabled={!selectedFile.trim()}
             className={cn(
-              'rounded-md px-4 py-2 text-sm font-medium text-primary-foreground transition-colors',
+              "rounded-md px-4 py-2 text-sm font-medium text-primary-foreground transition-colors",
               !selectedFile.trim()
-                ? 'bg-muted cursor-not-allowed'
-                : 'bg-primary hover:bg-primary/90'
+                ? "bg-muted cursor-not-allowed"
+                : "bg-primary hover:bg-primary/90"
             )}
           >
             下载文件
@@ -239,14 +272,16 @@ const FileManager = () => {
               >
                 <div className="flex justify-between items-start">
                   <div className="flex-1 min-w-0">
-                    <p className="text-sm font-medium truncate">{file.fileName}</p>
+                    <p className="text-sm font-medium truncate">
+                      {file.fileName}
+                    </p>
                     <p className="text-xs text-muted-foreground truncate">
                       原始URL: {file.originalUrl}
                     </p>
                     <p className="text-xs text-muted-foreground">
-                      大小: {formatFileSize(file.fileSize)} | 
-                      类型: {file.mimeType} | 
-                      下载时间: {new Date(file.downloadTime).toLocaleString()}
+                      大小: {formatFileSize(file.fileSize)} | 类型:{" "}
+                      {file.mimeType} | 下载时间:{" "}
+                      {new Date(file.downloadTime).toLocaleString()}
                     </p>
                     <p className="text-xs text-muted-foreground">
                       会话ID: {file.sessionId}
@@ -254,14 +289,22 @@ const FileManager = () => {
                   </div>
                   <div className="flex gap-2">
                     <button
-                      onClick={() => handleDownloadMedia(file.sessionId, file.fileName)}
+                      onClick={() =>
+                        handleDownloadMedia(file.sessionId, file.fileName)
+                      }
                       className="text-xs px-3 py-1 bg-primary text-primary-foreground rounded hover:bg-primary/90"
                     >
                       下载
                     </button>
-                    {(file.mimeType.startsWith('image/') || file.mimeType.startsWith('video/')) && (
+                    {(file.mimeType.startsWith("image/") ||
+                      file.mimeType.startsWith("video/")) && (
                       <button
-                        onClick={() => window.open(mediaApi.streamMedia(file.sessionId, file.fileName), '_blank')}
+                        onClick={() =>
+                          window.open(
+                            mediaApi.streamMedia(file.sessionId, file.fileName),
+                            "_blank"
+                          )
+                        }
                         className="text-xs px-3 py-1 bg-secondary text-secondary-foreground rounded hover:bg-secondary/90"
                       >
                         预览

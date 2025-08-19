@@ -1,0 +1,29 @@
+{
+  "name": "@crawler/shared-types",
+  "version": "1.0.0",
+  "description": "Shared TypeScript types for crawler frontend and backend",
+  "main": "types/index.ts",
+  "types": "types/index.ts",
+  "files": [
+    "types"
+  ],
+  "scripts": {
+    "build": "echo 'No build needed for TypeScript-only package'",
+    "clean": "echo 'No clean needed'",
+    "prepublishOnly": "echo 'Ready to publish'"
+  },
+  "keywords": [
+    "typescript",
+    "types",
+    "shared",
+    "crawler"
+  ],
+  "author": "Crawler Team",
+  "license": "MIT",
+  "devDependencies": {
+    "typescript": "^5.0.0"
+  },
+  "peerDependencies": {
+    "typescript": ">=4.0.0"
+  }
+}

@@ -5,7 +5,7 @@ import { WebsiteCrawlerService } from "../services/crawler/website-crawler.servi
 import {
   CrawlRequest,
   CrawlResponse,
-  CrawlSession,
+  CrawSession,
 } from "../shared/interfaces/crawler.interface";
 
 describe("CrawlerController", () => {
@@ -64,7 +64,7 @@ describe("CrawlerController", () => {
   describe("getSessionStatus", () => {
     it("should return session status", async () => {
       const sessionId = "test-session";
-      const mockSession: CrawlSession = {
+      const mockSession: CrawSession = {
         sessionId,
         startUrl: "https://example.com",
         status: "running",

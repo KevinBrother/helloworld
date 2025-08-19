@@ -8,6 +8,9 @@ importers:
 
   .:
     dependencies:
+      '@crawler/shared-types':
+        specifier: link:../shared
+        version: link:../shared
       '@nestjs/axios':
         specifier: ^4.0.1
         version: 4.0.1(@nestjs/common@10.4.20(reflect-metadata@0.1.14)(rxjs@7.8.2))(axios@1.11.0)(rxjs@7.8.2)

@@ -1,7 +1,8 @@
-// 导入共享的API类型定义
-export * from '@crawler/shared-types';
+// 共享类型定义的统一导出
 
-// 重新导出常用类型，保持向后兼容
+export * from './api';
+
+// 重新导出常用类型，提供更简洁的导入方式
 export type {
   ApiResponse,
   CrawlRequest,
@@ -20,4 +21,4 @@ export type {
   StopCrawlResponse,
   MediaTypeConfig,
   MediaCrawlOptions
-} from '@crawler/shared-types';
+} from './api';

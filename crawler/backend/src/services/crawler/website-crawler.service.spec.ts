@@ -7,7 +7,7 @@ import { LinkManagerService } from './link-manager.service';
 import { MediaDetectorService } from '../media/media-detector.service';
 import { MediaDownloaderService } from '../media/media-downloader.service';
 import { MediaStorageService } from '../media/media-storage.service';
-import { CrawlRequest, CrawlSession } from '../../shared/interfaces/crawler.interface';
+import { CrawlRequest, CrawSession } from '../../shared/interfaces/crawler.interface';
 
 // Mock playwright before any imports that might use it
 vi.mock('playwright', () => ({
@@ -314,8 +314,9 @@ describe('WebsiteCrawlerService', () => {
       
       expect(session).toBeDefined();
       expect(session!.startTime).toBeInstanceOf(Date);
-      expect(session!.startTime.getTime()).toBeGreaterThanOrEqual(beforeStart.getTime());
-      expect(session!.startTime.getTime()).toBeLessThanOrEqual(afterStart.getTime());
+      const startTime = session!.startTime instanceof Date ? session!.startTime : new Date(session!.startTime);
+      expect(startTime.getTime()).toBeGreaterThanOrEqual(beforeStart.getTime());
+      expect(startTime.getTime()).toBeLessThanOrEqual(afterStart.getTime());
     });
 
     it('应该正确初始化会话统计信息', async () => {

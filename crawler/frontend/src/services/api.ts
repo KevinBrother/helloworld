@@ -3,8 +3,8 @@ import type {
   ApiResponse,
   CrawlRequest,
   CrawlResponse,
-  Session,
-  MediaFile,
+  CrawSession,
+  MediaFileInfo,
   MediaStats,
   SearchParams,
   PaginatedResponse,
@@ -44,19 +44,19 @@ export const crawlerApi = {
   },
 
   // 获取所有会话
-  getSessions: async (): Promise<ApiResponse<Session[]>> => {
+  getSessions: async (): Promise<ApiResponse<CrawSession[]>> => {
     const response = await api.get('/crawler/sessions');
     return response.data;
   },
 
   // 获取单个会话
-  getSession: async (sessionId: string): Promise<ApiResponse<Session>> => {
+  getSession: async (sessionId: string): Promise<ApiResponse<CrawSession>> => {
     const response = await api.get(`/crawler/session/${sessionId}`);
     return response.data;
   },
 
   // 获取会话媒体文件
-  getSessionMedia: async (sessionId: string): Promise<ApiResponse<MediaFile[]>> => {
+  getSessionMedia: async (sessionId: string): Promise<ApiResponse<MediaFileInfo[]>> => {
     const response = await api.get(`/crawler/session/${sessionId}/media`);
     return response.data;
   },
@@ -71,7 +71,7 @@ export const mediaApi = {
   },
 
   // 搜索媒体文件
-  search: async (params: SearchParams): Promise<ApiResponse<PaginatedResponse<MediaFile>>> => {
+  search: async (params: SearchParams): Promise<ApiResponse<PaginatedResponse<MediaFileInfo>>> => {
     const response = await api.get('/media/search', { params });
     return response.data;
   },

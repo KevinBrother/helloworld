@@ -13,7 +13,8 @@ import { WebsiteCrawlerService } from '../services/crawler/website-crawler.servi
 import {
   CrawlRequest,
   CrawlResponse,
-  CrawlSession,
+  CrawSession,
+  ApiResponse,
 } from '../shared/interfaces/crawler.interface';
 
 @Controller('api/crawler')
@@ -49,7 +50,7 @@ export class CrawlerController {
    * 获取爬取会话状态
    */
   @Get('session/:sessionId')
-  async getSessionStatus(@Param('sessionId') sessionId: string): Promise<CrawlSession | null> {
+  async getSessionStatus(@Param('sessionId') sessionId: string): Promise<CrawSession | null> {
     this.logger.log(`查询会话状态: ${sessionId}`);
     
     const session = this.crawlerService.getSessionStatus(sessionId);
@@ -66,7 +67,7 @@ export class CrawlerController {
    * 获取所有活跃会话
    */
   @Get('sessions')
-  async getActiveSessions(): Promise<CrawlSession[]> {
+  async getActiveSessions(): Promise<CrawSession[]> {
     this.logger.log('查询所有活跃会话');
     return this.crawlerService.getActiveSessions();
   }

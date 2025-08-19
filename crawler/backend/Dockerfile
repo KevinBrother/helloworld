@@ -7,14 +7,17 @@ WORKDIR /app
 # 安装 pnpm
 RUN npm install -g pnpm
 
+# 复制共享类型定义（必须在安装依赖之前）
+COPY shared ../shared
+
 # 复制 package.json 和 pnpm-lock.yaml
-COPY package.json pnpm-lock.yaml ./
+COPY backend/package.json backend/pnpm-lock.yaml ./
 
 # 安装依赖
 RUN pnpm install --frozen-lockfile
 
 # 复制源代码
-COPY . .
+COPY backend .
 
 # 构建应用
 RUN pnpm run build
@@ -29,7 +32,7 @@ WORKDIR /app
 RUN npm install -g pnpm
 
 # 复制 package.json 和 pnpm-lock.yaml
-COPY package.json pnpm-lock.yaml ./
+COPY backend/package.json backend/pnpm-lock.yaml ./
 
 # 只安装生产依赖
 RUN pnpm install --frozen-lockfile --prod

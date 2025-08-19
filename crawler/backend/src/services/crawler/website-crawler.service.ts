@@ -9,7 +9,7 @@ import { MediaStorageService } from '../media/media-storage.service';
 import {
   CrawlRequest,
   CrawlResponse,
-  CrawlSession,
+  CrawSession,
   PageData,
 } from '../../shared/interfaces/crawler.interface';
 import { PathGenerator } from '../../shared/utils/path-generator.util';
@@ -18,7 +18,7 @@ import { defaultCrawlerConfig } from '../../config/app.config';
 @Injectable()
 export class WebsiteCrawlerService {
   private readonly logger = new Logger(WebsiteCrawlerService.name);
-  private readonly activeSessions = new Map<string, CrawlSession>();
+  private readonly activeSessions = new Map<string, CrawSession>();
 
   constructor(
     private readonly browserService: BrowserService,
@@ -69,14 +69,14 @@ export class WebsiteCrawlerService {
   /**
    * 获取爬取会话状态
    */
-  getSessionStatus(sessionId: string): CrawlSession | null {
+  getSessionStatus(sessionId: string): CrawSession | null {
     return this.activeSessions.get(sessionId) || null;
   }
 
   /**
    * 获取所有活跃会话
    */
-  getActiveSessions(): CrawlSession[] {
+  getActiveSessions(): CrawSession[] {
     return Array.from(this.activeSessions.values());
   }
 
@@ -126,7 +126,7 @@ export class WebsiteCrawlerService {
   /**
    * 创建爬取会话
    */
-  private createSession(sessionId: string, request: CrawlRequest): CrawlSession {
+  private createSession(sessionId: string, request: CrawlRequest): CrawSession {
     const startUrlObj = new URL(request.startUrl);
     const allowedDomains = request.allowedDomains || [startUrlObj.hostname];
     
@@ -160,7 +160,7 @@ export class WebsiteCrawlerService {
   /**
    * 执行爬取任务
    */
-  private async executeCrawling(session: CrawlSession): Promise<void> {
+  private async executeCrawling(session: CrawSession): Promise<void> {
     try {
       // 启动浏览器
       await this.browserService.launch({ userAgent: session.userAgent });
@@ -245,7 +245,7 @@ export class WebsiteCrawlerService {
   /**
    * 处理单个页面
    */
-  private async processPage(url: string, depth: number, session: CrawlSession): Promise<void> {
+  private async processPage(url: string, depth: number, session: CrawSession): Promise<void> {
     this.logger.log(`处理页面: ${url} (深度: ${depth})`);
     
     try {
@@ -314,7 +314,7 @@ export class WebsiteCrawlerService {
   /**
    * 处理页面中的媒体文件
    */
-  private async processMediaFiles(url: string, session: CrawlSession): Promise<void> {
+  private async processMediaFiles(url: string, session: CrawSession): Promise<void> {
     if (!session.mediaOptions) {
       return;
     }
@@ -393,7 +393,7 @@ export class WebsiteCrawlerService {
   /**
    * 判断是否应该继续爬取
    */
-  private shouldContinueCrawling(session: CrawlSession): boolean {
+  private shouldContinueCrawling(session: CrawSession): boolean {
     // 完全爬取模式：只要没有达到系统限制就继续
     if (session.isCompleteCrawl) {
       return session.pagesProcessed < session.maxPages;
@@ -406,9 +406,10 @@ export class WebsiteCrawlerService {
   /**
    * 检查安全限制
    */
-  private checkSafetyLimits(session: CrawlSession): boolean {
+  private checkSafetyLimits(session: CrawSession): boolean {
     const now = new Date();
-    const runningHours = (now.getTime() - session.startTime.getTime()) / (1000 * 60 * 60);
+    const startTime = session.startTime instanceof Date ? session.startTime : new Date(session.startTime);
+    const runningHours = (now.getTime() - startTime.getTime()) / (1000 * 60 * 60);
     
     // 检查运行时间限制
     if (runningHours > defaultCrawlerConfig.crawler.safetyLimits.maxDuration) {
@@ -430,7 +431,7 @@ export class WebsiteCrawlerService {
   /**
    * 保存会话元数据
    */
-  private async saveSessionMetadata(session: CrawlSession): Promise<void> {
+  private async saveSessionMetadata(session: CrawSession): Promise<void> {
     try {
       const linkStats = this.linkManager.getStats();
       
@@ -452,7 +453,8 @@ export class WebsiteCrawlerService {
           totalLinksProcessed: linkStats.processed,
           totalErrors: session.errors.length,
           duration: session.endTime 
-            ? session.endTime.getTime() - session.startTime.getTime()
+            ? (session.endTime instanceof Date ? session.endTime : new Date(session.endTime)).getTime() - 
+              (session.startTime instanceof Date ? session.startTime : new Date(session.startTime)).getTime()
             : null,
         },
       };

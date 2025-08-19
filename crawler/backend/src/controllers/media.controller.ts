@@ -9,7 +9,7 @@ import {
 } from '@nestjs/common';
 import { StorageService } from '../core/storage/storage.service';
 import { MediaStorageService } from '../services/media/media-storage.service';
-import { MediaFileInfo } from '../shared/interfaces/crawler.interface';
+import { MediaFileInfo, ApiResponse } from '../shared/interfaces/crawler.interface';
 
 @Controller('api/media')
 export class MediaController {
