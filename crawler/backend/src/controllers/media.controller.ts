@@ -7,10 +7,18 @@ import {
   BadRequestException,
   Res,
 } from '@nestjs/common';
+import {
+  ApiTags,
+  ApiOperation,
+  ApiResponse as SwaggerApiResponse,
+  ApiParam,
+  ApiQuery,
+} from '@nestjs/swagger';
 import { StorageService } from '../core/storage/storage.service';
 import { MediaStorageService } from '../services/media/media-storage.service';
 import { MediaFileInfo, ApiResponse } from '../shared/interfaces/crawler.interface';
 
+@ApiTags('media')
 @Controller('api/media')
 export class MediaController {
   private readonly logger = new Logger(MediaController.name);
@@ -23,6 +31,11 @@ export class MediaController {
   /**
    * 获取会话的媒体文件
    */
+  @ApiOperation({ summary: '获取会话媒体文件', description: '根据会话ID获取媒体文件列表' })
+  @ApiParam({ name: 'sessionId', description: '会话ID' })
+  @ApiQuery({ name: 'type', required: false, description: '媒体类型过滤' })
+  @ApiQuery({ name: 'extension', required: false, description: '文件扩展名过滤' })
+  @SwaggerApiResponse({ status: 200, description: '返回媒体文件列表' })
   @Get('session/:sessionId')
   async getSessionMediaFiles(
     @Param('sessionId') sessionId: string,
@@ -53,6 +66,8 @@ export class MediaController {
   /**
    * 获取所有会话的媒体文件统计
    */
+  @ApiOperation({ summary: '获取媒体文件统计', description: '获取所有会话的媒体文件统计信息' })
+  @SwaggerApiResponse({ status: 200, description: '返回媒体文件统计信息' })
   @Get('stats')
   async getAllMediaStats(): Promise<{
      totalFiles: number;
@@ -71,6 +86,11 @@ export class MediaController {
   /**
    * 搜索媒体文件
    */
+  @ApiOperation({ summary: '搜索媒体文件', description: '根据关键词搜索媒体文件' })
+  @ApiQuery({ name: 'query', description: '搜索关键词' })
+  @ApiQuery({ name: 'sessionId', required: false, description: '会话ID过滤' })
+  @ApiQuery({ name: 'type', required: false, description: '媒体类型过滤' })
+  @SwaggerApiResponse({ status: 200, description: '返回搜索结果' })
   @Get('search')
   async searchMediaFiles(
     @Query('query') query: string,
@@ -101,6 +121,10 @@ export class MediaController {
   /**
    * 获取媒体文件下载链接
    */
+  @ApiOperation({ summary: '获取媒体文件下载链接', description: '生成媒体文件的下载链接' })
+  @ApiParam({ name: 'sessionId', description: '会话ID' })
+  @ApiParam({ name: 'fileName', description: '文件名' })
+  @SwaggerApiResponse({ status: 200, description: '返回下载链接' })
   @Get(':sessionId/:fileName/download')
   async getMediaFileDownloadUrl(
     @Param('sessionId') sessionId: string,
@@ -129,6 +153,10 @@ export class MediaController {
   /**
    * 直接流式传输媒体文件内容
    */
+  @ApiOperation({ summary: '流式传输媒体文件', description: '直接流式传输媒体文件内容' })
+  @ApiParam({ name: 'sessionId', description: '会话ID' })
+  @ApiParam({ name: 'fileName', description: '文件名' })
+  @SwaggerApiResponse({ status: 200, description: '返回媒体文件流' })
   @Get(':sessionId/:fileName/stream')
   async streamMediaFile(
     @Param('sessionId') sessionId: string,

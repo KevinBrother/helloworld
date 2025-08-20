@@ -7,9 +7,17 @@ import {
   BadRequestException,
   Res,
 } from '@nestjs/common';
+import {
+  ApiTags,
+  ApiOperation,
+  ApiResponse,
+  ApiParam,
+  ApiQuery,
+} from '@nestjs/swagger';
 import { StorageService } from '../core/storage/storage.service';
 import { METADATA_KEYS_RETRIEVAL } from '../shared/constants/metadata.constants';
 
+@ApiTags('files')
 @Controller('api/files')
 export class FileController {
   private readonly logger = new Logger(FileController.name);
@@ -21,6 +29,12 @@ export class FileController {
   /**
    * 流式查询MinIO中的文件 (Server-Sent Events)
    */
+  @ApiOperation({ summary: '流式查询文件', description: '使用Server-Sent Events流式返回文件列表' })
+  @ApiQuery({ name: 'prefix', required: false, description: '文件前缀过滤' })
+  @ApiQuery({ name: 'sessionId', required: false, description: '会话ID过滤' })
+  @ApiQuery({ name: 'maxKeys', required: false, description: '最大返回数量', type: Number })
+  @ApiQuery({ name: 'batchSize', required: false, description: '批次大小', type: Number })
+  @ApiResponse({ status: 200, description: '返回SSE流' })
   @Get('stream')
   async streamFiles(
     @Res() res: any,
@@ -277,6 +291,9 @@ export class FileController {
   /**
    * 获取文件下载链接
    */
+  @ApiOperation({ summary: '获取文件下载链接', description: '生成文件的下载链接' })
+  @ApiParam({ name: 'fileName', description: '文件名' })
+  @ApiResponse({ status: 200, description: '返回下载链接' })
   @Get(':fileName/download')
   async getFileDownloadUrl(@Param('fileName') fileName: string): Promise<{ downloadUrl: string }> {
     try {
@@ -294,6 +311,9 @@ export class FileController {
   /**
    * 直接流式传输文件内容
    */
+  @ApiOperation({ summary: '流式传输文件', description: '直接流式传输文件内容' })
+  @ApiParam({ name: 'fileName', description: '文件名' })
+  @ApiResponse({ status: 200, description: '返回文件流' })
   @Get(':fileName/stream')
   async streamFile(@Param('fileName') fileName: string, @Res() res: any): Promise<void> {
     try {
