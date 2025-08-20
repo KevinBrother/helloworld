@@ -248,6 +248,7 @@ export class DataStorageService {
     _options: StorageOptions,
   ): Promise<void> {
     try {
+      // 构建完整的爬虫数据对象
       const crawledData = new this.crawledDataModel({
         taskId:
           parseInt(String(data.taskId)) ||
@@ -257,9 +258,82 @@ export class DataStorageService {
         url: data.url || '',
         title: data.title || '',
         content: data.content || '',
-        metadata: data.metadata || {},
-        extractedData: data,
-        rawData: data.rawData || null,
+        
+        // 增强的元数据存储
+        metadata: {
+          description: data.description || data.metadata?.description || '',
+          keywords: data.keywords || data.metadata?.keywords || [],
+          author: data.author || data.metadata?.author || '',
+          publishDate: data.publishDate ? new Date(data.publishDate) : data.metadata?.publishDate,
+          language: data.language || data.metadata?.language || 'unknown',
+          charset: data.metadata?.charset || 'UTF-8',
+          contentType: data.metadata?.contentType || 'text/html',
+          statusCode: data.metadata?.statusCode || 200,
+          responseTime: data.metadata?.responseTime || 0,
+          headers: data.metadata?.headers || {},
+          ...data.metadata,
+        },
+        
+        // 图片信息
+        images: data.images || [],
+        
+        // 链接信息
+        links: data.links || [],
+        
+        // 提取的数据
+        extractedData: {
+          ...data,
+          // 结构化数据
+          structuredData: data.structuredData || [],
+          // Open Graph数据
+          openGraph: data.openGraph || {},
+          // Twitter Card数据
+          twitterCard: data.twitterCard || {},
+        },
+        
+        // 原始数据
+        rawData: {
+          html: data.rawData?.html || '',
+          text: data.rawData?.text || data.content || '',
+          json: data.rawData?.json || null,
+          ...data.rawData,
+        },
+        
+        // 深度和父URL（用于爬虫链路追踪）
+        depth: data.depth || 0,
+        parentUrl: data.parentUrl || '',
+        
+        // 标签和分类
+        tags: data.tags || [],
+        
+        // 爬虫配置信息
+        crawlConfig: data.crawlConfig || {},
+        
+        // 性能数据
+        performance: {
+          loadTime: data.performance?.loadTime || 0,
+          domContentLoaded: data.performance?.domContentLoaded || 0,
+          firstPaint: data.performance?.firstPaint || 0,
+          firstContentfulPaint: data.performance?.firstContentfulPaint || 0,
+          transferSize: data.performance?.transferSize || 0,
+          encodedBodySize: data.performance?.encodedBodySize || 0,
+          decodedBodySize: data.performance?.decodedBodySize || 0,
+          extractionTime: data.extractionTime || 0,
+          ...data.performance,
+        },
+        
+        // 错误信息
+        errors: data.errors || [],
+        
+        // 处理状态
+        isProcessed: data.isProcessed || false,
+        isExported: data.isExported || false,
+        
+        // 内容哈希（用于去重）
+        contentHash: data.contentHash || this.generateContentHash(data.content || ''),
+        
+        // 爬取时间
+        crawledAt: data.crawledAt ? new Date(data.crawledAt) : new Date(),
       });
 
       await crawledData.save();
@@ -267,6 +341,10 @@ export class DataStorageService {
       this.logger.debug(`数据成功保存到MongoDB: ${recordId}`, {
         database: _options.database || 'default',
         collection: _options.collection || 'crawled_data',
+        dataSize: JSON.stringify(crawledData).length,
+        hasImages: (data.images || []).length > 0,
+        hasLinks: (data.links || []).length > 0,
+        hasStructuredData: (data.structuredData || []).length > 0,
       });
     } catch (error) {
       this.logger.error(`保存数据到MongoDB失败: ${recordId}`, error);
@@ -288,9 +366,63 @@ export class DataStorageService {
         url: data.url || '',
         title: data.title || '',
         content: data.content || '',
-        metadata: data.metadata || {},
-        extractedData: data,
-        rawData: data.rawData || null,
+        
+        // 增强的元数据存储
+        metadata: {
+          description: data.description || data.metadata?.description || '',
+          keywords: data.keywords || data.metadata?.keywords || [],
+          author: data.author || data.metadata?.author || '',
+          publishDate: data.publishDate ? new Date(data.publishDate) : data.metadata?.publishDate,
+          language: data.language || data.metadata?.language || 'unknown',
+          charset: data.metadata?.charset || 'UTF-8',
+          contentType: data.metadata?.contentType || 'text/html',
+          statusCode: data.metadata?.statusCode || 200,
+          responseTime: data.metadata?.responseTime || 0,
+          headers: data.metadata?.headers || {},
+          ...data.metadata,
+        },
+        
+        // 图片和链接信息
+        images: data.images || [],
+        links: data.links || [],
+        
+        // 提取的数据
+        extractedData: {
+          ...data,
+          structuredData: data.structuredData || [],
+          openGraph: data.openGraph || {},
+          twitterCard: data.twitterCard || {},
+        },
+        
+        // 原始数据
+        rawData: {
+          html: data.rawData?.html || '',
+          text: data.rawData?.text || data.content || '',
+          json: data.rawData?.json || null,
+          ...data.rawData,
+        },
+        
+        // 其他字段
+        depth: data.depth || 0,
+        parentUrl: data.parentUrl || '',
+        tags: data.tags || [],
+        crawlConfig: data.crawlConfig || {},
+        performance: {
+          loadTime: data.performance?.loadTime || 0,
+          domContentLoaded: data.performance?.domContentLoaded || 0,
+          firstPaint: data.performance?.firstPaint || 0,
+          firstContentfulPaint: data.performance?.firstContentfulPaint || 0,
+          transferSize: data.performance?.transferSize || 0,
+          encodedBodySize: data.performance?.encodedBodySize || 0,
+          decodedBodySize: data.performance?.decodedBodySize || 0,
+          extractionTime: data.extractionTime || 0,
+          ...data.performance,
+        },
+        errors: data.errors || [],
+        isProcessed: data.isProcessed || false,
+        isExported: data.isExported || false,
+        contentHash: data.contentHash || this.generateContentHash(data.content || ''),
+        crawledAt: data.crawledAt ? new Date(data.crawledAt) : new Date(),
         createdAt: new Date(),
         updatedAt: new Date(),
       }));
@@ -309,8 +441,7 @@ export class DataStorageService {
    * 从数据库查询
    */
   private async queryFromDatabase(
-    options: QueryOptions
-  ): Promise<QueryResult> {
+    options: QueryOptions): Promise<QueryResult> {
     try {
       const limit = options.limit || 10;
       const offset = options.offset || 0;
@@ -399,18 +530,47 @@ export class DataStorageService {
   }
 
   /**
+   * 生成内容哈希
+   */
+  private generateContentHash(content: string): string {
+    // 简单的哈希算法，实际项目中可以使用更复杂的算法
+    let hash = 0;
+    if (content.length === 0) return hash.toString();
+    for (let i = 0; i < content.length; i++) {
+      const char = content.charCodeAt(i);
+      hash = (hash << 5) - hash + char;
+      hash = hash & hash; // 转换为32位整数
+    }
+    return Math.abs(hash).toString(16);
+  }
+
+  /**
    * 获取存储统计信息
    */
-  getStorageStats(): {
+  async getStorageStats(): Promise<{
     totalRecords: number;
     storageSize: number;
     collections: string[];
-  } {
-    // 这里应该从数据库获取实际统计信息
-    return {
-      totalRecords: 0,
-      storageSize: 0,
-      collections: ['extracted_data'],
-    };
+  }> {
+    try {
+      // 从数据库获取实际统计信息
+      const totalRecords = await this.crawledDataModel.countDocuments().exec();
+      
+      // 获取集合统计信息
+      const stats = await this.crawledDataModel.db?.db?.stats();
+      
+      return {
+        totalRecords,
+        storageSize: stats?.dataSize || 0,
+        collections: ['crawled_data'],
+      };
+    } catch (error) {
+      this.logger.error('获取存储统计信息失败', error);
+      return {
+        totalRecords: 0,
+        storageSize: 0,
+        collections: ['crawled_data'],
+      };
+    }
   }
 }

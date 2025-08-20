@@ -154,7 +154,7 @@ export class PageAnalyzerService {
       });
 
       return hasDynamicContent ? 'dynamic' : 'static';
-    } catch (error) {
+    } catch {
       return 'static';
     }
   }
@@ -309,36 +309,333 @@ export class PageAnalyzerService {
   }
 
   private async extractDefaultData(page: Page): Promise<ExtractedData> {
+    const startTime = Date.now();
     try {
-      return await page.evaluate(() => {
+      // 获取页面基本信息
+      const url = page.url();
+      
+      // 提取页面元数据和内容
+      const extractedData = await page.evaluate(() => {
         const data: Record<string, unknown> = {};
 
-        // 提取标题
-        const title = document.querySelector('h1')?.textContent?.trim();
-        if (title) data.title = title;
+        // 提取页面标题（优先级：h1 > title > meta title）
+        const h1Title = document.querySelector('h1')?.textContent?.trim();
+        const pageTitle = document.title?.trim();
+        const metaTitle = document
+          .querySelector('meta[property="og:title"], meta[name="title"]')
+          ?.getAttribute('content')
+          ?.trim();
+        data.title = h1Title || metaTitle || pageTitle || '';
 
-        // 提取内容
-        const contentSelectors = ['.content', '#content', 'main', 'article'];
+        // 提取页面描述
+        const metaDescription = document
+          .querySelector(
+            'meta[name="description"], meta[property="og:description"]',
+          )
+          ?.getAttribute('content')
+          ?.trim();
+        const firstParagraph = document.querySelector('p')?.textContent?.trim();
+        data.description =
+          metaDescription || firstParagraph?.substring(0, 200) || '';
+
+        // 提取关键词
+        const metaKeywords = document
+          .querySelector('meta[name="keywords"]')
+          ?.getAttribute('content');
+        data.keywords = metaKeywords
+          ? metaKeywords.split(',').map((k) => k.trim())
+          : [];
+
+        // 提取作者信息
+        const author =
+          document
+            .querySelector(
+              'meta[name="author"], meta[property="article:author"], .author, .byline',
+            )
+            ?.textContent?.trim() ||
+          document
+            .querySelector(
+              'meta[name="author"], meta[property="article:author"]',
+            )
+            ?.getAttribute('content')
+            ?.trim();
+        if (author) data.author = author;
+
+        // 提取发布日期
+        const publishDate =
+          document
+            .querySelector(
+              'meta[property="article:published_time"], meta[name="date"], time[datetime], .date, .publish-date',
+            )
+            ?.getAttribute('datetime') ||
+          document
+            .querySelector(
+              'meta[property="article:published_time"], meta[name="date"]',
+            )
+            ?.getAttribute('content') ||
+          document
+            .querySelector('time, .date, .publish-date')
+            ?.textContent?.trim();
+        if (publishDate) data.publishDate = publishDate;
+
+        // 提取页面语言
+        const language =
+          document.documentElement.lang ||
+          document
+            .querySelector('meta[http-equiv="content-language"]')
+            ?.getAttribute('content') ||
+          'unknown';
+        data.language = language;
+
+        // 提取内容（增强版）
+        const contentSelectors = [
+          'article',
+          'main',
+          '.content',
+          '#content',
+          '.post-content',
+          '.entry-content',
+          '.article-content',
+          '.post-body',
+          '.content-body',
+          '.main-content',
+        ];
+        let content = '';
         for (const selector of contentSelectors) {
-          const content = document.querySelector(selector)?.textContent?.trim();
-          if (content) {
-            data.content = content;
-            break;
+          const element = document.querySelector(selector);
+          if (element) {
+            // 移除脚本和样式标签
+            const clonedElement = element.cloneNode(true) as Element;
+            clonedElement
+              .querySelectorAll(
+                'script, style, nav, header, footer, aside, .ad, .advertisement',
+              )
+              .forEach((el) => el.remove());
+            content = clonedElement.textContent?.trim() || '';
+            if (content.length > 100) break; // 确保内容有意义
           }
         }
+        // 如果没有找到主要内容，提取body文本（排除导航等）
+        if (!content) {
+          const bodyClone = document.body.cloneNode(true) as Element;
+          bodyClone
+            .querySelectorAll(
+              'script, style, nav, header, footer, aside, .ad, .advertisement, .sidebar',
+            )
+            .forEach((el) => el.remove());
+          content = bodyClone.textContent?.trim() || '';
+        }
+        data.content = content;
 
-        // 提取链接
-        const links = Array.from(document.querySelectorAll('a[href]')).map(
-          (link) => ({
-            text: (link as HTMLAnchorElement).textContent?.trim(),
-            href: (link as HTMLAnchorElement).getAttribute('href'),
-          }),
+        // 提取图片信息（增强版）
+        const images = Array.from(document.querySelectorAll('img'))
+          .map((img) => ({
+            src: img.src,
+            alt: img.alt || '',
+            title: img.title || '',
+            width: img.naturalWidth || img.width || 0,
+            height: img.naturalHeight || img.height || 0,
+            loading: img.loading || 'eager',
+          }))
+          .filter(
+            (img) =>
+              img.src &&
+              !img.src.includes('data:image') &&
+              img.width > 50 &&
+              img.height > 50,
+          ); // 过滤小图标
+        data.images = images;
+
+        // 提取链接信息（增强版）
+        const links = Array.from(document.querySelectorAll('a[href]'))
+          .map((link) => {
+            const href = (link as HTMLAnchorElement).href;
+            const text = link.textContent?.trim() || '';
+            const title = link.getAttribute('title') || '';
+            const target = link.getAttribute('target') || '';
+            const rel = link.getAttribute('rel') || '';
+            return { href, text, title, target, rel };
+          })
+          .filter(
+            (link) =>
+              link.href &&
+              link.text &&
+              !link.href.startsWith('javascript:') &&
+              !link.href.startsWith('mailto:'),
+          );
+        data.links = links;
+
+        // 提取结构化数据（JSON-LD）
+        const jsonLdScripts = Array.from(
+          document.querySelectorAll('script[type="application/ld+json"]'),
         );
-        if (links.length > 0) data.links = links;
+        const structuredData = jsonLdScripts
+          .map((script) => {
+            try {
+              return JSON.parse(script.textContent || '{}');
+            } catch {
+              return null;
+            }
+          })
+          .filter(Boolean);
+        if (structuredData.length > 0) data.structuredData = structuredData;
+
+        // 提取Open Graph数据
+        const ogData: Record<string, string> = {};
+        document.querySelectorAll('meta[property^="og:"]').forEach((meta) => {
+          const property = meta.getAttribute('property')?.replace('og:', '');
+          const content = meta.getAttribute('content');
+          if (property && content) ogData[property] = content;
+        });
+        if (Object.keys(ogData).length > 0) data.openGraph = ogData;
+
+        // 提取Twitter Card数据
+        const twitterData: Record<string, string> = {};
+        document.querySelectorAll('meta[name^="twitter:"]').forEach((meta) => {
+          const name = meta.getAttribute('name')?.replace('twitter:', '');
+          const content = meta.getAttribute('content');
+          if (name && content) twitterData[name] = content;
+        });
+        if (Object.keys(twitterData).length > 0) data.twitterCard = twitterData;
 
         return data;
       });
+
+      // 获取页面性能数据
+      const performanceData = await this.extractPerformanceData(page);
+      
+      // 获取页面响应信息
+      const response = page.context().pages()[0]?.url()
+        ? await page
+            .goto(page.url(), { waitUntil: 'domcontentloaded', timeout: 5000 })
+            .catch(() => null)
+        : null;
+      
+      const endTime = Date.now();
+      
+      return {
+        url,
+        title: extractedData.title as string,
+        content: extractedData.content as string,
+        links: extractedData.links as any[],
+        images: extractedData.images as any[],
+        metadata: {
+          description: extractedData.description as string | undefined,
+          keywords: extractedData.keywords as string[] | undefined,
+          author: extractedData.author as string | undefined,
+          publishDate: extractedData.publishDate
+            ? new Date(extractedData.publishDate as string)
+            : undefined,
+          language: extractedData.language as string | undefined,
+          charset: await page.evaluate(() => document.characterSet || 'UTF-8'),
+          contentType: response?.headers()['content-type'] || 'text/html',
+          statusCode: response?.status() || 200,
+          responseTime: endTime - startTime,
+          headers: response?.headers() || {},
+        },
+        performance: performanceData,
+        extractionTime: endTime - startTime,
+        crawledAt: new Date(),
+        structuredData: extractedData.structuredData as Array<{
+          type: string;
+          data: Record<string, unknown>;
+        }> | undefined,
+        openGraph: extractedData.openGraph as {
+          [key: string]: unknown;
+          title?: string;
+          description?: string;
+          image?: string;
+          url?: string;
+          type?: string;
+          siteName?: string;
+        } | undefined,
+        twitterCard: extractedData.twitterCard as {
+          [key: string]: unknown;
+          card?: string;
+          title?: string;
+          description?: string;
+          image?: string;
+          creator?: string;
+          site?: string;
+        } | undefined,
+      };
     } catch (error) {
+      this.logger.error('数据提取失败', error);
+      return {
+        url: page.url(),
+        title: await page.title().catch(() => ''),
+        content: '',
+        links: [],
+        images: [],
+        metadata: {},
+        error: error instanceof Error ? error.message : String(error),
+        extractionTime: Date.now() - startTime,
+        crawledAt: new Date()
+      };
+    }
+  }
+
+  /**
+   * 提取页面性能数据
+   */
+  private async extractPerformanceData(page: Page): Promise<Record<string, any>> {
+    try {
+      return await page.evaluate(() => {
+        const performance = window.performance;
+        const timing = performance.timing;
+        const navigation = performance.navigation;
+        
+        // 计算各个阶段的时间
+        const loadTimes = {
+          // DNS查询时间
+          dnsTime: timing.domainLookupEnd - timing.domainLookupStart,
+          // TCP连接时间
+          tcpTime: timing.connectEnd - timing.connectStart,
+          // 请求时间
+          requestTime: timing.responseStart - timing.requestStart,
+          // 响应时间
+          responseTime: timing.responseEnd - timing.responseStart,
+          // DOM解析时间
+          domParseTime: timing.domContentLoadedEventEnd - timing.domLoading,
+          // 资源加载时间
+          resourceLoadTime: timing.loadEventEnd - timing.domContentLoadedEventEnd,
+          // 总加载时间
+          totalLoadTime: timing.loadEventEnd - timing.navigationStart,
+          // 首字节时间
+          ttfb: timing.responseStart - timing.navigationStart,
+          // DOM就绪时间
+          domReady: timing.domContentLoadedEventEnd - timing.navigationStart,
+          // 页面完全加载时间
+          pageLoad: timing.loadEventEnd - timing.navigationStart
+        };
+
+        // 获取资源性能数据
+        const resources = performance.getEntriesByType('resource').map((entry: any) => ({
+          name: entry.name,
+          type: entry.initiatorType,
+          size: entry.transferSize || 0,
+          duration: entry.duration,
+          startTime: entry.startTime
+        }));
+
+        // 获取内存使用情况（如果支持）
+        const memory = (performance as any).memory ? {
+          usedJSHeapSize: (performance as any).memory.usedJSHeapSize,
+          totalJSHeapSize: (performance as any).memory.totalJSHeapSize,
+          jsHeapSizeLimit: (performance as any).memory.jsHeapSizeLimit
+        } : null;
+
+        return {
+          loadTimes,
+          resources: resources.slice(0, 20), // 限制资源数量
+          memory,
+          navigationType: navigation.type,
+          redirectCount: navigation.redirectCount,
+          timestamp: Date.now()
+        };
+      });
+    } catch (error) {
+      this.logger.warn('性能数据提取失败', error);
       return {};
     }
   }

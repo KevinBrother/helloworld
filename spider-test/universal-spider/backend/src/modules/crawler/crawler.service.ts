@@ -3,6 +3,8 @@ import { BrowserPoolService } from './services/browser-pool.service';
 import { PageAnalyzerService } from './services/page-analyzer.service';
 import { AntiDetectionService } from './services/anti-detection.service';
 import { ApiDiscoveryService } from './services/api-discovery.service';
+import { DataQualityService } from './services/data-quality.service';
+import { DataStorageService } from '../data/services/data-storage.service';
 import { CrawlRequestDto } from './dto/crawl-request.dto';
 import { CrawlResultDto } from './dto/crawl-result.dto';
 import { PageAnalysisDto } from './dto/page-analysis.dto';
@@ -16,6 +18,8 @@ export class CrawlerService {
     private readonly pageAnalyzer: PageAnalyzerService,
     private readonly antiDetection: AntiDetectionService,
     private readonly apiDiscovery: ApiDiscoveryService,
+    private readonly dataQuality: DataQualityService,
+    private readonly dataStorage: DataStorageService,
   ) {}
 
   async crawl(request: CrawlRequestDto): Promise<CrawlResultDto> {
@@ -29,7 +33,7 @@ export class CrawlerService {
 
       // 应用反检测策略
       await this.antiDetection.applyAntiDetection(
-        page,
+page,
         request.antiDetectionConfig,
       );
 
@@ -57,6 +61,46 @@ export class CrawlerService {
         request.extractionRules,
       );
 
+      // 数据质量检查
+      const qualityResult = this.dataQuality.checkQuality(extractedData);
+      this.logger.debug(`数据质量评分: ${qualityResult.score}`, {
+        url: request.url,
+        issues: qualityResult.issues.length,
+        isValid: qualityResult.isValid,
+      });
+
+      // 数据清洗
+      const cleanedData = this.dataQuality.cleanData(extractedData, {
+        removeEmptyFields: true,
+        trimWhitespace: true,
+        validateUrls: true,
+        deduplicateLinks: true,
+        minContentLength: 10,
+        maxContentLength: 100000,
+      });
+
+      // 添加质量检查结果到数据中
+      cleanedData.qualityScore = qualityResult.score;
+      cleanedData.qualityIssues = qualityResult.issues;
+      cleanedData.url = request.url;
+
+      // 存储数据到数据库
+      try {
+        const storageResult = await this.dataStorage.storeData(cleanedData, {
+          database: 'crawler',
+          collection: 'crawled_data',
+          indexFields: ['url', 'title', 'crawledAt'],
+        });
+        
+        this.logger.log(`数据存储成功: ${storageResult.recordId}`, {
+          url: request.url,
+          qualityScore: qualityResult.score,
+        });
+      } catch (storageError) {
+        this.logger.error(`数据存储失败: ${request.url}`, storageError);
+        // 存储失败不影响爬取结果返回
+      }
+
       // 截图（如果需要）
       let screenshot: string | undefined;
       if (request.takeScreenshot) {
@@ -67,20 +111,44 @@ export class CrawlerService {
       // 获取页面信息
       const pageInfo = await this.pageAnalyzer.getPageInfo(page);
 
+      // 发现API接口（如果需要）
+      let discoveredApis: any[] = [];
+      if (request.discoverApis) {
+        try {
+          // 生成任务ID
+          const taskId = Date.now();
+          // 启动API发现
+          await this.apiDiscovery.startApiDiscovery(page, taskId);
+          // 获取发现的API
+          const apiResult = await this.apiDiscovery.discoverApis(taskId);
+          discoveredApis = apiResult.apis;
+          this.logger.debug(`发现 ${discoveredApis.length} 个API接口`, {
+            url: request.url,
+          });
+        } catch (apiError) {
+          this.logger.warn(`API发现失败: ${request.url}`, apiError);
+        }
+      }
+
       await page.close();
       this.browserPool.releaseBrowser(browser);
 
       const result: CrawlResultDto = {
         success: true,
         url: request.url,
-        data: extractedData,
+        data: cleanedData,
         pageInfo,
         screenshot,
+        discoveredApis,
         timestamp: new Date(),
         executionTime: Date.now() - startTime,
       };
 
-      this.logger.log(`爬取完成: ${request.url}`);
+      this.logger.log(`爬取完成: ${request.url}`, {
+        executionTime: result.executionTime,
+        qualityScore: qualityResult.score,
+        dataSize: JSON.stringify(cleanedData).length,
+      });
       return result;
     } catch (error) {
       this.logger.error(`爬取失败: ${request.url}`, error);
