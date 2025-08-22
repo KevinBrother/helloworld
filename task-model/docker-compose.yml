@@ -1,0 +1,59 @@
+version: '3.8'
+
+services:
+  task-manager:
+    build: .
+    ports:
+      - "3000:3000"
+    environment:
+      - NODE_ENV=production
+      - DB_HOST=mysql
+      - DB_PORT=3306
+      - DB_USERNAME=taskmanager
+      - DB_PASSWORD=password
+      - DB_DATABASE=task_management
+      - REDIS_HOST=redis
+      - REDIS_PORT=6379
+    depends_on:
+      - mysql
+      - redis
+    volumes:
+      - ./logs:/app/logs
+    restart: unless-stopped
+
+  mysql:
+    image: mysql:8.0
+    environment:
+      - MYSQL_ROOT_PASSWORD=rootpassword
+      - MYSQL_DATABASE=task_management
+      - MYSQL_USER=taskmanager
+      - MYSQL_PASSWORD=password
+    volumes:
+      - mysql_data:/var/lib/mysql
+      - ./docker/init.sql:/docker-entrypoint-initdb.d/init.sql
+    ports:
+      - "3306:3306"
+    restart: unless-stopped
+    command: --default-authentication-plugin=mysql_native_password
+
+  redis:
+    image: redis:7-alpine
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+    restart: unless-stopped
+
+  execution-unit-example:
+    build: ./execution-units/example
+    environment:
+      - TASK_MANAGER_URL=http://task-manager:3000
+      - UNIT_ID=example-unit-1
+      - UNIT_TYPE=EXAMPLE_PROCESSOR
+    depends_on:
+      - task-manager
+    restart: unless-stopped
+
+volumes:
+  mysql_data:
+  redis_data:
