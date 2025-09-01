@@ -110,3 +110,4 @@ cmake-build-debug
 /playwright-report/
 /blob-report/
 /playwright/.cache/
+ws.json

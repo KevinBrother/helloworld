@@ -5,7 +5,9 @@
   "main": "index.js",
   "type": "module",
   "scripts": {
-    "dev": "node ./src/index.ts"
+    "dev": "node ./src/index.ts",
+    "server": "node ./src/browser-server/server.ts",
+    "client": "node ./src/cdp/client.ts"
   },
   "keywords": [],
   "author": "",
