@@ -83,3 +83,59 @@ curl http://localhost:9222/json
 ```
 
 ## tracing
+
+跟踪了每一步操作的记录，也可以记录视频。
+
+``` bash
+# 查看 tracing 报告, 需要 zip 文件的全路径，不然报错
+npm exec playwright show-trace /xxx/trace.zip
+```
+
+## 如何理解 Download 和 Request(js、css、png等资源加载)、Route 的区别
+
+page.route 和 page.on('request') 都可以用来监听资源加载事件，但是它们的区别在于：
+
+- Download: 是用户主动触发的文件下载结果
+- Request: 是浏览器发起的网络请求实例, 可以监听，但不能修改，主要是记录网络交互的 “过程”。
+- Route: 可以拦截请求并修改请求参数、响应内容等，而 page.on('request') 只能监听请求事件，不能修改请求参数、响应内容等。
+- page.route 可以拦截下载事件，而 page.on('request') 不能拦截下载事件。
+
+## ElementHandle、Locator、Selector 的区别
+
+- ElementHandle 是一个元素的句柄，它表示一个 DOM 元素。可以通过 ElementHandle 来操作元素，例如点击、输入文本等。
+- Locator 是一个定位器，它用于定位元素。可以通过 Locator 来查找元素，例如通过 CSS 选择器、XPath 等。
+- ElementHandle 是一个具体的元素实例，而 Locator 是一个定位器，用于定位元素。
+- Selector 是一个选择器，用于定位元素。可以通过 Selector 来查找元素，例如通过 CSS 选择器、XPath 等。
+
+- selector的本质是 “一次性查找 + 操作”。
+- Locator 的本质是 “懒查找 + 操作”。
+
+``` typescript
+// Locator
+const locator = page.getByLabel('Password').fill('secret')
+
+// ElementHandle 不推荐
+const elementHandle = await page.$('a');
+
+// Selector 不推荐
+const selector = 'button#submit-button';
+await page.click(selector); 
+```
+
+## Page 与 Frame 的区别
+
+- Page 是一个浏览器页面实例，每个浏览器标签页都有一个对应的 Page 实例，无论页面中是否包含 iframe，Page 必然包含一个主框架（main frame），它是页面顶层文档的直接载体。
+- 每个 Page 实例都有一个 mainFrame() 方法，用于获取主框架的 Frame 实例。
+- Frame 是一个 HTML 文档的框架，一个页面可以包含多个框架。每个框架都有一个对应的 Frame 实例。
+- 每个 Frame 实例都有一个 childFrames() 方法，用于获取子框架的 Frame 实例。
+
+## 最主要的几个 API
+
+- `page.goto(url)`: 导航到指定 URL。
+- `page.click(selector)`: 点击指定元素。
+- `page.fill(selector, value)`: 填充指定元素的值。
+- `page.waitForSelector(selector)`: 等待指定元素出现。
+- `page.screenshot(options)`: 截图。
+- `page.pdf(options)`: 生成 PDF。
+- `page.close()`: 关闭页面。
+- `browser.close()`: 关闭浏览器。
