@@ -168,7 +168,7 @@
 - [ ] gin-test
   - gin的使用案例 + 相关中间件
 
-- [x] playwright-test2
+- [x] playwright-api
 
 - [x] spider-test
 
