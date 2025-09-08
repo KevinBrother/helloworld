@@ -42,7 +42,7 @@ async function initializeCrawler() {
     autoscaledPoolOptions: {
       isFinishedFunction: async () => false, // 永远不自动结束
     },
-    async requestHandler({ request, page, log }) {
+    async requestHandler({ request, page, log, enqueueLinks }) {
       const { userId, taskId, requestId } = request.userData;
       log.info(`Processing ${request.url} for user ${userId}, task ${taskId}`);
       const dataset = await Dataset.open(`user-${userId}-task-${taskId}`);
@@ -54,6 +54,16 @@ async function initializeCrawler() {
 
       // 更新任务状态 - 增加完成计数
       updateTaskStatus(taskId, 'completed');
+
+      // 自动入队链接
+      await enqueueLinks({
+        // 给新添加的请求附加用户数据（必须！否则新请求没有 userId/taskId，后续无法跟踪状态）
+        userData: {
+          userId,
+          taskId,
+          requestId,
+        },
+      });
     },
     failedRequestHandler: async ({ request, error, log }) => {
       const { userId, taskId, requestId } = request.userData;
