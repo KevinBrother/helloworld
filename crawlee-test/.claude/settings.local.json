@@ -10,7 +10,8 @@
       "Bash(yarn add:*)",
       "Bash(npm install:*)",
       "Bash(npx playwright:*)",
-      "Bash(npx tsc:*)"
+      "Bash(npx tsc:*)",
+      "Bash(rm:*)"
     ],
     "deny": [],
     "ask": []

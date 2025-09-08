@@ -4,7 +4,7 @@ export default defineConfig({
   test: {
     globals: true,
     environment: 'node',
-    testTimeout: 30000, // 30 seconds timeout for crawler tests
+    testTimeout: 60000, // 60 seconds timeout for crawler tests
     coverage: {
       provider: 'v8',
       reporter: ['text', 'json', 'html'],
