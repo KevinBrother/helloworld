@@ -1,0 +1,13 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(pnpm install:*)",
+      "Bash(pnpm test:*)",
+      "Bash(pnpm add:*)",
+      "Bash(pnpm dev:*)",
+      "Read(//Users/caojunjie/workspace/project/helloworld/crawlee-test//**)"
+    ],
+    "deny": [],
+    "ask": []
+  }
+}

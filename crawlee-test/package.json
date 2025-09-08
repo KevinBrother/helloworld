@@ -1,0 +1,46 @@
+{
+  "name": "crawlee-test",
+  "version": "1.0.0",
+  "description": "A TDD-based Crawlee test project for learning web scraping",
+  "main": "dist/index.js",
+  "type": "module",
+  "scripts": {
+    "build": "tsc",
+    "start": "node dist/index.js",
+    "dev": "tsx src/index.ts",
+    "test": "vitest",
+    "test:watch": "vitest --watch",
+    "test:run": "vitest run",
+    "test:coverage": "vitest run --coverage",
+    "test:all": "node scripts/run-tests.js",
+    "test:setup": "node scripts/run-tests.js --setup",
+    "test:basic": "node scripts/run-tests.js --basic",
+    "lint": "eslint src tests --ext .ts",
+    "format": "prettier --write \"src/**/*.ts\" \"tests/**/*.ts\""
+  },
+  "keywords": [
+    "crawlee",
+    "web-scraping",
+    "playwright",
+    "typescript",
+    "tdd",
+    "vitest"
+  ],
+  "author": "",
+  "license": "MIT",
+  "devDependencies": {
+    "@types/jsdom": "^21.1.7",
+    "@types/node": "^20.0.0",
+    "@typescript-eslint/eslint-plugin": "^6.0.0",
+    "@typescript-eslint/parser": "^6.0.0",
+    "@vitest/coverage-v8": "^1.0.0",
+    "eslint": "^8.0.0",
+    "prettier": "^3.0.0",
+    "tsx": "^4.0.0",
+    "typescript": "^5.0.0",
+    "vitest": "^1.0.0"
+  },
+  "dependencies": {
+    "crawlee": "^3.5.0"
+  }
+}
