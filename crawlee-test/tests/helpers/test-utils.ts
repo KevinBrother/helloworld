@@ -1,5 +1,5 @@
 import { PlaywrightCrawler, Dataset, RequestQueue } from 'crawlee';
-import { MockServer } from './mock-server';
+import { MockServer } from './mock-server.js';
 
 export interface TestCrawlerOptions {
   maxConcurrency?: number;

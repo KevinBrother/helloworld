@@ -5,7 +5,12 @@
       "Bash(pnpm test:*)",
       "Bash(pnpm add:*)",
       "Bash(pnpm dev:*)",
-      "Read(//Users/caojunjie/workspace/project/helloworld/crawlee-test//**)"
+      "Read(//Users/caojunjie/workspace/project/helloworld/crawlee-test//**)",
+      "Bash(yarn dev)",
+      "Bash(yarn add:*)",
+      "Bash(npm install:*)",
+      "Bash(npx playwright:*)",
+      "Bash(npx tsc:*)"
     ],
     "deny": [],
     "ask": []
