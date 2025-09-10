@@ -137,25 +137,148 @@ async function getCrawlerStatus(taskId: string): Promise<ITaskStatusResponse> {
 }
 ```
 
+## API 统一响应格式
+
+### 基础响应对象
+
+所有 API 接口都遵循统一的响应格式，HTTP 状态码统一返回 200，业务逻辑错误通过响应对象的 `code` 字段区分：
+
+```typescript
+interface BaseResponse<T = any> {
+    code: number;           // 业务状态码：0 表示成功，非 0 表示各种错误
+    msg: string;            // 响应消息
+    data: T;                // 业务数据，成功时包含实际数据，失败时为空或错误详情
+}
+```
+
+### 业务状态码定义
+
+```typescript
+enum BusinessCode {
+    SUCCESS = 0,                // 成功
+    INVALID_PARAMS = 1001,      // 参数错误
+    TASK_NOT_FOUND = 1002,      // 任务不存在
+    INVALID_URL = 1003,         // URL 格式错误
+    SYSTEM_ERROR = 2001,        // 系统错误
+    STORAGE_ERROR = 2002,       // 存储错误
+    QUEUE_ERROR = 2003,         // 队列错误
+}
+```
+
+### Zod 响应 Schema
+
+```typescript
+// 基础响应 Schema
+const BaseResponseSchema = <T extends z.ZodTypeAny>(dataSchema: T) =>
+    z.object({
+        code: z.number(),
+        msg: z.string(),
+        data: dataSchema
+    });
+
+// 成功响应
+const SuccessResponseSchema = <T extends z.ZodTypeAny>(dataSchema: T) =>
+    BaseResponseSchema(dataSchema);
+
+// 错误响应
+const ErrorResponseSchema = BaseResponseSchema(z.null());
+```
+
 ### Fastify 路由设计
 
 #### POST /crawler/start
 
 - **请求体**: `{ url: string }`
-- **响应**: `{ taskId: string }`
-- **Schema 验证**: 使用 Zod + @fastify/type-provider-zod
+- **响应**: 
+  ```typescript
+  // 成功
+  {
+      "code": 0,
+      "msg": "Task created successfully",
+      "data": { "taskId": "uuid" }
+  }
+  // 失败
+  {
+      "code": 1003,
+      "msg": "Invalid URL format",
+      "data": null
+  }
+  ```
+- **Schema 验证**: 
+  ```typescript
+  schema: {
+      body: CreateTaskRequestSchema,
+      response: {
+          200: SuccessResponseSchema(CreateTaskResponseSchema)
+      }
+  }
+  ```
 
 #### GET /crawler/status/:taskId
 
 - **路径参数**: taskId
-- **响应**: `ITaskStatusResponse`
-- **Schema 验证**: Zod 路径参数验证
+- **响应**:
+  ```typescript
+  // 成功
+  {
+      "code": 0,
+      "msg": "Success",
+      "data": {
+          "totalUrls": 100,
+          "completedCount": 45,
+          "failedCount": 5,
+          "pendingCount": 50,
+          "jobs": [...]
+      }
+  }
+  // 失败
+  {
+      "code": 1002,
+      "msg": "Task not found",
+      "data": null
+  }
+  ```
+- **Schema 验证**:
+  ```typescript
+  schema: {
+      params: GetTaskParamsSchema,
+      response: {
+          200: SuccessResponseSchema(ITaskStatusResponseSchema)
+      }
+  }
+  ```
 
 #### GET /crawler/tasks
 
 - **功能**: 获取所有任务列表
-- **响应**: `ITask[]`
-- **Schema 验证**: Zod 查询参数分页验证
+- **响应**:
+  ```typescript
+  // 成功
+  {
+      "code": 0,
+      "msg": "Success", 
+      "data": {
+          "tasks": [...],
+          "total": 10,
+          "page": 1,
+          "limit": 10
+      }
+  }
+  ```
+- **Schema 验证**:
+  ```typescript
+  schema: {
+      querystring: GetTasksQuerySchema,
+      response: {
+          200: SuccessResponseSchema(z.object({
+              tasks: z.array(TaskSchema),
+              total: z.number(),
+              page: z.number(), 
+              limit: z.number()
+          }))
+      }
+  }
+  ```
 
 ## 优化后的分层架构设计
 
@@ -541,7 +664,11 @@ fastify.post('/crawler/start', {
     
     Logger.info('Created new crawl task', { taskId, url }, 'api');
     
-    return { taskId };
+    return {
+        code: 0,
+        msg: 'Task created successfully',
+        data: { taskId }
+    };
 });
 
 // 获取任务状态
@@ -550,11 +677,30 @@ fastify.get('/crawler/status/:taskId', {
         params: GetTaskParamsSchema,
         response: { 200: ITaskStatusResponseSchema }
     }
-}, async (request) => {
-    const { taskId } = request.params;
-    const status = await taskService.getTaskStatus(taskId);
-    
-    return status;
+}, async (request, reply) => {
+    try {
+        const { taskId } = request.params;
+        const status = await taskService.getTaskStatus(taskId);
+        
+        return {
+            code: 0,
+            msg: 'Success',
+            data: status
+        };
+    } catch (error) {
+        if (error instanceof TaskNotFoundError) {
+            return {
+                code: 1002,
+                msg: 'Task not found',
+                data: null
+            };
+        }
+        return {
+            code: 2001,
+            msg: 'System error',
+            data: null
+        };
+    }
 });
 ```
 
@@ -2512,10 +2658,24 @@ export async function createTaskHandler(request: FastifyRequest, reply: FastifyR
     try {
         const { url } = request.body as CreateTaskRequest;
         const taskId = await taskService.createTask(url);
-        return { taskId };
+        return {
+            code: 0,
+            msg: 'Task created successfully',
+            data: { taskId }
+        };
     } catch (error) {
-        reply.status(500);
-        return { error: (error as Error).message };
+        if (error instanceof InvalidUrlError) {
+            return {
+                code: 1003,
+                msg: 'Invalid URL format',
+                data: null
+            };
+        }
+        return {
+            code: 2001,
+            msg: 'System error',
+            data: null
+        };
     }
 }
 
@@ -2523,14 +2683,24 @@ export async function getTaskStatusHandler(request: FastifyRequest, reply: Fasti
     try {
         const { taskId } = request.params as GetTaskParams;
         const status = await taskService.getTaskStatus(taskId);
-        return status;
+        return {
+            code: 0,
+            msg: 'Success',
+            data: status
+        };
     } catch (error) {
         if (error instanceof TaskNotFoundError) {
-            reply.status(404);
-        } else {
-            reply.status(500);
+            return {
+                code: 1002,
+                msg: 'Task not found',
+                data: null
+            };
         }
-        return { error: (error as Error).message };
+        return {
+            code: 2001,
+            msg: 'System error',
+            data: null
+        };
     }
 }
 ```
