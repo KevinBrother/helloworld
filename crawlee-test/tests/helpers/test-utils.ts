@@ -9,32 +9,10 @@ export interface TestCrawlerOptions {
 
 export class TestCrawlerHelper {
   private mockServer: MockServer;
-  private crawler: PlaywrightCrawler;
   private isServerStarted = false;
 
   constructor(options: TestCrawlerOptions = {}) {
     this.mockServer = new MockServer();
-    
-    this.crawler = new PlaywrightCrawler({
-      maxConcurrency: options.maxConcurrency || 1,
-      maxRequestsPerCrawl: options.maxRequestsPerCrawl || 10,
-      launchContext: {
-        launchOptions: {
-          headless: options.headless !== false
-        }
-      },
-      requestHandler: async ({ page, request }) => {
-        // 默认处理器，可以被覆盖
-        const title = await page.title();
-        const content = await page.textContent('body');
-        
-        await Dataset.pushData({
-          url: request.url,
-          title,
-          content: content?.trim()
-        });
-      }
-    });
   }
 
   async startServer(): Promise<void> {
@@ -53,21 +31,6 @@ export class TestCrawlerHelper {
 
   getServerUrl(path: string = ''): string {
     return this.mockServer.getUrl(path);
-  }
-
-  getCrawler(): PlaywrightCrawler {
-    return this.crawler;
-  }
-
-  setRequestHandler(handler: (context: any) => Promise<void>) {
-    this.crawler = new PlaywrightCrawler({
-      ...this.crawler.config,
-      requestHandler: handler
-    });
-  }
-
-  async run(urls: string[]): Promise<void> {
-    await this.crawler.run(urls);
   }
 
   async cleanup(): Promise<void> {

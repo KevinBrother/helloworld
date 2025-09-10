@@ -11,7 +11,22 @@
       "Bash(npm install:*)",
       "Bash(npx playwright:*)",
       "Bash(npx tsc:*)",
-      "Bash(rm:*)"
+      "Bash(rm:*)",
+      "Bash(npm test:*)",
+      "Bash(find:*)",
+      "Bash(npm run test:*)",
+      "Bash(npx vitest run:*)",
+      "Bash(yarn test:*)",
+      "Bash(pkill:*)",
+      "Bash(npm i:*)",
+      "WebFetch(domain:github.com)",
+      "Bash(node:*)",
+      "Read(//Volumes/doc/workspace/github/crawlee/packages/core/src/storages/**)",
+      "Bash(cat:*)",
+      "Bash(vitest run:*)",
+      "Bash(pnpm vitest run:*)",
+      "Bash(npm run lint)",
+      "Bash(npm run typecheck:*)"
     ],
     "deny": [],
     "ask": []
