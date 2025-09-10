@@ -157,25 +157,442 @@ async function getCrawlerStatus(taskId: string): Promise<ITaskStatus> {
 - **响应**: `ITask[]`
 - **Schema 验证**: Zod 查询参数分页验证
 
-### 任务管理器类
+## 优化后的分层架构设计
+
+### 设计思路：分离关注点
+
+1. **TaskService**: 任务业务逻辑层
+2. **TaskRepository**: 任务数据存储层  
+3. **JobRepository**: Job 数据存储层
+4. **QueueService**: 队列操作服务
+5. **StorageService**: 文件存储服务
+
+### 核心服务类设计
+
+#### 1. TaskService - 任务业务逻辑层
 
 ```typescript
-class TaskManager {
-    private tasksStoragePath: string;
-    private tasks: Map<string, ITask>;
+export class TaskService {
+    constructor(
+        private taskRepo: TaskRepository,
+        private jobRepo: JobRepository,
+        private queueService: QueueService,
+        private storageService: StorageService
+    ) {}
 
-    constructor(storagePath: string);
-    
-    async createTask(entryUrl: string): Promise<string>;
-    async getTask(taskId: string): Promise<ITask | null>;
-    async getAllTasks(): Promise<ITask[]>;
-    async updateTaskStatus(taskId: string, status: ITask['status']): Promise<void>;
-    async getTaskStatus(taskId: string): Promise<ITaskStatus>;
-    
-    private async saveTasksToFile(): Promise<void>;
-    private async loadTasksFromFile(): Promise<void>;
+    async createTask(entryUrl: string): Promise<string> {
+        const taskId = generateUUID();
+        
+        // 1. 创建任务实体
+        const task = TaskEntity.create({
+            taskId,
+            entryUrl,
+            status: 'active',
+            createdAt: new Date()
+        });
+        
+        // 2. 保存任务到存储
+        await this.taskRepo.save(task);
+        
+        // 3. 创建存储目录
+        await this.storageService.createTaskDirectories(taskId);
+        
+        // 4. 添加到队列 - 解耦队列操作
+        await this.queueService.addTaskRequest(taskId, entryUrl);
+        
+        return taskId;
+    }
+
+    async getTaskStatus(taskId: string): Promise<ITaskStatus> {
+        // 1. 获取任务基本信息
+        const task = await this.taskRepo.findById(taskId);
+        if (!task) {
+            throw new TaskNotFoundError(taskId);
+        }
+        
+        // 2. 获取所有相关 Job
+        const jobs = await this.jobRepo.findByTaskId(taskId);
+        
+        // 3. 统计状态
+        return TaskStatusCalculator.calculate(task, jobs);
+    }
+
+    async updateTaskStatus(taskId: string, status: TaskStatus): Promise<void> {
+        const task = await this.taskRepo.findById(taskId);
+        if (!task) {
+            throw new TaskNotFoundError(taskId);
+        }
+        
+        task.updateStatus(status);
+        await this.taskRepo.save(task);
+    }
 }
 ```
+
+#### 2. TaskRepository - 任务存储层
+
+```typescript
+export class TaskRepository {
+    constructor(private storageService: StorageService) {}
+    
+    async save(task: TaskEntity): Promise<void> {
+        const filePath = path.join(CONFIG.TASKS_BASE_PATH, 'tasks.json');
+        
+        // 读取现有任务
+        const existingTasks = await this.findAll();
+        
+        // 更新或添加
+        const updatedTasks = existingTasks.filter(t => t.taskId !== task.taskId);
+        updatedTasks.push(task.toJSON());
+        
+        await this.storageService.writeJSON(filePath, { tasks: updatedTasks });
+    }
+    
+    async findById(taskId: string): Promise<TaskEntity | null> {
+        const tasks = await this.findAll();
+        const taskData = tasks.find(t => t.taskId === taskId);
+        
+        return taskData ? TaskEntity.fromJSON(taskData) : null;
+    }
+    
+    async findAll(): Promise<ITask[]> {
+        const filePath = path.join(CONFIG.TASKS_BASE_PATH, 'tasks.json');
+        const data = await this.storageService.readJSON<{tasks: ITask[]}>(filePath);
+        
+        return data?.tasks || [];
+    }
+    
+    async findByStatus(status: TaskStatus): Promise<ITask[]> {
+        const tasks = await this.findAll();
+        return tasks.filter(task => task.status === status);
+    }
+}
+```
+
+#### 3. JobRepository - Job 存储层
+
+```typescript
+export class JobRepository {
+    constructor(private storageService: StorageService) {}
+    
+    async save(job: JobEntity): Promise<void> {
+        const filePath = path.join(CONFIG.TASKS_BASE_PATH, `jobs-${job.taskId}.json`);
+        
+        // 读取现有 Jobs
+        const existingJobs = await this.findByTaskId(job.taskId);
+        
+        // 更新或添加
+        const updatedJobs = existingJobs.filter(j => j.jobId !== job.jobId);
+        updatedJobs.push(job.toJSON());
+        
+        await this.storageService.writeJSON(filePath, { jobs: updatedJobs });
+    }
+    
+    async findByTaskId(taskId: string): Promise<IJob[]> {
+        const filePath = path.join(CONFIG.TASKS_BASE_PATH, `jobs-${taskId}.json`);
+        const data = await this.storageService.readJSON<{jobs: IJob[]}>(filePath);
+        
+        return data?.jobs || [];
+    }
+    
+    async findById(taskId: string, jobId: string): Promise<JobEntity | null> {
+        const jobs = await this.findByTaskId(taskId);
+        const jobData = jobs.find(j => j.jobId === jobId);
+        
+        return jobData ? JobEntity.fromJSON(jobData) : null;
+    }
+    
+    async countByStatus(taskId: string, status: JobStatus): Promise<number> {
+        const jobs = await this.findByTaskId(taskId);
+        return jobs.filter(job => job.status === status).length;
+    }
+}
+```
+
+#### 4. QueueService - 队列操作服务
+
+```typescript
+export class QueueService {
+    private globalQueue: RequestQueue;
+    
+    async initialize(): Promise<void> {
+        this.globalQueue = await RequestQueue.open(CONFIG.GLOBAL_QUEUE_NAME, {
+            storageDir: CONFIG.GLOBAL_QUEUE_STORAGE_DIR
+        });
+    }
+    
+    async addTaskRequest(taskId: string, url: string): Promise<void> {
+        await this.globalQueue.addRequest({
+            url,
+            userData: {
+                taskId,
+                isEntryUrl: true,
+                createdAt: new Date().toISOString()
+            }
+        });
+        
+        Logger.info('Request added to queue', { taskId, url });
+    }
+    
+    async getQueueInfo(): Promise<{ pending: number; handled: number }> {
+        return {
+            pending: await this.globalQueue.getPendingRequestCount(),
+            handled: await this.globalQueue.getHandledRequestCount()
+        };
+    }
+}
+```
+
+#### 5. StorageService - 文件存储服务
+
+```typescript
+export class StorageService {
+    async writeJSON(filePath: string, data: any): Promise<void> {
+        await fs.ensureDir(path.dirname(filePath));
+        await fs.writeJSON(filePath, data, { spaces: 2 });
+    }
+    
+    async readJSON<T>(filePath: string): Promise<T | null> {
+        try {
+            return await fs.readJSON(filePath);
+        } catch {
+            return null;
+        }
+    }
+    
+    async createTaskDirectories(taskId: string): Promise<void> {
+        const taskDataDir = path.join(CONFIG.DATA_BASE_PATH, `task-${taskId}`);
+        const pagesDir = path.join(taskDataDir, 'pages');
+        
+        await fs.ensureDir(taskDataDir);
+        await fs.ensureDir(pagesDir);
+    }
+    
+    async savePageData(taskId: string, jobId: string, data: any): Promise<void> {
+        const filePath = path.join(
+            CONFIG.DATA_BASE_PATH, 
+            `task-${taskId}`, 
+            'pages', 
+            `page-${jobId}.json`
+        );
+        
+        await this.writeJSON(filePath, data);
+    }
+}
+```
+
+### 实体类设计
+
+#### TaskEntity - 任务实体
+
+```typescript
+export class TaskEntity {
+    constructor(
+        public readonly taskId: string,
+        public readonly entryUrl: string,
+        public status: TaskStatus,
+        public readonly createdAt: Date,
+        public updatedAt?: Date
+    ) {}
+    
+    static create(data: {
+        taskId: string;
+        entryUrl: string;
+        status: TaskStatus;
+        createdAt: Date;
+    }): TaskEntity {
+        return new TaskEntity(
+            data.taskId,
+            data.entryUrl, 
+            data.status,
+            data.createdAt
+        );
+    }
+    
+    static fromJSON(data: ITask): TaskEntity {
+        return new TaskEntity(
+            data.taskId,
+            data.entryUrl,
+            data.status,
+            new Date(data.createdAt),
+            data.updatedAt ? new Date(data.updatedAt) : undefined
+        );
+    }
+    
+    updateStatus(status: TaskStatus): void {
+        this.status = status;
+        this.updatedAt = new Date();
+    }
+    
+    toJSON(): ITask {
+        return {
+            taskId: this.taskId,
+            entryUrl: this.entryUrl,
+            status: this.status,
+            createdAt: this.createdAt,
+            updatedAt: this.updatedAt,
+            queuePath: CONFIG.GLOBAL_QUEUE_STORAGE_DIR,
+            storagePath: path.join(CONFIG.DATA_BASE_PATH, `task-${this.taskId}`)
+        };
+    }
+}
+```
+
+### 工具类 - TaskStatusCalculator
+
+```typescript
+export class TaskStatusCalculator {
+    static calculate(task: TaskEntity, jobs: IJob[]): ITaskStatus {
+        const totalUrls = jobs.length;
+        const completedCount = jobs.filter(job => job.status === 'completed').length;
+        const failedCount = jobs.filter(job => job.status === 'failed').length;
+        const pendingCount = jobs.filter(job => 
+            job.status === 'pending' || job.status === 'in-progress'
+        ).length;
+        
+        return {
+            totalUrls,
+            completedCount,
+            failedCount,
+            pendingCount,
+            jobs: jobs.slice(0, 50) // 限制返回数量
+        };
+    }
+}
+```
+
+### 依赖注入容器设计
+
+```typescript
+export class ServiceContainer {
+    private static instance: ServiceContainer;
+    
+    private storageService: StorageService;
+    private queueService: QueueService;
+    private taskRepository: TaskRepository;
+    private jobRepository: JobRepository;
+    private taskService: TaskService;
+    
+    private constructor() {
+        this.initializeServices();
+    }
+    
+    static getInstance(): ServiceContainer {
+        if (!this.instance) {
+            this.instance = new ServiceContainer();
+        }
+        return this.instance;
+    }
+    
+    private initializeServices(): void {
+        // 基础服务
+        this.storageService = new StorageService();
+        this.queueService = new QueueService();
+        
+        // 数据访问层
+        this.taskRepository = new TaskRepository(this.storageService);
+        this.jobRepository = new JobRepository(this.storageService);
+        
+        // 业务逻辑层
+        this.taskService = new TaskService(
+            this.taskRepository,
+            this.jobRepository,
+            this.queueService,
+            this.storageService
+        );
+    }
+    
+    async initialize(): Promise<void> {
+        await this.queueService.initialize();
+    }
+    
+    getTaskService(): TaskService {
+        return this.taskService;
+    }
+    
+    getJobRepository(): JobRepository {
+        return this.jobRepository;
+    }
+    
+    getStorageService(): StorageService {
+        return this.storageService;
+    }
+}
+```
+
+### API 层使用示例
+
+```typescript
+// API 路由中的使用
+const container = ServiceContainer.getInstance();
+await container.initialize();
+
+const taskService = container.getTaskService();
+
+// 创建任务
+fastify.post('/crawler/start', {
+    schema: {
+        body: CreateTaskRequestSchema,
+        response: { 200: CreateTaskResponseSchema }
+    }
+}, async (request) => {
+    const { url } = request.body;
+    const taskId = await taskService.createTask(url);
+    
+    Logger.info('Created new crawl task', { taskId, url }, 'api');
+    
+    return { taskId };
+});
+
+// 获取任务状态
+fastify.get('/crawler/status/:taskId', {
+    schema: {
+        params: GetTaskParamsSchema,
+        response: { 200: TaskStatusSchema }
+    }
+}, async (request) => {
+    const { taskId } = request.params;
+    const status = await taskService.getTaskStatus(taskId);
+    
+    return status;
+});
+```
+
+
+## 优化总结
+
+### ✅ 解决的问题
+
+1. **职责分离**：每个类只负责一个职责
+   - TaskService: 业务逻辑
+   - Repository: 数据访问
+   - QueueService: 队列操作
+   - StorageService: 文件操作
+
+2. **依赖解耦**：通过依赖注入减少耦合
+3. **可测试性**：每个服务都可以独立测试
+4. **可维护性**：代码结构清晰，易于修改和扩展
+
+### 📁 新的文件结构
+
+```
+src/
+├── services/
+│   ├── task.service.ts           # 任务业务逻辑
+│   ├── queue.service.ts          # 队列服务
+│   └── storage.service.ts        # 存储服务
+├── repositories/
+│   ├── task.repository.ts        # 任务数据访问
+│   └── job.repository.ts         # Job 数据访问
+├── entities/
+│   ├── task.entity.ts            # 任务实体
+│   └── job.entity.ts             # Job 实体
+├── utils/
+│   ├── service-container.ts      # 依赖注入容器
+│   └── task-status-calculator.ts # 状态计算工具
+```
+
+这种设计遵循了 **SOLID 原则**，使代码更加清晰、可维护和可测试。
 
 ## Worker 层设计 (worker.ts)
 
@@ -186,18 +603,20 @@ class TaskManager {
 ```typescript
 class CrawlerWorker {
     private crawler: PlaywrightCrawler;
-    private taskManager: TaskManager;
+    private taskService: TaskService;
+    private queueService: QueueService;
+    private storageService: StorageService;
     private isRunning: boolean;
+    private globalRequestQueue: RequestQueue;
 
     constructor();
     
     async start(): Promise<void>;
     async stop(): Promise<void>;
-    async processTask(taskId: string): Promise<void>;
     
-    private async setupCrawler(): Promise<void>;
     private async handleRequest(context: PlaywrightCrawlingContext): Promise<void>;
-    private async updateJobStatus(jobId: string, status: IJob['status'], data?: Partial<IJob>): Promise<void>;
+    private async handleFailedRequest(context: PlaywrightCrawlingContext): Promise<void>;
+    private async savePageData(taskId: string, jobId: string, data: any): Promise<void>;
 }
 ```
 
@@ -224,32 +643,61 @@ const crawlerConfig = {
 
 ```typescript
 async function handleRequest(context: PlaywrightCrawlingContext): Promise<void> {
-    const { request, page, enqueueLinks } = context;
+    const { request, page } = context;
+    const { jobId, taskId } = request.userData;
     
-    // 1. 提取页面信息
-    const title = await page.title();
-    const url = request.loadedUrl || request.url;
+    if (!jobId || !taskId) {
+        Logger.warn('Request missing jobId or taskId', { url: request.url }, 'worker');
+        return;
+    }
     
-    // 2. 更新 job 状态
-    await updateJobStatus(request.userData.jobId, 'in-progress', {
-        title,
-        startedAt: new Date()
+    // 1. 更新 job 状态为处理中
+    await taskService.updateJob(taskId, jobId, {
+        status: 'in-progress'
     });
     
-    // 3. 提取链接并加入队列
-    await enqueueLinks({
-        selector: 'a[href]',
-        userData: { 
-            taskId: request.userData.taskId
+    // 2. 提取页面信息
+    const title = await page.title();
+    const content = await page.textContent('body') || '';
+    const url = request.loadedUrl || request.url;
+    
+    // 3. 提取同域名链接，为每个链接创建新 Job
+    const currentDomain = new URL(url).hostname;
+    const links = await page.$$eval('a[href]', anchors => 
+        anchors.map(a => a.href).filter(Boolean)
+    );
+    
+    const sameDomainLinks = links.filter(link => {
+        try {
+            return new URL(link).hostname === currentDomain;
+        } catch {
+            return false;
         }
     });
     
-    // 4. 保存页面数据
-    await savePageData(url, title, request.userData.taskId);
+    // 4. 为每个发现的链接创建新 Job 并加入队列
+    for (const link of sameDomainLinks) {
+        const newJobId = await taskService.createJob(taskId, {
+            url: link,
+            status: 'pending'
+        });
+        await queueService.addJobRequest(newJobId, taskId, link);
+    }
     
-    // 5. 标记完成
-    await updateJobStatus(request.userData.jobId, 'completed', {
-        completedAt: new Date()
+    // 5. 保存页面数据
+    await savePageData(taskId, jobId, {
+        title,
+        content,
+        url,
+        links: sameDomainLinks,
+        crawledAt: new Date()
+    });
+    
+    // 6. 标记当前 Job 完成
+    await taskService.updateJob(taskId, jobId, {
+        status: 'completed',
+        title,
+        pageData: { content, links: sameDomainLinks }
     });
 }
 ```
@@ -261,28 +709,28 @@ async function handleRequest(context: PlaywrightCrawlingContext): Promise<void> 
 ```
 storage/
 ├── tasks/
-│   ├── task-{taskId}.json          # 任务元信息
-│   └── jobs-{taskId}.json          # 任务的所有 jobs 记录
+│   └── {taskId}.json               # 任务元信息
 ├── queues/
-│   └── queue-{taskId}/             # RequestQueue 存储目录 (Crawlee自动管理)
+│   └── global/                     # 全局 RequestQueue 存储目录 (Crawlee自动管理)
 └── data/
-    └── task-{taskId}/              # 爬取数据存储
+    └── {taskId}/                   # 爬取数据存储
+        ├── jobs.json               # 任务的所有 jobs 记录
         ├── pages/
         │   ├── page-{jobId}.json   # 单个页面详细数据
-        │   ├── page-{jobId}.html   # 页面HTML内容(可选)
         │   └── ...
-        └── summary.json            # 任务汇总信息
+        └── summary.json            # 任务汇总信息(可选)
 ```
 
 ### 文件用途说明
 
-- **tasks/jobs-{taskId}.json**: 只存储 job 的基本信息(jobId, url, status, 时间戳等)，用于快速查询状态
-- **data/pages/page-{jobId}.json**: 存储具体的页面爬取数据(标题、内容、链接等)
-- **data/summary.json**: 存储任务级别的汇总信息
+- **tasks/{taskId}.json**: 存储任务元信息(taskId, entryUrl, status, 创建时间等)
+- **data/{taskId}/jobs.json**: 存储任务下所有 Job 的基本信息(jobId, url, status, 时间戳等)，用于快速查询状态
+- **data/{taskId}/pages/page-{jobId}.json**: 存储具体的页面爬取数据(标题、内容、链接等)
+- **queues/global/**: 全局 RequestQueue 存储目录，由 Crawlee 自动管理
 
 ### 数据持久化
 
-#### 任务文件 (task-{taskId}.json)
+#### 任务文件 ({taskId}.json)
 
 ```json
 {
@@ -290,12 +738,12 @@ storage/
     "entryUrl": "https://example.com",
     "status": "active",
     "createdAt": "2023-01-01T00:00:00.000Z",
-    "queuePath": "./storage/queues/queue-uuid",
-    "storagePath": "./storage/data/task-uuid"
+    "queuePath": "./storage/queues/global",
+    "storagePath": "./storage/data/uuid"
 }
 ```
 
-#### Jobs 文件 (jobs-{taskId}.json)
+#### Jobs 文件 (jobs.json)
 
 存储 job 的基本状态信息，用于快速查询：
 
@@ -397,13 +845,18 @@ export const CONFIG = {
     DATA_BASE_PATH: './storage/data',
     TASKS_BASE_PATH: './storage/tasks',
     
+    // RequestQueue 配置
+    GLOBAL_QUEUE_NAME: 'global-crawler-queue',
+    GLOBAL_QUEUE_STORAGE_DIR: './storage/queues/global',
+    
     API_PORT: 3000,
     
     CRAWLER_OPTIONS: {
-        maxRequestsPerCrawl: 100,
+        maxRequestsPerCrawl: Infinity, // Worker 持续运行，不限制
         maxConcurrency: 5,
         requestHandlerTimeoutSecs: 60,
-        navigationTimeoutSecs: 30
+        navigationTimeoutSecs: 30,
+        maxRequestRetries: 3
     }
 };
 ```
@@ -447,7 +900,8 @@ import {
   validatorCompiler,
   ZodTypeProvider
 } from 'fastify-type-provider-zod';
-import { TaskManager } from './task-manager';
+import { serviceContainer } from './container/service-container';
+import { TaskNotFoundError } from './errors';
 import { Logger, apiLogger } from './logger';
 import { CreateTaskRequestSchema, CreateTaskResponseSchema, GetTaskParamsSchema } from './types/task';
 import { TaskStatusSchema } from './types/job';
@@ -461,10 +915,7 @@ async function startApiServer() {
     fastify.setValidatorCompiler(validatorCompiler);
     fastify.setSerializerCompiler(serializerCompiler);
     
-    const taskManager = new TaskManager();
-    
-    // 初始化存储目录
-    await taskManager.initialize();
+    const taskService = serviceContainer.getTaskService();
     
     // 注册插件
     await fastify.register(import('@fastify/cors'));
@@ -481,7 +932,7 @@ async function startApiServer() {
     }, async (request, reply) => {
         try {
             const { url } = request.body as { url: string };
-            const taskId = await taskManager.createTask(url);
+            const taskId = await taskService.createTask(url);
             Logger.info('Created new crawl task', { taskId, url }, 'api');
             return { taskId };
         } catch (error) {
@@ -502,11 +953,15 @@ async function startApiServer() {
     }, async (request, reply) => {
         try {
             const { taskId } = request.params as { taskId: string };
-            const status = await getCrawlerStatus(taskId);
+            const status = await taskService.getTaskStatus(taskId);
             return status;
         } catch (error) {
             Logger.error('Failed to get status', error as Error, { taskId }, 'api');
-            reply.status(404);
+            if (error instanceof TaskNotFoundError) {
+                reply.status(404);
+            } else {
+                reply.status(500);
+            }
             return { error: (error as Error).message };
         }
     });
@@ -530,59 +985,373 @@ if (require.main === module) {
 
 ```typescript
 // crawler-worker.ts - 独立启动的爬虫工作进程
-import { PlaywrightCrawler } from 'crawlee';
-import { Logger } from './logger';
+import { PlaywrightCrawler, RequestQueue } from 'crawlee';
+import { Logger, workerLogger } from './logger';
+import { serviceContainer } from './container/service-container';
+import { TaskService } from './services/task-service';
+import { QueueService } from './services/queue-service';
+import { StorageService } from './services/storage-service';
+import { CONFIG } from './config';
 
-async function startCrawlerWorker() {
-    Logger.info('Starting crawler worker...');
-    
-    // 扫描所有活跃的任务队列
-    const activeTasks = await TaskManager.getActiveTasks();
-    
-    // 为每个活跃任务启动爬虫
-    for (const task of activeTasks) {
-        await startCrawlerForTask(task.taskId);
+class CrawlerWorker {
+    private crawler: PlaywrightCrawler;
+    private taskService: TaskService;
+    private queueService: QueueService;
+    private storageService: StorageService;
+    private isRunning: boolean = false;
+    private globalRequestQueue: RequestQueue;
+
+    constructor() {
+        this.taskService = serviceContainer.getTaskService();
+        this.queueService = serviceContainer.getQueueService();
+        this.storageService = serviceContainer.getStorageService();
     }
-    
-    // 监听新任务
-    setInterval(async () => {
-        const newTasks = await TaskManager.getNewTasks();
-        for (const task of newTasks) {
-            await startCrawlerForTask(task.taskId);
+
+    async start(): Promise<void> {
+        Logger.info('Starting crawler worker...', {}, 'worker');
+        
+        // 初始化全局队列 - 与 API 共享同一个队列
+        this.globalRequestQueue = await RequestQueue.open(CONFIG.GLOBAL_QUEUE_NAME, {
+            storageDir: CONFIG.GLOBAL_QUEUE_STORAGE_DIR
+        });
+        
+        // 创建单个 Crawler 实例处理所有任务
+        this.crawler = new PlaywrightCrawler({
+            requestQueue: this.globalRequestQueue,
+            requestHandler: async (context) => {
+                await this.handleRequest(context);
+            },
+            failedRequestHandler: async (context) => {
+                await this.handleFailedRequest(context);
+            },
+            maxRequestsPerCrawl: CONFIG.CRAWLER_OPTIONS.maxRequestsPerCrawl,
+            maxConcurrency: CONFIG.CRAWLER_OPTIONS.maxConcurrency,
+            maxRequestRetries: CONFIG.CRAWLER_OPTIONS.maxRequestRetries,
+            requestHandlerTimeoutSecs: CONFIG.CRAWLER_OPTIONS.requestHandlerTimeoutSecs,
+            headless: true,
+            launchContext: {
+                useChrome: true
+            }
+        });
+
+        this.isRunning = true;
+        
+        Logger.info('Crawler worker ready, waiting for requests...', {
+            queueName: CONFIG.GLOBAL_QUEUE_NAME,
+            maxConcurrency: CONFIG.CRAWLER_OPTIONS.maxConcurrency
+        }, 'worker');
+        
+        // 启动爬虫 - 会自动监听队列中的请求
+        await this.crawler.run();
+    }
+
+    async stop(): Promise<void> {
+        this.isRunning = false;
+        if (this.crawler) {
+            await this.crawler.teardown();
         }
-    }, 5000); // 每5秒检查一次新任务
-    
-    Logger.info('Crawler worker started, waiting for tasks...');
+        Logger.info('Crawler worker stopped', {}, 'worker');
+    }
+
+    private async handleRequest(context: PlaywrightCrawlingContext): Promise<void> {
+        const { request, page } = context;
+        const { jobId, taskId } = request.userData;
+        
+        if (!jobId || !taskId) {
+            Logger.warn('Request missing jobId or taskId', { url: request.url }, 'worker');
+            return;
+        }
+
+        const taskLogger = workerLogger.child({ taskId, jobId, url: request.url });
+        
+        try {
+            taskLogger.info('Processing request');
+            
+            // 更新 Job 状态为处理中
+            await this.taskService.updateJob(taskId, jobId, {
+                status: 'in-progress'
+            });
+
+            // 提取页面信息
+            const title = await page.title();
+            const content = await page.textContent('body') || '';
+            
+            // 提取同域名链接，为每个链接创建新的 Job
+            const currentDomain = new URL(request.url).hostname;
+            const links = await page.$$eval('a[href]', anchors => 
+                anchors.map(a => a.href).filter(Boolean)
+            );
+            
+            const sameDomainLinks = links.filter(url => {
+                try {
+                    return new URL(url).hostname === currentDomain;
+                } catch {
+                    return false;
+                }
+            });
+            
+            // 为每个发现的链接创建新 Job 并添加到队列
+            for (const link of sameDomainLinks) {
+                const newJobId = await this.taskService.createJob(taskId, {
+                    url: link,
+                    status: 'pending'
+                });
+                await this.queueService.addJobRequest(newJobId, taskId, link);
+            }
+
+            // 保存页面数据
+            await this.savePageData(taskId, jobId, {
+                title,
+                content,
+                url: request.url,
+                links: sameDomainLinks,
+                crawledAt: new Date()
+            });
+
+            // 更新当前 Job 状态为完成
+            await this.taskService.updateJob(taskId, jobId, {
+                status: 'completed',
+                title,
+                pageData: { content, links: sameDomainLinks }
+            });
+
+            taskLogger.info('Request processed successfully');
+
+        } catch (error) {
+            taskLogger.error('Failed to process request', error as Error);
+            
+            // 更新 Job 状态为失败
+            await this.taskService.updateJob(taskId, jobId, {
+                status: 'failed',
+                error: (error as Error).message
+            });
+            
+            throw error; // 重新抛出错误，让 Crawlee 处理重试
+        }
+    }
+
+    private async handleFailedRequest(context: PlaywrightCrawlingContext): Promise<void> {
+        const { request } = context;
+        const { jobId, taskId } = request.userData;
+        
+        Logger.error('Request failed permanently', request.errorMessages?.[0], {
+            taskId,
+            jobId,
+            url: request.url,
+            retryCount: request.retryCount
+        }, 'worker');
+        
+        if (jobId && taskId) {
+            await this.taskService.updateJob(taskId, jobId, {
+                status: 'failed',
+                error: request.errorMessages?.[0] || 'Unknown error'
+            });
+        }
+    }
+
+    private async savePageData(taskId: string, jobId: string, data: any): Promise<void> {
+        // 保存页面数据到文件
+        const filePath = path.join(CONFIG.DATA_BASE_PATH, taskId, 'pages', `page-${jobId}.json`);
+        await this.storageService.writeJSON(filePath, data);
+    }
 }
 
-async function startCrawlerForTask(taskId: string) {
-    const queuePath = path.join(CONFIG.QUEUE_BASE_PATH, `queue-${taskId}`);
+// 启动入口
+async function startCrawlerWorker() {
+    const worker = new CrawlerWorker();
     
-    const crawler = new PlaywrightCrawler({
-        requestQueue: await RequestQueue.open(taskId, { storageDir: queuePath }),
-        requestHandler: async (context) => {
-            await handleRequest(context, taskId);
-        },
-        failedRequestHandler: async (context) => {
-            await handleFailedRequest(context, taskId);
-        },
-        maxRequestsPerCrawl: CONFIG.CRAWLER_OPTIONS.maxRequestsPerCrawl,
-        maxConcurrency: CONFIG.CRAWLER_OPTIONS.maxConcurrency,
-        headless: true
+    // 优雅关闭处理
+    process.on('SIGINT', async () => {
+        Logger.info('Received SIGINT, shutting down gracefully...', {}, 'worker');
+        await worker.stop();
+        process.exit(0);
     });
     
-    Logger.info(`Starting crawler for task ${taskId}`);
-    await crawler.run();
-    Logger.info(`Crawler completed for task ${taskId}`);
+    process.on('SIGTERM', async () => {
+        Logger.info('Received SIGTERM, shutting down gracefully...', {}, 'worker');
+        await worker.stop();
+        process.exit(0);
+    });
+    
+    await worker.start();
 }
 
 if (require.main === module) {
-    startCrawlerWorker().catch(console.error);
+    startCrawlerWorker().catch((error) => {
+        Logger.error('Failed to start crawler worker', error, {}, 'worker');
+        process.exit(1);
+    });
 }
 ```
 
-### 启动命令
+## RequestQueue 共享机制说明
 
+### Crawlee RequestQueue 的工作原理
+
+Crawlee 的 RequestQueue 是基于**文件系统存储**的，多个进程可以通过相同的队列名和存储目录访问同一个队列：
+
+```typescript
+// API 进程中
+const globalQueue = await RequestQueue.open('global-crawler-queue', {
+    storageDir: './storage/queues/global'
+});
+
+// Worker 进程中  
+const globalQueue = await RequestQueue.open('global-crawler-queue', {  // 相同队列名
+    storageDir: './storage/queues/global'  // 相同存储目录
+});
+// → 两个进程访问的是同一个队列！
+```
+
+### 队列文件结构
+```
+storage/queues/global/
+├── __CRAWLEE_REQUEST_QUEUE__/
+│   ├── requests.json           # 队列请求列表
+│   ├── handled_request_count   # 已处理计数
+│   ├── pending_request_count   # 待处理计数
+│   └── request_lock_*          # 请求锁文件
+```
+
+### 工作流程
+
+1. **API 进程**: 
+   ```typescript
+   // 创建任务时直接添加到队列
+   await globalQueue.addRequest({
+       url: entryUrl,
+       userData: { taskId, isEntryUrl: true }
+   });
+   ```
+
+2. **Worker 进程**:
+   ```typescript
+   // Crawler 自动监听队列，无需主动扫描
+   const crawler = new PlaywrightCrawler({
+       requestQueue: globalQueue,  // 自动处理队列中的请求
+       requestHandler: handleRequest
+   });
+   await crawler.run(); // 持续监听和处理
+   ```
+
+3. **自动同步**: Crawlee 通过文件锁机制确保多进程安全访问
+
+### 优势对比
+
+#### ❌ 之前的方案（有问题）
+```typescript
+// 问题：需要手动扫描和同步
+setInterval(() => {
+    const newTasks = await scanNewTasks();
+    for (const task of newTasks) {
+        await queue.addRequest(task); // 手动添加
+    }
+}, 5000);
+```
+
+#### ✅ 优化后的方案
+```typescript
+// API: 直接添加到队列
+await globalQueue.addRequest(request);
+
+// Worker: 自动处理
+await crawler.run(); // Crawlee 自动监听队列
+```
+
+## Worker 架构设计说明
+
+### 为什么使用单个 Crawler 实例而非每个 Task 一个实例？
+
+**单机 SaaS 服务的最佳实践是使用单个 Crawler 实例**，原因如下：
+
+#### 1. 资源效率
+- **浏览器进程复用**: 避免为每个任务启动独立的浏览器实例
+- **内存优化**: 单个 PlaywrightCrawler 可以高效管理浏览器池
+- **连接复用**: HTTP/HTTPS 连接可以在不同任务间复用
+
+#### 2. 并发控制
+- **统一并发管理**: 通过 `maxConcurrency` 控制整个系统的并发度
+- **避免资源竞争**: 防止多个 Crawler 实例争夺系统资源
+- **更好的负载控制**: 单点控制所有爬虫活动
+
+#### 3. 队列管理简化
+```typescript
+// ❌ 每个任务独立队列 - 复杂且资源浪费
+const taskACrawler = new PlaywrightCrawler({ requestQueue: taskAQueue });
+const taskBCrawler = new PlaywrightCrawler({ requestQueue: taskBQueue });
+
+// ✅ 全局队列 - 简单高效
+const globalCrawler = new PlaywrightCrawler({ 
+    requestQueue: globalQueue,
+    requestHandler: (ctx) => handleRequestByTaskId(ctx)
+});
+```
+
+#### 4. 状态管理
+- **统一生命周期**: 一个启动/停止流程管理所有任务
+- **简化错误处理**: 集中的错误处理和重试机制
+- **优雅关闭**: 容易实现所有任务的统一关闭
+
+#### 5. 可观测性
+```typescript
+// 统一的指标收集
+const metrics = {
+    totalRequests: globalQueue.handledRequestCount,
+    pendingRequests: globalQueue.pendingRequestCount,
+    runningTasks: activeTasks.length
+};
+```
+
+### 架构对比
+
+#### 多实例架构（不推荐）
+```typescript
+// 问题：资源浪费、管理复杂
+class TaskSpecificWorker {
+    async processTask(taskId: string) {
+        const crawler = new PlaywrightCrawler({ // 每个任务新实例
+            requestQueue: await RequestQueue.open(taskId),
+            maxConcurrency: 2 // 难以全局控制并发
+        });
+        await crawler.run();
+        await crawler.teardown(); // 频繁创建/销毁
+    }
+}
+```
+
+#### 单实例架构（推荐）
+```typescript
+// 优势：资源高效、管理简单
+class GlobalCrawlerWorker {
+    private crawler: PlaywrightCrawler; // 单一实例
+    
+    async start() {
+        this.crawler = new PlaywrightCrawler({
+            requestQueue: this.globalQueue, // 全局队列
+            maxConcurrency: 5, // 统一并发控制
+            requestHandler: this.routeByTaskId // 智能路由
+        });
+        await this.crawler.run(); // 持续运行
+    }
+}
+```
+
+### 扩展策略
+
+当业务增长需要扩展时：
+
+1. **垂直扩展**: 增加单机的 `maxConcurrency`
+2. **水平扩展**: 启动多个 Worker 进程共享全局队列
+3. **分布式扩展**: 使用 Redis 队列 + 多机器部署
+
+```typescript
+// 水平扩展示例
+// worker-1: maxConcurrency: 5
+// worker-2: maxConcurrency: 5  
+// 总并发: 10，共享同一个队列
+```
+
+### 启动命令
 ```bash
 # 启动API服务器
 node dist/api-server.js
@@ -1151,6 +1920,664 @@ export type PageData = z.infer<typeof PageDataSchema>;
 export type IJob = z.infer<typeof JobSchema>;
 export type ITaskStatus = z.infer<typeof TaskStatusSchema>;
 ```
+
+## 优化后的 TaskManager 实现 - 分层架构
+
+### 核心概念关系
+
+**Task 与 Job 的正确关系：**
+- **1个 Task = 1个 API 请求**：每次调用 `/crawler/start` 接口创建一个 Task
+- **1个 Job = 1个 URL**：每个要爬取的具体页面对应一个 Job
+- **Task 管理 Job**：Task 负责跟踪和管理所属的所有 Job
+- **RequestQueue 存储 Job**：往 RequestQueue 里添加的是具体的 Job，不是 Task
+
+**工作流程：**
+1. API 接收请求 → 创建 Task → 为入口 URL 创建第一个 Job → Job 进入 RequestQueue
+2. Worker 从 RequestQueue 取出 Job → 处理页面 → 发现新链接 → 为每个新链接创建新 Job → 新 Job 进入 RequestQueue
+3. 循环执行直到队列为空
+
+## 优化后的 TaskManager 实现 - 分层架构
+
+### 实体层 (Entity Layer)
+
+**src/entities/task-entity.ts**
+```typescript
+export class TaskEntity {
+    constructor(
+        public readonly taskId: string,
+        public readonly entryUrl: string,
+        public status: TaskStatus,
+        public readonly createdAt: Date,
+        public completedAt?: Date,
+        public readonly queuePath?: string,
+        public readonly storagePath?: string
+    ) {}
+
+    static create(data: {
+        taskId: string;
+        entryUrl: string;
+        status: TaskStatus;
+        createdAt: Date;
+    }): TaskEntity {
+        return new TaskEntity(
+            data.taskId,
+            data.entryUrl,
+            data.status,
+            data.createdAt
+        );
+    }
+
+    markCompleted(): void {
+        this.status = 'completed';
+        this.completedAt = new Date();
+    }
+
+    markFailed(): void {
+        this.status = 'failed';
+        this.completedAt = new Date();
+    }
+
+    toJSON(): ITask {
+        return {
+            taskId: this.taskId,
+            entryUrl: this.entryUrl,
+            status: this.status,
+            createdAt: this.createdAt,
+            completedAt: this.completedAt,
+            queuePath: this.queuePath || '',
+            storagePath: this.storagePath || ''
+        };
+    }
+}
+```
+
+**src/entities/job-entity.ts**
+```typescript
+export class JobEntity {
+    constructor(
+        public readonly jobId: string,
+        public readonly url: string,
+        public readonly taskId: string,
+        public status: JobStatus,
+        public readonly createdAt: Date,
+        public title?: string,
+        public startedAt?: Date,
+        public completedAt?: Date,
+        public error?: string,
+        public pageData?: PageData
+    ) {}
+
+    static create(data: {
+        jobId: string;
+        url: string;
+        taskId: string;
+        status: JobStatus;
+        createdAt: Date;
+    }): JobEntity {
+        return new JobEntity(
+            data.jobId,
+            data.url,
+            data.taskId,
+            data.status,
+            data.createdAt
+        );
+    }
+
+    markInProgress(): void {
+        this.status = 'in-progress';
+        this.startedAt = new Date();
+    }
+
+    markCompleted(title: string, pageData?: PageData): void {
+        this.status = 'completed';
+        this.title = title;
+        this.completedAt = new Date();
+        this.pageData = pageData;
+    }
+
+    markFailed(error: string): void {
+        this.status = 'failed';
+        this.error = error;
+        this.completedAt = new Date();
+    }
+
+    toJSON(): IJob {
+        return {
+            jobId: this.jobId,
+            url: this.url,
+            status: this.status,
+            title: this.title,
+            taskId: this.taskId,
+            createdAt: this.createdAt,
+            startedAt: this.startedAt,
+            completedAt: this.completedAt,
+            error: this.error,
+            pageData: this.pageData
+        };
+    }
+}
+```
+
+### 仓储层 (Repository Layer)
+
+**src/repositories/task-repository.ts**
+```typescript
+import { TaskEntity } from '../entities/task-entity';
+import { StorageService } from '../services/storage-service';
+import { CONFIG } from '../config';
+import path from 'path';
+
+export class TaskRepository {
+    constructor(private storageService: StorageService) {}
+
+    async save(task: TaskEntity): Promise<void> {
+        const taskPath = path.join(CONFIG.TASKS_BASE_PATH, `${task.taskId}.json`);
+        await this.storageService.writeJSON(taskPath, task.toJSON());
+    }
+
+    async findById(taskId: string): Promise<TaskEntity | null> {
+        const taskPath = path.join(CONFIG.TASKS_BASE_PATH, `${taskId}.json`);
+        const taskData = await this.storageService.readJSON<ITask>(taskPath);
+        
+        if (!taskData) return null;
+        
+        return new TaskEntity(
+            taskData.taskId,
+            taskData.entryUrl,
+            taskData.status,
+            taskData.createdAt,
+            taskData.completedAt,
+            taskData.queuePath,
+            taskData.storagePath
+        );
+    }
+
+    async findAll(): Promise<TaskEntity[]> {
+        const taskFiles = await this.storageService.listFiles(CONFIG.TASKS_BASE_PATH, '*.json');
+        const tasks: TaskEntity[] = [];
+
+        for (const file of taskFiles) {
+            const task = await this.findById(path.basename(file, '.json'));
+            if (task) tasks.push(task);
+        }
+
+        return tasks.sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime());
+    }
+
+    async update(taskId: string, updates: Partial<ITask>): Promise<void> {
+        const task = await this.findById(taskId);
+        if (!task) throw new TaskNotFoundError(taskId);
+
+        const updatedTask = { ...task.toJSON(), ...updates };
+        await this.save(new TaskEntity(
+            updatedTask.taskId,
+            updatedTask.entryUrl,
+            updatedTask.status,
+            updatedTask.createdAt,
+            updatedTask.completedAt,
+            updatedTask.queuePath,
+            updatedTask.storagePath
+        ));
+    }
+}
+```
+
+**src/repositories/job-repository.ts**
+```typescript
+import { JobEntity } from '../entities/job-entity';
+import { StorageService } from '../services/storage-service';
+import { CONFIG } from '../config';
+import path from 'path';
+
+export class JobRepository {
+    constructor(private storageService: StorageService) {}
+
+    async save(job: JobEntity): Promise<void> {
+        const jobsPath = this.getJobsFilePath(job.taskId);
+        const existingJobs = await this.findByTaskId(job.taskId);
+        
+        // 更新或添加 job
+        const jobIndex = existingJobs.findIndex(j => j.jobId === job.jobId);
+        if (jobIndex >= 0) {
+            existingJobs[jobIndex] = job;
+        } else {
+            existingJobs.push(job);
+        }
+
+        const jobsData = existingJobs.map(j => j.toJSON());
+        await this.storageService.writeJSON(jobsPath, jobsData);
+    }
+
+    async findById(taskId: string, jobId: string): Promise<JobEntity | null> {
+        const jobs = await this.findByTaskId(taskId);
+        return jobs.find(job => job.jobId === jobId) || null;
+    }
+
+    async findByTaskId(taskId: string): Promise<JobEntity[]> {
+        const jobsPath = this.getJobsFilePath(taskId);
+        const jobsData = await this.storageService.readJSON<IJob[]>(jobsPath);
+        
+        if (!jobsData) return [];
+        
+        return jobsData.map(data => new JobEntity(
+            data.jobId,
+            data.url,
+            data.taskId,
+            data.status,
+            data.createdAt,
+            data.title,
+            data.startedAt,
+            data.completedAt,
+            data.error,
+            data.pageData
+        ));
+    }
+
+    async findByStatus(taskId: string, status: JobStatus): Promise<JobEntity[]> {
+        const jobs = await this.findByTaskId(taskId);
+        return jobs.filter(job => job.status === status);
+    }
+
+    async getTaskStats(taskId: string): Promise<{
+        totalUrls: number;
+        completedCount: number;
+        failedCount: number;
+        pendingCount: number;
+        inProgressCount: number;
+    }> {
+        const jobs = await this.findByTaskId(taskId);
+        
+        return {
+            totalUrls: jobs.length,
+            completedCount: jobs.filter(j => j.status === 'completed').length,
+            failedCount: jobs.filter(j => j.status === 'failed').length,
+            pendingCount: jobs.filter(j => j.status === 'pending').length,
+            inProgressCount: jobs.filter(j => j.status === 'in-progress').length
+        };
+    }
+
+    private getJobsFilePath(taskId: string): string {
+        return path.join(CONFIG.DATA_BASE_PATH, taskId, 'jobs.json');
+    }
+}
+```
+
+### 服务层 (Service Layer)
+
+**src/services/storage-service.ts**
+```typescript
+import fs from 'fs/promises';
+import path from 'path';
+import { glob } from 'glob';
+
+export class StorageService {
+    async ensureDirectoryExists(dirPath: string): Promise<void> {
+        try {
+            await fs.mkdir(dirPath, { recursive: true });
+        } catch (error) {
+            if ((error as NodeJS.ErrnoException).code !== 'EEXIST') {
+                throw error;
+            }
+        }
+    }
+
+    async writeJSON(filePath: string, data: any): Promise<void> {
+        await this.ensureDirectoryExists(path.dirname(filePath));
+        await fs.writeFile(filePath, JSON.stringify(data, null, 2), 'utf8');
+    }
+
+    async readJSON<T>(filePath: string): Promise<T | null> {
+        try {
+            const content = await fs.readFile(filePath, 'utf8');
+            return JSON.parse(content) as T;
+        } catch (error) {
+            if ((error as NodeJS.ErrnoException).code === 'ENOENT') {
+                return null;
+            }
+            throw error;
+        }
+    }
+
+    async appendToFile(filePath: string, content: string): Promise<void> {
+        await this.ensureDirectoryExists(path.dirname(filePath));
+        await fs.appendFile(filePath, content, 'utf8');
+    }
+
+    async listFiles(dirPath: string, pattern: string = '*'): Promise<string[]> {
+        try {
+            const fullPattern = path.join(dirPath, pattern);
+            return await glob(fullPattern);
+        } catch (error) {
+            return [];
+        }
+    }
+
+    async createTaskDirectories(taskId: string): Promise<void> {
+        const taskDataPath = path.join(CONFIG.DATA_BASE_PATH, taskId);
+        const taskQueuePath = path.join(CONFIG.QUEUE_BASE_PATH, taskId);
+        
+        await Promise.all([
+            this.ensureDirectoryExists(taskDataPath),
+            this.ensureDirectoryExists(taskQueuePath),
+            this.ensureDirectoryExists(CONFIG.TASKS_BASE_PATH)
+        ]);
+    }
+}
+```
+
+**src/services/queue-service.ts**
+```typescript
+import { RequestQueue } from 'crawlee';
+import { CONFIG } from '../config';
+
+export class QueueService {
+    private globalQueue: RequestQueue | null = null;
+
+    async getGlobalQueue(): Promise<RequestQueue> {
+        if (!this.globalQueue) {
+            this.globalQueue = await RequestQueue.open(CONFIG.GLOBAL_QUEUE_NAME, {
+                storageDir: CONFIG.GLOBAL_QUEUE_STORAGE_DIR
+            });
+        }
+        return this.globalQueue;
+    }
+
+    async addJobRequest(jobId: string, taskId: string, url: string): Promise<void> {
+        const queue = await this.getGlobalQueue();
+        await queue.addRequest({
+            url,
+            userData: { jobId, taskId }
+        });
+    }
+
+    async getQueueInfo(): Promise<{
+        totalRequestCount: number;
+        handledRequestCount: number;
+        pendingRequestCount: number;
+    }> {
+        const queue = await this.getGlobalQueue();
+        return {
+            totalRequestCount: await queue.getTotalCount(),
+            handledRequestCount: await queue.getHandledCount(),
+            pendingRequestCount: await queue.getTotalCount() - await queue.getHandledCount()
+        };
+    }
+}
+```
+
+**src/services/task-service.ts**
+```typescript
+import { v4 as generateUUID } from 'uuid';
+import { TaskRepository } from '../repositories/task-repository';
+import { JobRepository } from '../repositories/job-repository';
+import { QueueService } from './queue-service';
+import { StorageService } from './storage-service';
+import { TaskEntity } from '../entities/task-entity';
+import { JobEntity } from '../entities/job-entity';
+
+export class TaskService {
+    constructor(
+        private taskRepo: TaskRepository,
+        private jobRepo: JobRepository,
+        private queueService: QueueService,
+        private storageService: StorageService
+    ) {}
+
+    async createTask(entryUrl: string): Promise<string> {
+        const taskId = generateUUID();
+        
+        const task = TaskEntity.create({
+            taskId,
+            entryUrl,
+            status: 'active',
+            createdAt: new Date()
+        });
+
+        await this.storageService.createTaskDirectories(taskId);
+        await this.taskRepo.save(task);
+        
+        // 为入口 URL 创建第一个 Job 并添加到队列
+        const jobId = await this.createJob(taskId, {
+            url: entryUrl,
+            status: 'pending'
+        });
+        await this.queueService.addJobRequest(jobId, taskId, entryUrl);
+
+        return taskId;
+    }
+
+    async getTask(taskId: string): Promise<TaskEntity | null> {
+        return await this.taskRepo.findById(taskId);
+    }
+
+    async getTaskStatus(taskId: string): Promise<ITaskStatus> {
+        const task = await this.taskRepo.findById(taskId);
+        if (!task) {
+            throw new TaskNotFoundError(taskId);
+        }
+
+        const jobs = await this.jobRepo.findByTaskId(taskId);
+        const stats = await this.jobRepo.getTaskStats(taskId);
+
+        return {
+            totalUrls: stats.totalUrls,
+            completedCount: stats.completedCount,
+            failedCount: stats.failedCount,
+            pendingCount: stats.pendingCount + stats.inProgressCount,
+            jobs: jobs.map(job => job.toJSON())
+        };
+    }
+
+    async createJob(taskId: string, jobData: {
+        url: string;
+        status: JobStatus;
+    }): Promise<string> {
+        const jobId = generateUUID();
+        
+        const job = JobEntity.create({
+            jobId,
+            url: jobData.url,
+            taskId,
+            status: jobData.status,
+            createdAt: new Date()
+        });
+
+        await this.jobRepo.save(job);
+        return jobId;
+    }
+
+    async updateJob(taskId: string, jobId: string, updates: {
+        status?: JobStatus;
+        title?: string;
+        error?: string;
+        pageData?: PageData;
+    }): Promise<void> {
+        const job = await this.jobRepo.findById(taskId, jobId);
+        if (!job) {
+            throw new Error(`Job ${jobId} not found`);
+        }
+
+        if (updates.status === 'completed' && updates.title) {
+            job.markCompleted(updates.title, updates.pageData);
+        } else if (updates.status === 'failed' && updates.error) {
+            job.markFailed(updates.error);
+        } else if (updates.status === 'in-progress') {
+            job.markInProgress();
+        }
+
+        await this.jobRepo.save(job);
+    }
+}
+```
+
+### 依赖注入容器 (Service Container)
+
+**src/container/service-container.ts**
+```typescript
+import { TaskRepository } from '../repositories/task-repository';
+import { JobRepository } from '../repositories/job-repository';
+import { StorageService } from '../services/storage-service';
+import { QueueService } from '../services/queue-service';
+import { TaskService } from '../services/task-service';
+
+export class ServiceContainer {
+    private storageService: StorageService;
+    private queueService: QueueService;
+    private taskRepository: TaskRepository;
+    private jobRepository: JobRepository;
+    private taskService: TaskService;
+
+    constructor() {
+        this.initializeServices();
+    }
+
+    private initializeServices(): void {
+        // 基础服务
+        this.storageService = new StorageService();
+        this.queueService = new QueueService();
+
+        // 仓储层
+        this.taskRepository = new TaskRepository(this.storageService);
+        this.jobRepository = new JobRepository(this.storageService);
+
+        // 业务服务层
+        this.taskService = new TaskService(
+            this.taskRepository,
+            this.jobRepository,
+            this.queueService,
+            this.storageService
+        );
+    }
+
+    getTaskService(): TaskService {
+        return this.taskService;
+    }
+
+    getStorageService(): StorageService {
+        return this.storageService;
+    }
+
+    getQueueService(): QueueService {
+        return this.queueService;
+    }
+}
+
+// 全局容器实例
+export const serviceContainer = new ServiceContainer();
+```
+
+### 集成使用示例
+
+**API 服务器中的使用**
+```typescript
+// src/api/routes/tasks.ts
+import { serviceContainer } from '../../container/service-container';
+
+const taskService = serviceContainer.getTaskService();
+
+export async function createTaskHandler(request: FastifyRequest, reply: FastifyReply) {
+    try {
+        const { url } = request.body as CreateTaskRequest;
+        const taskId = await taskService.createTask(url);
+        return { taskId };
+    } catch (error) {
+        reply.status(500);
+        return { error: (error as Error).message };
+    }
+}
+
+export async function getTaskStatusHandler(request: FastifyRequest, reply: FastifyReply) {
+    try {
+        const { taskId } = request.params as GetTaskParams;
+        const status = await taskService.getTaskStatus(taskId);
+        return status;
+    } catch (error) {
+        if (error instanceof TaskNotFoundError) {
+            reply.status(404);
+        } else {
+            reply.status(500);
+        }
+        return { error: (error as Error).message };
+    }
+}
+```
+
+**Worker 进程中的使用**
+```typescript
+// src/worker/crawler-worker.ts
+import { serviceContainer } from '../container/service-container';
+
+export class CrawlerWorker {
+    private taskService = serviceContainer.getTaskService();
+    private queueService = serviceContainer.getQueueService();
+    
+    private async handleRequest(context: PlaywrightCrawlingContext): Promise<void> {
+        const { request, page, enqueueLinks } = context;
+        const { jobId, taskId } = request.userData;
+        
+        if (!jobId || !taskId) {
+            Logger.warn('Request missing jobId or taskId', { url: request.url }, 'worker');
+            return;
+        }
+        
+        try {
+            // 更新 Job 状态为处理中
+            await this.taskService.updateJob(taskId, jobId, {
+                status: 'in-progress'
+            });
+            
+            // 处理页面...
+            const title = await page.title();
+            const content = await page.textContent('body') || '';
+            
+            // 提取同域名链接，为每个链接创建新的 Job
+            const currentDomain = new URL(request.url).hostname;
+            const links = await page.$$eval('a[href]', anchors => 
+                anchors.map(a => a.href).filter(Boolean)
+            );
+            
+            const sameDomainLinks = links.filter(url => {
+                try {
+                    return new URL(url).hostname === currentDomain;
+                } catch {
+                    return false;
+                }
+            });
+            
+            // 为每个发现的链接创建新 Job 并添加到队列
+            for (const link of sameDomainLinks) {
+                const newJobId = await this.taskService.createJob(taskId, {
+                    url: link,
+                    status: 'pending'
+                });
+                await this.queueService.addJobRequest(newJobId, taskId, link);
+            }
+            
+            // 更新当前 Job 状态为完成
+            await this.taskService.updateJob(taskId, jobId, {
+                status: 'completed',
+                title,
+                pageData: { content, links: sameDomainLinks }
+            });
+            
+        } catch (error) {
+            await this.taskService.updateJob(taskId, jobId, {
+                status: 'failed',
+                error: (error as Error).message
+            });
+        }
+    }
+}
+```
+
+### 架构优势
+
+1. **关注点分离**: 每个层次职责明确，易于维护
+2. **依赖注入**: 便于单元测试和模块替换
+3. **类型安全**: 完整的 TypeScript 类型覆盖
+4. **实体封装**: 业务逻辑封装在实体类中
+5. **服务解耦**: 各服务通过接口交互，降低耦合
+6. **扩展性**: 新增功能只需添加相应的服务和仓储
 
 #### 启动脚本
 
