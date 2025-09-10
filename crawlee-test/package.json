@@ -13,6 +13,7 @@
     "test:run": "vitest run",
     "test:coverage": "vitest run --coverage",
     "test:all": "node scripts/run-tests.js",
+    "test:imp": "vitest src/proj/store/tests/imp.test.ts",
     "test:setup": "node scripts/run-tests.js --setup",
     "test:basic": "node scripts/run-tests.js --basic",
     "lint": "eslint src tests --ext .ts",
@@ -41,10 +42,15 @@
     "vitest": "^1.0.0"
   },
   "dependencies": {
+    "@crawlee/types": "^3.14.1",
     "@types/express": "^5.0.3",
+    "@types/ioredis": "^5.0.0",
+    "@types/redlock": "^4.0.7",
     "crawlee": "^3.5.0",
     "express": "^5.1.0",
+    "ioredis": "^5.7.0",
     "playwright": "^1.55.0",
+    "redlock": "5.0.0-beta.2",
     "uuid": "^12.0.0"
   }
 }
