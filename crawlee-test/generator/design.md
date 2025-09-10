@@ -15,7 +15,7 @@
 ### 进程通信
 
 - **完全解耦架构**: API 层与 Worker 层互相不知道对方的存在，不进行任何直接通信
-- **唯一联系方式**: 
+- **唯一联系方式**:
   - RequestQueue 文件作为任务传递媒介
   - 共享存储文件系统进行状态同步
 - **异步工作模式**: Worker 独立运行，持续监听和处理队列中的任务
@@ -43,10 +43,10 @@ interface IJob {
 }
 ```
 
-### ITaskStatus 接口
+### ITaskStatusResponse 接口
 
 ```typescript
-interface ITaskStatus {
+interface ITaskStatusResponse {
     totalUrls: number;              // 总 URL 数量
     completedCount: number;         // 已完成数量
     failedCount: number;            // 失败数量
@@ -93,7 +93,7 @@ function startCrawler(url: string): Promise<string>
 #### getCrawlerStatus
 
 ```typescript
-function getCrawlerStatus(taskId: string): Promise<ITaskStatus>
+function getCrawlerStatus(taskId: string): Promise<ITaskStatusResponse>
 ```
 
 - **功能**: 获取任务当前状态
@@ -107,7 +107,7 @@ function getCrawlerStatus(taskId: string): Promise<ITaskStatus>
 
 ```typescript
 // 伪代码实现
-async function getCrawlerStatus(taskId: string): Promise<ITaskStatus> {
+async function getCrawlerStatus(taskId: string): Promise<ITaskStatusResponse> {
     // 1. 验证 taskId 是否存在
     const taskFilePath = path.join(CONFIG.TASKS_BASE_PATH, `task-${taskId}.json`);
     if (!await fs.pathExists(taskFilePath)) {
@@ -148,7 +148,7 @@ async function getCrawlerStatus(taskId: string): Promise<ITaskStatus> {
 #### GET /crawler/status/:taskId
 
 - **路径参数**: taskId
-- **响应**: `ITaskStatus`
+- **响应**: `ITaskStatusResponse`
 - **Schema 验证**: Zod 路径参数验证
 
 #### GET /crawler/tasks
@@ -203,7 +203,7 @@ export class TaskService {
         return taskId;
     }
 
-    async getTaskStatus(taskId: string): Promise<ITaskStatus> {
+    async getTaskStatus(taskId: string): Promise<ITaskStatusResponse> {
         // 1. 获取任务基本信息
         const task = await this.taskRepo.findById(taskId);
         if (!task) {
@@ -442,7 +442,7 @@ export class TaskEntity {
 
 ```typescript
 export class TaskStatusCalculator {
-    static calculate(task: TaskEntity, jobs: IJob[]): ITaskStatus {
+    static calculate(task: TaskEntity, jobs: IJob[]): ITaskStatusResponse {
         const totalUrls = jobs.length;
         const completedCount = jobs.filter(job => job.status === 'completed').length;
         const failedCount = jobs.filter(job => job.status === 'failed').length;
@@ -548,7 +548,7 @@ fastify.post('/crawler/start', {
 fastify.get('/crawler/status/:taskId', {
     schema: {
         params: GetTaskParamsSchema,
-        response: { 200: TaskStatusSchema }
+        response: { 200: ITaskStatusResponseSchema }
     }
 }, async (request) => {
     const { taskId } = request.params;
@@ -557,7 +557,6 @@ fastify.get('/crawler/status/:taskId', {
     return status;
 });
 ```
-
 
 ## 优化总结
 
@@ -904,7 +903,7 @@ import { serviceContainer } from './container/service-container';
 import { TaskNotFoundError } from './errors';
 import { Logger, apiLogger } from './logger';
 import { CreateTaskRequestSchema, CreateTaskResponseSchema, GetTaskParamsSchema } from './types/task';
-import { TaskStatusSchema } from './types/job';
+import { ITaskStatusResponseSchema } from './types/job';
 
 async function startApiServer() {
     const fastify = Fastify({
@@ -947,7 +946,7 @@ async function startApiServer() {
         schema: {
             params: GetTaskParamsSchema,
             response: {
-                200: TaskStatusSchema
+                200: ITaskStatusResponseSchema
             }
         }
     }, async (request, reply) => {
@@ -1204,6 +1203,7 @@ const globalQueue = await RequestQueue.open('global-crawler-queue', {  // 相同
 ```
 
 ### 队列文件结构
+
 ```
 storage/queues/global/
 ├── __CRAWLEE_REQUEST_QUEUE__/
@@ -1215,7 +1215,8 @@ storage/queues/global/
 
 ### 工作流程
 
-1. **API 进程**: 
+1. **API 进程**:
+
    ```typescript
    // 创建任务时直接添加到队列
    await globalQueue.addRequest({
@@ -1225,6 +1226,7 @@ storage/queues/global/
    ```
 
 2. **Worker 进程**:
+
    ```typescript
    // Crawler 自动监听队列，无需主动扫描
    const crawler = new PlaywrightCrawler({
@@ -1239,6 +1241,7 @@ storage/queues/global/
 ### 优势对比
 
 #### ❌ 之前的方案（有问题）
+
 ```typescript
 // 问题：需要手动扫描和同步
 setInterval(() => {
@@ -1250,6 +1253,7 @@ setInterval(() => {
 ```
 
 #### ✅ 优化后的方案
+
 ```typescript
 // API: 直接添加到队列
 await globalQueue.addRequest(request);
@@ -1265,16 +1269,19 @@ await crawler.run(); // Crawlee 自动监听队列
 **单机 SaaS 服务的最佳实践是使用单个 Crawler 实例**，原因如下：
 
 #### 1. 资源效率
+
 - **浏览器进程复用**: 避免为每个任务启动独立的浏览器实例
 - **内存优化**: 单个 PlaywrightCrawler 可以高效管理浏览器池
 - **连接复用**: HTTP/HTTPS 连接可以在不同任务间复用
 
 #### 2. 并发控制
+
 - **统一并发管理**: 通过 `maxConcurrency` 控制整个系统的并发度
 - **避免资源竞争**: 防止多个 Crawler 实例争夺系统资源
 - **更好的负载控制**: 单点控制所有爬虫活动
 
 #### 3. 队列管理简化
+
 ```typescript
 // ❌ 每个任务独立队列 - 复杂且资源浪费
 const taskACrawler = new PlaywrightCrawler({ requestQueue: taskAQueue });
@@ -1288,11 +1295,13 @@ const globalCrawler = new PlaywrightCrawler({
 ```
 
 #### 4. 状态管理
+
 - **统一生命周期**: 一个启动/停止流程管理所有任务
 - **简化错误处理**: 集中的错误处理和重试机制
 - **优雅关闭**: 容易实现所有任务的统一关闭
 
 #### 5. 可观测性
+
 ```typescript
 // 统一的指标收集
 const metrics = {
@@ -1305,6 +1314,7 @@ const metrics = {
 ### 架构对比
 
 #### 多实例架构（不推荐）
+
 ```typescript
 // 问题：资源浪费、管理复杂
 class TaskSpecificWorker {
@@ -1320,6 +1330,7 @@ class TaskSpecificWorker {
 ```
 
 #### 单实例架构（推荐）
+
 ```typescript
 // 优势：资源高效、管理简单
 class GlobalCrawlerWorker {
@@ -1352,6 +1363,7 @@ class GlobalCrawlerWorker {
 ```
 
 ### 启动命令
+
 ```bash
 # 启动API服务器
 node dist/api-server.js
@@ -1489,7 +1501,7 @@ taskLogger.error({ error: 'Connection failed' }, 'Failed to crawl page');
 
 **为什么选择标识区分 (`{name: "api"}`) 而非文件夹区分 (`logs/api/`, `logs/worker/`)**:
 
-1. **更好的日志聚合**: 
+1. **更好的日志聚合**:
    - 所有日志在同一层级，便于日志收集工具（如 ELK、Fluentd）处理
    - 支持跨服务的日志关联分析
 
@@ -1510,6 +1522,7 @@ taskLogger.error({ error: 'Connection failed' }, 'Failed to crawl page');
    - 减少权限管理复杂性
 
 ### 日志文件结构
+
 ```
 logs/
 ├── api.log              # API 服务所有日志
@@ -1695,6 +1708,7 @@ src/
 #### API 层文件
 
 **src/api/server.ts** - API 服务器主入口
+
 ```typescript
 import Fastify, { FastifyInstance } from 'fastify';
 import {
@@ -1733,6 +1747,7 @@ export async function createApiServer(): Promise<FastifyInstance> {
 ```
 
 **src/api/routes/crawler.ts** - 爬虫路由
+
 ```typescript
 import { z } from 'zod';
 import { FastifyPluginAsyncZod } from 'fastify-type-provider-zod';
@@ -1742,7 +1757,7 @@ import {
     GetTaskParamsSchema,
     GetTasksQuerySchema,
     TaskSchema,
-    TaskStatusSchema as ITaskStatusSchema
+    ITaskStatusResponseSchema as ITaskStatusResponseSchema
 } from '../../types/task';
 import { startCrawlerHandler, getStatusHandler, getTasksHandler } from '../handlers';
 
@@ -1762,7 +1777,7 @@ const crawlerRoutes: FastifyPluginAsyncZod = async (fastify) => {
         schema: {
             params: GetTaskParamsSchema,
             response: {
-                200: ITaskStatusSchema
+                200: ITaskStatusResponseSchema
             }
         }
     }, getStatusHandler);
@@ -1789,6 +1804,7 @@ export { crawlerRoutes };
 #### Worker 层文件
 
 **src/worker/crawler-worker.ts** - Worker 主入口
+
 ```typescript
 export class CrawlerWorker {
     async start(): Promise<void>
@@ -1798,6 +1814,7 @@ export class CrawlerWorker {
 ```
 
 **src/worker/handlers/request-handler.ts** - 请求处理
+
 ```typescript
 export async function handleRequest(
     context: PlaywrightCrawlingContext,
@@ -1808,15 +1825,17 @@ export async function handleRequest(
 #### 核心管理类
 
 **src/core/task-manager.ts** - 任务管理
+
 ```typescript
 export class TaskManager {
     async createTask(entryUrl: string): Promise<string>
     async getTask(taskId: string): Promise<ITask | null>
-    async getTaskStatus(taskId: string): Promise<ITaskStatus>
+    async getTaskStatus(taskId: string): Promise<ITaskStatusResponse>
 }
 ```
 
 **src/core/job-manager.ts** - Job 管理
+
 ```typescript
 export class JobManager {
     async createJob(taskId: string, url: string): Promise<string>
@@ -1826,6 +1845,7 @@ export class JobManager {
 ```
 
 **src/core/storage-manager.ts** - 存储管理
+
 ```typescript
 export class StorageManager {
     async writeJSON(filePath: string, data: any): Promise<void>
@@ -1837,23 +1857,24 @@ export class StorageManager {
 #### 类型定义文件
 
 **src/types/task.ts**
+
 ```typescript
 import { z } from 'zod';
 
 // Zod Schema 定义
-export const TaskStatusSchema = z.enum(['active', 'completed', 'failed']);
+export const ITaskStatusResponseSchema = z.enum(['active', 'completed', 'failed']);
 
 export const TaskSchema = z.object({
     taskId: z.string().uuid(),
     entryUrl: z.string().url(),
-    status: TaskStatusSchema,
+    status: ITaskStatusResponseSchema,
     createdAt: z.date(),
     queuePath: z.string(),
     storagePath: z.string()
 });
 
 // TypeScript 类型推导
-export type TaskStatus = z.infer<typeof TaskStatusSchema>;
+export type TaskStatus = z.infer<typeof ITaskStatusResponseSchema>;
 export type ITask = z.infer<typeof TaskSchema>;
 
 // API 请求/响应 Schema
@@ -1881,6 +1902,7 @@ export type GetTasksQuery = z.infer<typeof GetTasksQuerySchema>;
 ```
 
 **src/types/job.ts**
+
 ```typescript
 import { z } from 'zod';
 
@@ -1906,7 +1928,7 @@ export const JobSchema = z.object({
     pageData: PageDataSchema.optional()
 });
 
-export const TaskStatusSchema = z.object({
+export const ITaskStatusResponseSchema = z.object({
     totalUrls: z.number(),
     completedCount: z.number(),
     failedCount: z.number(),
@@ -1918,7 +1940,7 @@ export const TaskStatusSchema = z.object({
 export type JobStatus = z.infer<typeof JobStatusSchema>;
 export type PageData = z.infer<typeof PageDataSchema>;
 export type IJob = z.infer<typeof JobSchema>;
-export type ITaskStatus = z.infer<typeof TaskStatusSchema>;
+export type ITaskStatusResponse = z.infer<typeof ITaskStatusResponseSchema>;
 ```
 
 ## 优化后的 TaskManager 实现 - 分层架构
@@ -1926,12 +1948,14 @@ export type ITaskStatus = z.infer<typeof TaskStatusSchema>;
 ### 核心概念关系
 
 **Task 与 Job 的正确关系：**
+
 - **1个 Task = 1个 API 请求**：每次调用 `/crawler/start` 接口创建一个 Task
 - **1个 Job = 1个 URL**：每个要爬取的具体页面对应一个 Job
 - **Task 管理 Job**：Task 负责跟踪和管理所属的所有 Job
 - **RequestQueue 存储 Job**：往 RequestQueue 里添加的是具体的 Job，不是 Task
 
 **工作流程：**
+
 1. API 接收请求 → 创建 Task → 为入口 URL 创建第一个 Job → Job 进入 RequestQueue
 2. Worker 从 RequestQueue 取出 Job → 处理页面 → 发现新链接 → 为每个新链接创建新 Job → 新 Job 进入 RequestQueue
 3. 循环执行直到队列为空
@@ -1941,6 +1965,7 @@ export type ITaskStatus = z.infer<typeof TaskStatusSchema>;
 ### 实体层 (Entity Layer)
 
 **src/entities/task-entity.ts**
+
 ```typescript
 export class TaskEntity {
     constructor(
@@ -1992,6 +2017,7 @@ export class TaskEntity {
 ```
 
 **src/entities/job-entity.ts**
+
 ```typescript
 export class JobEntity {
     constructor(
@@ -2061,6 +2087,7 @@ export class JobEntity {
 ### 仓储层 (Repository Layer)
 
 **src/repositories/task-repository.ts**
+
 ```typescript
 import { TaskEntity } from '../entities/task-entity';
 import { StorageService } from '../services/storage-service';
@@ -2123,6 +2150,7 @@ export class TaskRepository {
 ```
 
 **src/repositories/job-repository.ts**
+
 ```typescript
 import { JobEntity } from '../entities/job-entity';
 import { StorageService } from '../services/storage-service';
@@ -2205,6 +2233,7 @@ export class JobRepository {
 ### 服务层 (Service Layer)
 
 **src/services/storage-service.ts**
+
 ```typescript
 import fs from 'fs/promises';
 import path from 'path';
@@ -2266,6 +2295,7 @@ export class StorageService {
 ```
 
 **src/services/queue-service.ts**
+
 ```typescript
 import { RequestQueue } from 'crawlee';
 import { CONFIG } from '../config';
@@ -2306,6 +2336,7 @@ export class QueueService {
 ```
 
 **src/services/task-service.ts**
+
 ```typescript
 import { v4 as generateUUID } from 'uuid';
 import { TaskRepository } from '../repositories/task-repository';
@@ -2350,7 +2381,7 @@ export class TaskService {
         return await this.taskRepo.findById(taskId);
     }
 
-    async getTaskStatus(taskId: string): Promise<ITaskStatus> {
+    async getTaskStatus(taskId: string): Promise<ITaskStatusResponse> {
         const task = await this.taskRepo.findById(taskId);
         if (!task) {
             throw new TaskNotFoundError(taskId);
@@ -2413,6 +2444,7 @@ export class TaskService {
 ### 依赖注入容器 (Service Container)
 
 **src/container/service-container.ts**
+
 ```typescript
 import { TaskRepository } from '../repositories/task-repository';
 import { JobRepository } from '../repositories/job-repository';
@@ -2469,6 +2501,7 @@ export const serviceContainer = new ServiceContainer();
 ### 集成使用示例
 
 **API 服务器中的使用**
+
 ```typescript
 // src/api/routes/tasks.ts
 import { serviceContainer } from '../../container/service-container';
@@ -2503,6 +2536,7 @@ export async function getTaskStatusHandler(request: FastifyRequest, reply: Fasti
 ```
 
 **Worker 进程中的使用**
+
 ```typescript
 // src/worker/crawler-worker.ts
 import { serviceContainer } from '../container/service-container';
@@ -2582,6 +2616,7 @@ export class CrawlerWorker {
 #### 启动脚本
 
 **src/scripts/api-server.ts**
+
 ```typescript
 import { createApiServer } from '../api/server';
 import { CONFIG } from '../config';
@@ -2607,6 +2642,7 @@ if (require.main === module) {
 ```
 
 **src/scripts/crawler-worker.ts**
+
 ```typescript
 import { CrawlerWorker } from '../worker/crawler-worker';
 
@@ -2636,6 +2672,7 @@ if (require.main === module) {
 ```
 
 这个文件结构设计确保了：
+
 1. **清晰的分层**: API、Worker、核心逻辑分离
 2. **可维护性**: 每个文件职责明确
 3. **可扩展性**: 模块化设计便于功能扩展
