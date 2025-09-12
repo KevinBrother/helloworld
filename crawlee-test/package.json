@@ -7,7 +7,7 @@
   "scripts": {
     "build": "tsc",
     "start": "node dist/index.js",
-    "dev": "tsx src/index.ts",
+    "dev": "node src/index.ts",
     "test": "vitest",
     "test:watch": "vitest --watch",
     "test:run": "vitest run",
