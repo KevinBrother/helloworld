@@ -1,8 +1,17 @@
 import express, { Request, Response } from 'express';
+import https from 'https';
+import fs from 'fs';
+import path from 'path';
 import { generateLoremSentence } from './lorem';
 
 const app = express();
 const PORT = process.env.PORT || 3001;
+
+// HTTPS server options (modern browsers will negotiate HTTP/2 via ALPN)
+const serverOptions = {
+  key: fs.readFileSync(path.join(__dirname, '../certs/key.pem')),
+  cert: fs.readFileSync(path.join(__dirname, '../certs/cert.pem'))
+};
 
 app.use(express.json());
 app.use(express.static('public'));
@@ -139,8 +148,8 @@ app.get('/', (req: Request, res: Response) => {
       </head>
       <body>
         <div class="container">
-          <h1>Chatbot Server with SSE</h1>
-          <p>Available endpoints:</p>
+          <h1>HTTPS Chatbot Server with SSE</h1>
+          <p>Available endpoints (HTTPS with HTTP/2 auto-negotiation):</p>
           
           <div class="endpoint">
             <h3>POST /api/chat</h3>
@@ -164,7 +173,12 @@ app.get('/', (req: Request, res: Response) => {
   `);
 });
 
-app.listen(PORT, () => {
-  console.log(`Chatbot server is running on port ${PORT}`);
-  console.log(`Visit http://localhost:${PORT} for endpoint documentation`);
+// Create HTTPS server (browsers will automatically negotiate HTTP/2 via ALPN)
+const server = https.createServer(serverOptions, app);
+
+server.listen(PORT, () => {
+  console.log(`HTTPS Chatbot server is running on port ${PORT}`);
+  console.log(`Visit https://localhost:${PORT} for endpoint documentation`);
+  console.log(`Note: You may need to accept the self-signed certificate in your browser`);
+  console.log(`Modern browsers will automatically negotiate HTTP/2 via ALPN when available`);
 });
