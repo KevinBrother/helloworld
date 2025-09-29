@@ -63,6 +63,17 @@ function sendOpenAISSEResponse(
     .substr(2, 9)}`;
   const created = Math.floor(Date.now() / 1000);
 
+  // 追踪连接状态
+  let isConnected = true;
+  res.on('close', () => {
+    isConnected = false;
+    console.log(`${logPrefix}Connection closed`);
+  });
+
+  // 立即发送空数据以建立连接
+  res.write(': connected\n\n');
+  (res as any).flush?.();
+
   // 发送初始角色消息
   const initialResponse: OpenAIResponse = {
     id: sessionId,
@@ -89,6 +100,11 @@ function sendOpenAISSEResponse(
   const totalChunks = 8;
 
   const sendNextChunk = () => {
+    if (!isConnected) {
+      console.log(`${logPrefix}Stopping - client disconnected`);
+      return;
+    }
+    
     if (messageIndex >= totalChunks) {
       // 发送最后一个空内容的chunk
       const finalResponse: OpenAIResponse = {
@@ -139,13 +155,13 @@ function sendOpenAISSEResponse(
 
     messageIndex++;
 
-    // 随机延时100-300ms，模拟真实打字效果
-    const delay = Math.random() * 200 + 100;
+    // 短延时模拟打字效果
+    const delay = 50; // 固定50ms延时
     setTimeout(sendNextChunk, delay);
   };
 
-  // 延时500ms后开始发送第一个内容块
-  setTimeout(sendNextChunk, 500);
+  // 立即开始发送第一个内容块
+  sendNextChunk();
 }
 
 // OpenAI兼容的聊天完成端点
@@ -172,7 +188,7 @@ app.post("/v1/chat/completions", (req: Request, res: Response) => {
       "Content-Type": "text/event-stream; charset=utf-8",
       "Cache-Control": "no-cache, no-store, must-revalidate",
       Pragma: "no-cache",
-      Expires: "0",
+      // Expires: "0",
       Connection: "keep-alive",
       "Access-Control-Allow-Origin": "*",
       "Access-Control-Allow-Headers":
@@ -184,9 +200,10 @@ app.post("/v1/chat/completions", (req: Request, res: Response) => {
 
     sendOpenAISSEResponse(res, messages, model, "[OpenAI SSE] ");
 
-    req.on("close", () => {
-      res.end();
-    });
+
+    // 设置保持连接活跃
+    req.socket.setKeepAlive(true);
+    req.socket.setTimeout(0);
   } else {
     // 非流式响应
     const sessionId = `chatcmpl-${Date.now()}${Math.random()
@@ -252,7 +269,112 @@ app.post("/api/chat/stream", (req: Request, res: Response) => {
     "Access-Control-Allow-Headers": "Cache-Control",
   });
 
-  sendOpenAISSEResponse(res, messages, "gpt-3.5-turbo", "[Legacy] ");
+  // 为Legacy端点创建不带连接信号的响应函数
+  const sendLegacySSEResponse = (res: Response, messages: Message[], model: string, logPrefix: string) => {
+    const lastMessage = messages[messages.length - 1];
+    console.log(`${logPrefix}Received message: ${lastMessage.content}`);
+
+    const sessionId = `chatcmpl-${Date.now()}${Math.random().toString(36).substr(2, 9)}`;
+    const created = Math.floor(Date.now() / 1000);
+
+    // 追踪连接状态
+    let isConnected = true;
+    res.on('close', () => {
+      isConnected = false;
+      console.log(`${logPrefix}Connection closed`);
+    });
+
+    // 直接发送初始角色消息，不发送连接信号
+    const initialResponse: OpenAIResponse = {
+      id: sessionId,
+      object: "chat.completion.chunk",
+      created: created,
+      model: model,
+      choices: [
+        {
+          index: 0,
+          delta: {
+            role: "assistant",
+          },
+          finish_reason: null,
+        },
+      ],
+    };
+
+    res.write(`data: ${JSON.stringify(initialResponse)}\n\n`);
+    (res as any).flush?.();
+    console.log(`${logPrefix}Sent initial role message`);
+
+    // 使用延时发送消息，模拟打字效果
+    let messageIndex = 0;
+    const totalChunks = 8;
+
+    const sendNextChunk = () => {
+      if (!isConnected) {
+        console.log(`${logPrefix}Stopping - client disconnected`);
+        return;
+      }
+      
+      if (messageIndex >= totalChunks) {
+        // 发送最后一个空内容的chunk
+        const finalResponse: OpenAIResponse = {
+          id: sessionId,
+          object: "chat.completion.chunk",
+          created: created,
+          model: model,
+          choices: [
+            {
+              index: 0,
+              delta: {},
+              finish_reason: "stop",
+            },
+          ],
+        };
+        res.write(`data: ${JSON.stringify(finalResponse)}\n\n`);
+        (res as any).flush?.();
+        
+        // 发送结束标记
+        console.log(`${logPrefix}Sending [DONE]`);
+        res.write("data: [DONE]\n\n");
+        (res as any).flush?.();
+        res.end();
+        return;
+      }
+
+      const sentence = generateLoremSentence();
+      const chunkResponse: OpenAIResponse = {
+        id: sessionId,
+        object: "chat.completion.chunk",
+        created: created,
+        model: model,
+        choices: [
+          {
+            index: 0,
+            delta: {
+              content: sentence + " ",
+            },
+            finish_reason: null,
+          },
+        ],
+      };
+
+      const jsonData = JSON.stringify(chunkResponse);
+      console.log(`${logPrefix}Sending chunk ${messageIndex}: ${jsonData}`);
+      res.write(`data: ${jsonData}\n\n`);
+      (res as any).flush?.();
+
+      messageIndex++;
+
+      // 短延时模拟打字效果
+      const delay = 50;
+      setTimeout(sendNextChunk, delay);
+    };
+
+    // 立即开始发送第一个内容块
+    sendNextChunk();
+  };
+
+  sendLegacySSEResponse(res, messages, "gpt-3.5-turbo", "[Legacy] ");
 
   req.on("close", () => {
     res.end();
