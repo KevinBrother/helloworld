@@ -255,27 +255,18 @@ app.post("/api/chat/stream", (req: Request, res: Response) => {
   }
 
   res.writeHead(200, {
-    /*     'Content-Type': 'text/event-stream',
-    'Cache-Control': 'no-cache',
-    'Connection': 'keep-alive',
-    'Access-Control-Allow-Origin': '*',
-    'Access-Control-Allow-Headers': 'Content-Type, Cache-Control',
-    'Access-Control-Allow-Methods': 'POST, OPTIONS',
-    'X-Accel-Buffering': 'no' */
     "Content-Type": "text/event-stream",
     "Cache-Control": "no-cache",
-    Connection: "keep-alive",
+    "Connection": "keep-alive",
     "Access-Control-Allow-Origin": "*",
-    "Access-Control-Allow-Headers": "Cache-Control",
+    "Access-Control-Allow-Headers": "Content-Type, Cache-Control",
+    "X-Accel-Buffering": "no"
   });
 
-  // 为Legacy端点创建不带连接信号的响应函数
-  const sendLegacySSEResponse = (res: Response, messages: Message[], model: string, logPrefix: string) => {
+  // 为Legacy端点创建自定义格式的SSE响应函数
+  const sendLegacySSEResponse = (res: Response, messages: Message[], logPrefix: string) => {
     const lastMessage = messages[messages.length - 1];
     console.log(`${logPrefix}Received message: ${lastMessage.content}`);
-
-    const sessionId = `chatcmpl-${Date.now()}${Math.random().toString(36).substr(2, 9)}`;
-    const created = Math.floor(Date.now() / 1000);
 
     // 追踪连接状态
     let isConnected = true;
@@ -284,101 +275,87 @@ app.post("/api/chat/stream", (req: Request, res: Response) => {
       console.log(`${logPrefix}Connection closed`);
     });
 
-    // 直接发送初始角色消息，不发送连接信号
-    const initialResponse: OpenAIResponse = {
-      id: sessionId,
-      object: "chat.completion.chunk",
-      created: created,
-      model: model,
-      choices: [
-        {
-          index: 0,
-          delta: {
-            role: "assistant",
-          },
-          finish_reason: null,
-        },
-      ],
+    // 生成完整的回复内容
+    const fullContent = Array.from({ length: 5 }, () => generateLoremSentence()).join(' ');
+    const words = fullContent.split(' ').filter(word => word.length > 0);
+    
+    // 发送初始消息
+    const initialData = {
+      code: 0,
+      data: {
+        content: words[0] || "Hello",
+        hitted: 1,
+        question_type: "normal",
+        role: "assistant",
+        type: "initial"
+      },
+      msg: "OK"
     };
 
-    res.write(`data: ${JSON.stringify(initialResponse)}\n\n`);
+    res.write(`data: ${JSON.stringify(initialData)}\n\n`);
     (res as any).flush?.();
-    console.log(`${logPrefix}Sent initial role message`);
+    console.log(`${logPrefix}Sent initial message`);
 
-    // 使用延时发送消息，模拟打字效果
-    let messageIndex = 0;
-    const totalChunks = 8;
+    let wordIndex = 1;
+    let accumulatedContent = words[0] || "Hello";
 
-    const sendNextChunk = () => {
+    const sendNextWord = () => {
       if (!isConnected) {
         console.log(`${logPrefix}Stopping - client disconnected`);
         return;
       }
       
-      if (messageIndex >= totalChunks) {
-        // 发送最后一个空内容的chunk
-        const finalResponse: OpenAIResponse = {
-          id: sessionId,
-          object: "chat.completion.chunk",
-          created: created,
-          model: model,
-          choices: [
-            {
-              index: 0,
-              delta: {},
-              finish_reason: "stop",
-            },
-          ],
+      if (wordIndex >= words.length) {
+        // 发送完成消息
+        const finishData = {
+          code: 0,
+          data: {
+            chunks: null,
+            dataIDs: null,
+            fullContent: accumulatedContent,
+            hitted: 1,
+            questionType: "normal",
+            role: "assistant",
+            type: "finish"
+          },
+          msg: "OK"
         };
-        res.write(`data: ${JSON.stringify(finalResponse)}\n\n`);
-        (res as any).flush?.();
         
-        // 发送结束标记
-        console.log(`${logPrefix}Sending [DONE]`);
-        res.write("data: [DONE]\n\n");
+        res.write(`data: ${JSON.stringify(finishData)}\n\n`);
         (res as any).flush?.();
+        console.log(`${logPrefix}Sent finish message`);
         res.end();
         return;
       }
 
-      const sentence = generateLoremSentence();
-      const chunkResponse: OpenAIResponse = {
-        id: sessionId,
-        object: "chat.completion.chunk",
-        created: created,
-        model: model,
-        choices: [
-          {
-            index: 0,
-            delta: {
-              content: sentence + " ",
-            },
-            finish_reason: null,
-          },
-        ],
+      // 发送更新消息
+      const currentWord = words[wordIndex];
+      const updateData = {
+        code: 0,
+        data: {
+          content: wordIndex === words.length - 1 ? currentWord : currentWord + " ",
+          type: "update"
+        },
+        msg: "OK"
       };
 
-      const jsonData = JSON.stringify(chunkResponse);
-      console.log(`${logPrefix}Sending chunk ${messageIndex}: ${jsonData}`);
-      res.write(`data: ${jsonData}\n\n`);
+      res.write(`data: ${JSON.stringify(updateData)}\n\n`);
       (res as any).flush?.();
-
-      messageIndex++;
+      console.log(`${logPrefix}Sent update: ${currentWord}`);
+      
+      accumulatedContent += (wordIndex === words.length - 1 ? currentWord : " " + currentWord);
+      wordIndex++;
 
       // 短延时模拟打字效果
-      const delay = 50;
-      setTimeout(sendNextChunk, delay);
+      const delay = 100;
+      setTimeout(sendNextWord, delay);
     };
 
-    // 立即开始发送第一个内容块
-    sendNextChunk();
+    // 延时后开始发送更新
+    setTimeout(sendNextWord, 200);
   };
 
-  sendLegacySSEResponse(res, messages, "gpt-3.5-turbo", "[Legacy] ");
-
-  req.on("close", () => {
-    res.end();
-  });
+  sendLegacySSEResponse(res, messages, "[Legacy] ");
 });
 
 // GET endpoint for EventSource SSE
