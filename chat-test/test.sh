@@ -1,0 +1,1 @@
+curl -X POST http://localhost:3001/v1/chat/completions -H "Content-Type: application/json" --data-raw '{"model": "gpt-3.5-turbo","messages": [{"role": "user", "content": "Hello, howare you?"}],"stream": true}'
