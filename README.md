@@ -181,6 +181,9 @@
   - redis的使用案例
   - bullMq的使用案例
 
+- [ ] go-deploy
+  - go项目的部署案例
+
 ## C语言
 
 - c-build
