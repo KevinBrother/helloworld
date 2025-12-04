@@ -184,6 +184,9 @@
 - [ ] go-deploy
   - go项目的部署案例
 
+- [ ] go-nacos
+  - go项目集成nacos的案例
+
 ## C语言
 
 - c-build
