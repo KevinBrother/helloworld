@@ -1,0 +1,20 @@
+# 去掉 version（避免警告），用这个最简版
+services:
+  nacos:
+    image: nacos/nacos-server:v2.3.2
+    platform: linux/amd64  # ← 这行是关键！强制 amd64 架构
+    container_name: nacos-standalone
+    environment:
+      - MODE=standalone
+      - JVM_XMS=512m
+      - JVM_XMX=512m
+      - JVM_XMN=256m
+    ports:
+      - "8848:8848" # http 客户端访问入口
+      - "9848:9848" # gRPC 客户端访问入口
+      - "9849:9849" # raft 服务端口，单机模式不需要关心
+    restart: unless-stopped
+    # 可选：持久化（配置不会丢）
+    # volumes:
+    #   - ./nacos/logs:/home/nacos/logs
+    #   - ./nacos/data:/home/nacos/data

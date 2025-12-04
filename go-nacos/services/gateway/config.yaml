@@ -1,0 +1,34 @@
+nacos:
+  server_ip: "127.0.0.1"
+  server_port: 8848
+  namespace: "public"
+  timeout_ms: 5000
+  listen_interval: 10000
+  cache_dir: "./nacos/cache"
+  log_dir: "./nacos/log"
+
+service:
+  name: "gateway-service"
+  ip: "127.0.0.1"
+  port: 8080
+  weight: 10
+  enable: true
+  healthy: true
+  ephemeral: true
+  group_name: "DEFAULT_GROUP"
+  metadata:
+    language: "go"
+    go_version: "1.23"
+    app: "gateway"
+    team: "personal"
+
+config:
+  data_id: "gateway-config.yaml"
+  group: "DEFAULT_GROUP"
+  content: |
+    service:
+      name: gateway-service
+      version: "1.0.0"
+    routing:
+      enabled: true
+      timeout: 30
