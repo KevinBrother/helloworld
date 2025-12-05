@@ -7,13 +7,77 @@ import (
 	"net/http"
 	"os"
 	"strconv"
+	"sync"
+	"time"
 
 	"go-nacos-demo/common"
+
+	"gopkg.in/yaml.v2"
 )
 
 var users = map[int]common.User{
 	1: {ID: 1, Name: "Alice", Email: "alice@example.com"},
 	2: {ID: 2, Name: "Bob", Email: "bob@example.com"},
+}
+
+// ServiceConfig 服务配置（可动态更新）
+type ServiceConfig struct {
+	MaxRetries   int    `yaml:"max_retries"`
+	Timeout      int    `yaml:"timeout"`
+	LogLevel     string `yaml:"log_level"`
+	FeatureFlag  bool   `yaml:"feature_flag"`
+	RateLimitQPS int    `yaml:"rate_limit_qps"`
+}
+
+var (
+	srvConfig = &ServiceConfig{
+		MaxRetries:   3,
+		Timeout:      30,
+		LogLevel:     "info",
+		FeatureFlag:  false,
+		RateLimitQPS: 1000,
+	}
+	srvConfigMu sync.RWMutex
+)
+
+// 获取当前配置的副本
+func getServiceConfig() ServiceConfig {
+	srvConfigMu.RLock()
+	defer srvConfigMu.RUnlock()
+	return *srvConfig
+}
+
+// 更新服务配置
+func updateServiceConfig(newConfig ServiceConfig) {
+	srvConfigMu.Lock()
+	defer srvConfigMu.Unlock()
+	*srvConfig = newConfig
+	fmt.Printf("✅ 服务配置已更新: MaxRetries=%d, Timeout=%d, LogLevel=%s, FeatureFlag=%v, RateLimitQPS=%d\n",
+		newConfig.MaxRetries, newConfig.Timeout, newConfig.LogLevel, newConfig.FeatureFlag, newConfig.RateLimitQPS)
+}
+
+// 配置变更回调
+func configChangeCallback(configData string) error {
+	fmt.Printf("📋 收到配置变更通知，开始处理...\n")
+
+	// 解析 YAML 配置
+	var newConfig ServiceConfig
+	if err := yaml.Unmarshal([]byte(configData), &newConfig); err != nil {
+		return fmt.Errorf("解析配置失败: %v", err)
+	}
+
+	// 验证配置
+	if newConfig.MaxRetries < 1 || newConfig.MaxRetries > 10 {
+		return fmt.Errorf("max_retries 必须在 1-10 之间")
+	}
+	if newConfig.Timeout < 5 || newConfig.Timeout > 300 {
+		return fmt.Errorf("timeout 必须在 5-300 之间")
+	}
+
+	// 应用配置
+	updateServiceConfig(newConfig)
+	fmt.Printf("✅ 配置变更处理完成\n")
+	return nil
 }
 
 func main() {
@@ -41,6 +105,10 @@ func main() {
 		return
 	}
 
+	// 注册配置变更回调
+	common.GetGlobalConfigListener().OnChange(config.Config.DataID, configChangeCallback)
+	fmt.Printf("✅ 配置变更回调已注册: %s\n", config.Config.DataID)
+
 	// 注册服务
 	if err := clients.RegisterService(config); err != nil {
 		fmt.Printf("Failed to register service: %v\n", err)
@@ -48,6 +116,7 @@ func main() {
 	}
 
 	// API 路由
+	// 获取用户详情
 	http.HandleFunc("/user/", func(w http.ResponseWriter, r *http.Request) {
 		idStr := r.URL.Path[len("/user/"):]
 		id, err := strconv.Atoi(idStr)
@@ -64,6 +133,7 @@ func main() {
 		}
 	})
 
+	// 创建用户
 	http.HandleFunc("/user", func(w http.ResponseWriter, r *http.Request) {
 		if r.Method == "POST" {
 			var user common.User
@@ -78,22 +148,37 @@ func main() {
 		}
 	})
 
+	// 获取当前服务配置（调试端点）
+	http.HandleFunc("/config", func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
+		json.NewEncoder(w).Encode(getServiceConfig())
+	})
+
+	// 模拟业务操作示例 - 演示如何使用动态配置
+	http.HandleFunc("/operation", func(w http.ResponseWriter, r *http.Request) {
+		cfg := getServiceConfig()
+
+		// 使用当前配置进行操作
+		var results []string
+		for attempt := 1; attempt <= cfg.MaxRetries; attempt++ {
+			results = append(results, fmt.Sprintf("尝试 %d/%d (超时: %ds)", attempt, cfg.MaxRetries, cfg.Timeout))
+			time.Sleep(100 * time.Millisecond) // 模拟操作
+		}
+
+		w.Header().Set("Content-Type", "application/json")
+		json.NewEncoder(w).Encode(map[string]interface{}{
+			"message":        "操作完成",
+			"attempts":       results,
+			"current_config": cfg,
+		})
+	})
+
+	// 健康检查
 	http.HandleFunc("/health", func(w http.ResponseWriter, r *http.Request) {
 		w.Write([]byte("OK"))
 	})
 
-	server := &http.Server{
-		Addr:    fmt.Sprintf(":%d", config.Service.Port),
-		Handler: nil,
-	}
-
-	go func() {
-		fmt.Printf("用户服务已启动在 :%d\n", config.Service.Port)
-		if err := server.ListenAndServe(); err != nil && err != http.ErrServerClosed {
-			fmt.Printf("启动 HTTP 服务器失败: %v\n", err)
-			os.Exit(1)
-		}
-	}()
+	common.StartServer(config.Service.Port, "用户")
 
 	// 优雅退出
 	clients.GracefulShutdown(config)
