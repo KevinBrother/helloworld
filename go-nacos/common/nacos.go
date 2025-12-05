@@ -70,6 +70,7 @@ func InitNacosClients(config *Config) (*NacosClients, error) {
 
 // PublishConfig 发布配置到Nacos
 func (nc *NacosClients) PublishConfig(config *Config) error {
+	fmt.Printf("Publishing config: DataId=%s, Group=%s, Content=%s\n", config.Config.DataID, config.Config.Group, config.Config.Content)
 	success, err := nc.ConfigClient.PublishConfig(vo.ConfigParam{
 		DataId:  config.Config.DataID,
 		Group:   config.Config.Group,

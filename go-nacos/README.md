@@ -118,7 +118,7 @@ curl http://localhost:8083/payment/1
 
 ## 服务发现演示
 
-1. 在 Nacos 控制台 (http://localhost:8848) 查看服务注册情况
+1. 在 Nacos 控制台 (<http://localhost:8848>) 查看服务注册情况
 2. 观察多个实例的负载均衡
 3. 停止某个实例，测试故障转移
 
@@ -154,8 +154,15 @@ curl http://localhost:8848/nacos/actuator/health
 # 界面访问 http://localhost:8848/nacos/
 ```
 
-### go 客户端注册到 nacos
+### 注册客服端服务与配置
 
 ``` bash
-go run main.go
+
+ ./start start
+
+# 查看已注册的服务
+ curl -s "http://localhost:8848/nacos/v1/ns/service/list?pageNo=1&pageSize=10" | jq .
+
+
+ curl -s "http://localhost:8848/nacos/v1/cs/configs?dataId=&group=&appName=&config_tags=&pageNo=1&pageSize=10&tenant=&search=accurate" | jq .
 ```
