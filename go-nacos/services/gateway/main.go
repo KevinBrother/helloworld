@@ -9,53 +9,13 @@ import (
 	"os"
 	"os/signal"
 
+	"go-nacos-demo/common"
+
 	"github.com/nacos-group/nacos-sdk-go/v2/clients"
 	"github.com/nacos-group/nacos-sdk-go/v2/common/constant"
 	"github.com/nacos-group/nacos-sdk-go/v2/model"
 	"github.com/nacos-group/nacos-sdk-go/v2/vo"
-	"gopkg.in/yaml.v2"
 )
-
-type Config struct {
-	Nacos struct {
-		ServerIP       string `yaml:"server_ip"`
-		ServerPort     uint64 `yaml:"server_port"`
-		Namespace      string `yaml:"namespace"`
-		TimeoutMs      uint64 `yaml:"timeout_ms"`
-		ListenInterval uint64 `yaml:"listen_interval"`
-		CacheDir       string `yaml:"cache_dir"`
-		LogDir         string `yaml:"log_dir"`
-	} `yaml:"nacos"`
-	Service struct {
-		Name      string            `yaml:"name"`
-		IP        string            `yaml:"ip"`
-		Port      uint64            `yaml:"port"`
-		Weight    float64           `yaml:"weight"`
-		Enable    bool              `yaml:"enable"`
-		Healthy   bool              `yaml:"healthy"`
-		Ephemeral bool              `yaml:"ephemeral"`
-		GroupName string            `yaml:"group_name"`
-		Metadata  map[string]string `yaml:"metadata"`
-	} `yaml:"service"`
-	Config struct {
-		DataID  string `yaml:"data_id"`
-		Group   string `yaml:"group"`
-		Content string `yaml:"content"`
-	} `yaml:"config"`
-}
-
-func loadConfig(filename string) (*Config, error) {
-	data, err := os.ReadFile(filename)
-	if err != nil {
-		return nil, err
-	}
-	var config Config
-	err = yaml.Unmarshal(data, &config)
-	if err != nil {
-		return nil, err
-	}
-	return &config, nil
-}
 
 func proxyToOrderService(namingClient interface{}, targetPath string, r *http.Request) (*http.Response, error) {
 	// 类型断言
@@ -105,7 +65,13 @@ func proxyToOrderService(namingClient interface{}, targetPath string, r *http.Re
 }
 
 func main() {
-	config, err := loadConfig("config.yaml")
+	// 支持从命令行参数指定配置文件
+	configFile := "config.yaml"
+	if len(os.Args) > 1 {
+		configFile = os.Args[1]
+	}
+
+	config, err := common.LoadConfigWithDefaults(configFile)
 	if err != nil {
 		fmt.Printf("Failed to load config: %v\n", err)
 		return

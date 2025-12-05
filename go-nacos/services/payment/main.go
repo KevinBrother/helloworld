@@ -1,47 +1,22 @@
 package main
 
 import (
+	"bytes"
 	"encoding/json"
 	"fmt"
-	"io/ioutil"
+	"io"
 	"net/http"
 	"os"
 	"os/signal"
 	"strconv"
 
+	"go-nacos-demo/common"
+
 	"github.com/nacos-group/nacos-sdk-go/v2/clients"
 	"github.com/nacos-group/nacos-sdk-go/v2/common/constant"
+	"github.com/nacos-group/nacos-sdk-go/v2/model"
 	"github.com/nacos-group/nacos-sdk-go/v2/vo"
-	"gopkg.in/yaml.v2"
 )
-
-type Config struct {
-	Nacos struct {
-		ServerIP       string `yaml:"server_ip"`
-		ServerPort     uint64 `yaml:"server_port"`
-		Namespace      string `yaml:"namespace"`
-		TimeoutMs      uint64 `yaml:"timeout_ms"`
-		ListenInterval uint64 `yaml:"listen_interval"`
-		CacheDir       string `yaml:"cache_dir"`
-		LogDir         string `yaml:"log_dir"`
-	} `yaml:"nacos"`
-	Service struct {
-		Name      string            `yaml:"name"`
-		IP        string            `yaml:"ip"`
-		Port      uint64            `yaml:"port"`
-		Weight    float64           `yaml:"weight"`
-		Enable    bool              `yaml:"enable"`
-		Healthy   bool              `yaml:"healthy"`
-		Ephemeral bool              `yaml:"ephemeral"`
-		GroupName string            `yaml:"group_name"`
-		Metadata  map[string]string `yaml:"metadata"`
-	} `yaml:"service"`
-	Config struct {
-		DataID  string `yaml:"data_id"`
-		Group   string `yaml:"group"`
-		Content string `yaml:"content"`
-	} `yaml:"config"`
-}
 
 type Payment struct {
 	ID      int     `json:"id"`
@@ -51,25 +26,128 @@ type Payment struct {
 	Method  string  `json:"method"`
 }
 
+type Order struct {
+	ID     int     `json:"id"`
+	UserID int     `json:"user_id"`
+	Amount float64 `json:"amount"`
+	Status string  `json:"status"`
+}
+
 var payments = map[int]Payment{
 	1: {ID: 1, OrderID: 1, Amount: 100.0, Status: "completed", Method: "alipay"},
 }
 
-func loadConfig(filename string) (*Config, error) {
-	data, err := ioutil.ReadFile(filename)
-	if err != nil {
-		return nil, err
+// 【Nacos 服务发现】通过 Nacos 获取订单服务并调用
+func getOrderInfo(namingClient interface{}, orderID int) (*Order, error) {
+	// 类型断言获取 naming client
+	client, ok := namingClient.(interface {
+		SelectInstances(param vo.SelectInstancesParam) ([]model.Instance, error)
+	})
+	if !ok {
+		return nil, fmt.Errorf("invalid naming client type")
 	}
-	var config Config
-	err = yaml.Unmarshal(data, &config)
+
+	// 【Nacos 服务发现】从 Nacos 获取订单服务实例列表
+	instances, err := client.SelectInstances(vo.SelectInstancesParam{
+		ServiceName: "order-service",
+		GroupName:   "DEFAULT_GROUP",
+		HealthyOnly: true, // 只获取健康的实例
+	})
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("failed to discover order service from Nacos: %v", err)
 	}
-	return &config, nil
+
+	if len(instances) == 0 {
+		return nil, fmt.Errorf("no healthy order service instances available")
+	}
+
+	// 简单负载均衡：使用第一个实例
+	instance := instances[0]
+	url := fmt.Sprintf("http://%s:%d/order/%d", instance.Ip, instance.Port, orderID)
+
+	fmt.Printf("📞 支付服务通过 Nacos 发现订单服务: %s:%d\n", instance.Ip, instance.Port)
+
+	resp, err := http.Get(url)
+	if err != nil {
+		return nil, fmt.Errorf("failed to call order service: %v", err)
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusOK {
+		return nil, fmt.Errorf("order service returned status %d", resp.StatusCode)
+	}
+
+	var result struct {
+		Order Order `json:"order"`
+	}
+	body, err := io.ReadAll(resp.Body)
+	if err != nil {
+		return nil, fmt.Errorf("failed to read response: %v", err)
+	}
+
+	err = json.Unmarshal(body, &result)
+	if err != nil {
+		return nil, fmt.Errorf("failed to unmarshal order data: %v", err)
+	}
+
+	return &result.Order, nil
+}
+
+// 【服务依赖】更新订单状态
+func updateOrderStatus(namingClient interface{}, orderID int, status string) error {
+	// 类型断言获取 naming client
+	client, ok := namingClient.(interface {
+		SelectInstances(param vo.SelectInstancesParam) ([]model.Instance, error)
+	})
+	if !ok {
+		return fmt.Errorf("invalid naming client type")
+	}
+
+	// 【Nacos 服务发现】从 Nacos 获取订单服务实例列表
+	instances, err := client.SelectInstances(vo.SelectInstancesParam{
+		ServiceName: "order-service",
+		GroupName:   "DEFAULT_GROUP",
+		HealthyOnly: true,
+	})
+	if err != nil {
+		return fmt.Errorf("failed to discover order service: %v", err)
+	}
+
+	if len(instances) == 0 {
+		return fmt.Errorf("no order service instances available")
+	}
+
+	instance := instances[0]
+	url := fmt.Sprintf("http://%s:%d/order/status/%d", instance.Ip, instance.Port, orderID)
+
+	reqBody, _ := json.Marshal(map[string]string{"status": status})
+	req, _ := http.NewRequest("PUT", url, bytes.NewBuffer(reqBody))
+	req.Header.Set("Content-Type", "application/json")
+
+	fmt.Printf("📞 支付服务调用订单服务更新状态: %s -> %s\n", url, status)
+
+	client2 := &http.Client{}
+	resp, err := client2.Do(req)
+	if err != nil {
+		return fmt.Errorf("failed to update order status: %v", err)
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusOK {
+		return fmt.Errorf("failed to update order status, code: %d", resp.StatusCode)
+	}
+
+	return nil
 }
 
 func main() {
-	config, err := loadConfig("config.yaml")
+	// 支持从命令行参数指定配置文件
+	configFile := "config.yaml"
+	if len(os.Args) > 1 {
+		configFile = os.Args[1]
+	}
+
+	config, err := common.LoadConfigWithDefaults(configFile)
 	if err != nil {
 		fmt.Printf("Failed to load config: %v\n", err)
 		return
@@ -114,7 +192,7 @@ func main() {
 		},
 	)
 
-	// 注册服务实例
+	// 【Nacos 服务注册】注册支付服务到 Nacos
 	success, _ := namingClient.RegisterInstance(vo.RegisterInstanceParam{
 		Ip:          config.Service.IP,
 		Port:        config.Service.Port,
@@ -127,9 +205,10 @@ func main() {
 		GroupName:   config.Service.GroupName,
 	})
 
-	fmt.Printf("支付服务注册结果: %v\n", success)
+	fmt.Printf("✅ 支付服务注册到 Nacos: %v (端口: %d)\n", success, config.Service.Port)
 
 	// API 路由
+	// 获取支付详情
 	http.HandleFunc("/payment/", func(w http.ResponseWriter, r *http.Request) {
 		idStr := r.URL.Path[len("/payment/"):]
 		id, err := strconv.Atoi(idStr)
@@ -146,21 +225,50 @@ func main() {
 		}
 	})
 
+	// 创建支付（会调用订单服务验证订单）
 	http.HandleFunc("/payment", func(w http.ResponseWriter, r *http.Request) {
 		if r.Method == "POST" {
 			var payment Payment
-			body, _ := ioutil.ReadAll(r.Body)
+			body, _ := io.ReadAll(r.Body)
 			json.Unmarshal(body, &payment)
+
+			// 【服务依赖】支付前先验证订单是否存在
+			order, err := getOrderInfo(namingClient, payment.OrderID)
+			if err != nil {
+				fmt.Printf("⚠️  验证订单失败: %v\n", err)
+				http.Error(w, fmt.Sprintf("Invalid order: %v", err), http.StatusBadRequest)
+				return
+			}
+
+			// 验证金额是否匹配
+			if payment.Amount != order.Amount {
+				http.Error(w, "Payment amount does not match order amount", http.StatusBadRequest)
+				return
+			}
+
+			fmt.Printf("💳 创建支付: 订单ID=%d, 金额=%.2f\n", payment.OrderID, payment.Amount)
+
 			payment.ID = len(payments) + 1
 			payment.Status = "processing"
 			payments[payment.ID] = payment
 
 			// 模拟支付处理
-			go func() {
-				payment.Status = "completed"
-				payments[payment.ID] = payment
-				fmt.Printf("Payment %d completed\n", payment.ID)
-			}()
+			go func(p Payment) {
+				// 模拟支付延迟
+				// time.Sleep(2 * time.Second)
+
+				p.Status = "completed"
+				payments[p.ID] = p
+				fmt.Printf("✅ 支付 %d 完成\n", p.ID)
+
+				// 【服务依赖】支付成功后更新订单状态
+				err := updateOrderStatus(namingClient, p.OrderID, "paid")
+				if err != nil {
+					fmt.Printf("⚠️  更新订单状态失败: %v\n", err)
+				} else {
+					fmt.Printf("✅ 订单 %d 状态已更新为 paid\n", p.OrderID)
+				}
+			}(payment)
 
 			w.Header().Set("Content-Type", "application/json")
 			json.NewEncoder(w).Encode(payment)
@@ -174,7 +282,7 @@ func main() {
 	})
 
 	go http.ListenAndServe(fmt.Sprintf(":%d", config.Service.Port), nil)
-	fmt.Printf("支付服务已启动在 :%d\n", config.Service.Port)
+	fmt.Printf("🚀 支付服务已启动在 :%d\n", config.Service.Port)
 
 	// 优雅退出
 	c := make(chan os.Signal, 1)
@@ -188,5 +296,5 @@ func main() {
 		GroupName:   config.Service.GroupName,
 		Ephemeral:   config.Service.Ephemeral,
 	})
-	fmt.Println("支付服务已注销")
+	fmt.Println("👋 支付服务已注销")
 }

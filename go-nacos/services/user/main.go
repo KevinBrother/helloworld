@@ -1,6 +1,7 @@
 package main
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
 	"io"
@@ -9,39 +10,12 @@ import (
 	"os/signal"
 	"strconv"
 
+	"go-nacos-demo/common"
+
 	"github.com/nacos-group/nacos-sdk-go/v2/clients"
 	"github.com/nacos-group/nacos-sdk-go/v2/common/constant"
 	"github.com/nacos-group/nacos-sdk-go/v2/vo"
-	"gopkg.in/yaml.v2"
 )
-
-type Config struct {
-	Nacos struct {
-		ServerIP       string `yaml:"server_ip"`
-		ServerPort     uint64 `yaml:"server_port"`
-		Namespace      string `yaml:"namespace"`
-		TimeoutMs      uint64 `yaml:"timeout_ms"`
-		ListenInterval uint64 `yaml:"listen_interval"`
-		CacheDir       string `yaml:"cache_dir"`
-		LogDir         string `yaml:"log_dir"`
-	} `yaml:"nacos"`
-	Service struct {
-		Name      string            `yaml:"name"`
-		IP        string            `yaml:"ip"`
-		Port      uint64            `yaml:"port"`
-		Weight    float64           `yaml:"weight"`
-		Enable    bool              `yaml:"enable"`
-		Healthy   bool              `yaml:"healthy"`
-		Ephemeral bool              `yaml:"ephemeral"`
-		GroupName string            `yaml:"group_name"`
-		Metadata  map[string]string `yaml:"metadata"`
-	} `yaml:"service"`
-	Config struct {
-		DataID  string `yaml:"data_id"`
-		Group   string `yaml:"group"`
-		Content string `yaml:"content"`
-	} `yaml:"config"`
-}
 
 type User struct {
 	ID    int    `json:"id"`
@@ -54,26 +28,13 @@ var users = map[int]User{
 	2: {ID: 2, Name: "Bob", Email: "bob@example.com"},
 }
 
-func loadConfig(filename string) (*Config, error) {
-	data, err := os.ReadFile(filename)
-	if err != nil {
-		return nil, err
-	}
-	var config Config
-	err = yaml.Unmarshal(data, &config)
-	if err != nil {
-		return nil, err
-	}
-	return &config, nil
-}
-
 func main() {
 	configFile := "config.yaml"
 	if len(os.Args) > 1 {
 		configFile = os.Args[1]
 	}
 
-	config, err := loadConfig(configFile)
+	config, err := common.LoadConfigWithDefaults(configFile)
 	if err != nil {
 		fmt.Printf("Failed to load config: %v\n", err)
 		return
@@ -168,13 +129,28 @@ func main() {
 		w.Write([]byte("OK"))
 	})
 
-	go http.ListenAndServe(fmt.Sprintf(":%d", config.Service.Port), nil)
-	fmt.Printf("用户服务已启动在 :%d\n", config.Service.Port)
+	server := &http.Server{
+		Addr:    fmt.Sprintf(":%d", config.Service.Port),
+		Handler: nil,
+	}
+
+	go func() {
+		fmt.Printf("用户服务已启动在 :%d\n", config.Service.Port)
+		if err := server.ListenAndServe(); err != nil && err != http.ErrServerClosed {
+			fmt.Printf("启动 HTTP 服务器失败: %v\n", err)
+			os.Exit(1)
+		}
+	}()
 
 	// 优雅退出
 	c := make(chan os.Signal, 1)
 	signal.Notify(c, os.Interrupt)
 	<-c
+
+	fmt.Println("正在关闭服务...")
+	if err := server.Shutdown(context.Background()); err != nil {
+		fmt.Printf("关闭服务器失败: %v\n", err)
+	}
 
 	namingClient.DeregisterInstance(vo.DeregisterInstanceParam{
 		Ip:          config.Service.IP,
