@@ -105,7 +105,13 @@ func proxyToOrderService(namingClient interface{}, targetPath string, r *http.Re
 }
 
 func main() {
-	config, err := loadConfig("config.yaml")
+	// 支持从命令行参数指定配置文件
+	configFile := "config.yaml"
+	if len(os.Args) > 1 {
+		configFile = os.Args[1]
+	}
+
+	config, err := loadConfig(configFile)
 	if err != nil {
 		fmt.Printf("Failed to load config: %v\n", err)
 		return

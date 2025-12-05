@@ -31,9 +31,12 @@ mkdir -p logs
 start_service() {
     local service_name=$1
     local config_file=$2
-    local log_file="logs/${service_name}.log"
+    local instance_suffix=$3
+    local log_file="logs/${service_name}${instance_suffix}.log"
+    local pid_file="logs/${service_name}${instance_suffix}.pid"
+    local bin_file="logs/${service_name}${instance_suffix}"
 
-    echo -e "${GREEN}启动 ${service_name}...${NC}"
+    echo -e "${GREEN}启动 ${service_name}${instance_suffix}...${NC}"
 
     cd services/${service_name}
 
@@ -44,32 +47,42 @@ start_service() {
         return 1
     fi
 
+    # 编译服务
+    go build -o "../../${bin_file}" main.go
+    if [ $? -ne 0 ]; then
+        echo -e "${RED}编译失败: ${service_name}${instance_suffix}${NC}"
+        cd ../..
+        return 1
+    fi
+
+    cd ../..
+
     # 后台启动服务
-    nohup go run main.go ${config_file} > "../../${log_file}" 2>&1 &
+    nohup ./${bin_file} services/${service_name}/${config_file} > "${log_file}" 2>&1 &
     local pid=$!
 
     # 保存 PID
-    echo $pid > "../../logs/${service_name}.pid"
+    echo $pid > "${pid_file}"
 
-    echo -e "${GREEN}${service_name} 已启动 (PID: ${pid}), 日志: ${log_file}${NC}"
+    echo -e "${GREEN}${service_name}${instance_suffix} 已启动 (PID: ${pid}), 日志: ${log_file}${NC}"
 
-    cd ../..
     sleep 2
 }
 
 # 停止服务的函数
 stop_service() {
     local service_name=$1
-    local pid_file="logs/${service_name}.pid"
+    local instance_suffix=$2
+    local pid_file="logs/${service_name}${instance_suffix}.pid"
 
     if [ -f "${pid_file}" ]; then
         local pid=$(cat ${pid_file})
         if kill -0 $pid 2>/dev/null; then
-            echo -e "${YELLOW}停止 ${service_name} (PID: ${pid})...${NC}"
+            echo -e "${YELLOW}停止 ${service_name}${instance_suffix} (PID: ${pid})...${NC}"
             kill $pid
             sleep 2
             if kill -0 $pid 2>/dev/null; then
-                echo -e "${RED}强制终止 ${service_name}...${NC}"
+                echo -e "${RED}强制终止 ${service_name}${instance_suffix}...${NC}"
                 kill -9 $pid
             fi
         fi
@@ -83,19 +96,19 @@ case "$1" in
         echo "开始启动所有服务..."
 
         # 启动用户服务实例1
-        start_service "user" "config.yaml"
+        start_service "user" "config.yaml" "-1"
 
         # 启动用户服务实例2
-        start_service "user" "config2.yaml"
+        start_service "user" "config2.yaml" "-2"
 
         # 启动支付服务
-        start_service "payment" "config.yaml"
+        start_service "payment" "config.yaml" ""
 
         # 启动订单服务
-        start_service "order" "config.yaml"
+        start_service "order" "config.yaml" ""
 
         # 启动网关服务
-        start_service "gateway" "config.yaml"
+        start_service "gateway" "config.yaml" ""
 
         echo -e "${GREEN}所有服务启动完成！${NC}"
         echo -e "${GREEN}网关服务地址: http://localhost:8080${NC}"
@@ -106,10 +119,11 @@ case "$1" in
         echo "停止所有服务..."
 
         # 按相反顺序停止
-        stop_service "gateway"
-        stop_service "order"
-        stop_service "payment"
-        stop_service "user"
+        stop_service "gateway" ""
+        stop_service "order" ""
+        stop_service "payment" ""
+        stop_service "user" "-2"
+        stop_service "user" "-1"
 
         echo -e "${GREEN}所有服务已停止${NC}"
         ;;
@@ -124,10 +138,13 @@ case "$1" in
     status)
         echo "服务状态:"
 
-        services=("user" "payment" "order" "gateway")
+        # 检查每个服务实例
+        services=("user-1" "user-2" "payment" "order" "gateway")
+        pid_files=("logs/user-1.pid" "logs/user-2.pid" "logs/payment.pid" "logs/order.pid" "logs/gateway.pid")
 
-        for service in "${services[@]}"; do
-            pid_file="logs/${service}.pid"
+        for i in "${!services[@]}"; do
+            service="${services[$i]}"
+            pid_file="${pid_files[$i]}"
             if [ -f "${pid_file}" ]; then
                 pid=$(cat ${pid_file})
                 if kill -0 $pid 2>/dev/null; then
@@ -140,17 +157,38 @@ case "$1" in
             fi
         done
 
-        # 检查端口
+        # 检查端口和进程
         echo ""
         echo "端口检查:"
         ports=(8082 8085 8083 8081 8080)
         services=("user-1" "user-2" "payment" "order" "gateway")
+        pid_files=("logs/user-1.pid" "logs/user-2.pid" "logs/payment.pid" "logs/order.pid" "logs/gateway.pid")
 
         for i in "${!ports[@]}"; do
-            if lsof -Pi :${ports[$i]} -sTCP:LISTEN -t >/dev/null 2>&1; then
-                echo -e "${GREEN}✓ ${services[$i]} 端口 ${ports[$i]} 开放${NC}"
+            port=${ports[$i]}
+            service=${services[$i]}
+            pid_file=${pid_files[$i]}
+
+            if [ -f "${pid_file}" ]; then
+                expected_pid=$(cat ${pid_file})
+                if kill -0 $expected_pid 2>/dev/null; then
+                    # 检查是否有进程在监听指定的端口（不严格匹配 PID，因为可能有子进程）
+                    if lsof -Pi :${port} -sTCP:LISTEN >/dev/null 2>&1; then
+                        echo -e "${GREEN}✓ ${service} 端口 ${port} 开放${NC}"
+                    else
+                        echo -e "${YELLOW}⚠ ${service} 服务运行中但端口 ${port} 未绑定${NC}"
+                    fi
+                else
+                    echo -e "${RED}✗ ${service} 进程已退出${NC}"
+                fi
             else
-                echo -e "${RED}✗ ${services[$i]} 端口 ${ports[$i]} 未开放${NC}"
+                # 检查端口是否被其他进程占用
+                if lsof -Pi :${port} -sTCP:LISTEN -t >/dev/null 2>&1; then
+                    other_pid=$(lsof -Pi :${port} -sTCP:LISTEN -t 2>/dev/null | head -1)
+                    echo -e "${YELLOW}⚠ ${service} 端口 ${port} 被其他进程占用 (PID: ${other_pid})${NC}"
+                else
+                    echo -e "${RED}✗ ${service} 端口 ${port} 未开放${NC}"
+                fi
             fi
         done
         ;;
@@ -161,18 +199,40 @@ case "$1" in
             echo "查看所有服务日志..."
             tail -f logs/*.log
         else
-            log_file="logs/${service_name}.log"
-            if [ -f "${log_file}" ]; then
-                echo "查看 ${service_name} 日志..."
-                tail -f ${log_file}
+            # 处理用户服务的实例
+            if [ "$service_name" = "user" ]; then
+                echo "查看用户服务所有实例日志..."
+                tail -f logs/user-*.log
+            elif [ "$service_name" = "user-1" ]; then
+                log_file="logs/user-1.log"
+                if [ -f "${log_file}" ]; then
+                    echo "查看用户服务实例1日志..."
+                    tail -f ${log_file}
+                else
+                    echo -e "${RED}日志文件不存在: ${log_file}${NC}"
+                fi
+            elif [ "$service_name" = "user-2" ]; then
+                log_file="logs/user-2.log"
+                if [ -f "${log_file}" ]; then
+                    echo "查看用户服务实例2日志..."
+                    tail -f ${log_file}
+                else
+                    echo -e "${RED}日志文件不存在: ${log_file}${NC}"
+                fi
             else
-                echo -e "${RED}日志文件不存在: ${log_file}${NC}"
+                log_file="logs/${service_name}.log"
+                if [ -f "${log_file}" ]; then
+                    echo "查看 ${service_name} 日志..."
+                    tail -f ${log_file}
+                else
+                    echo -e "${RED}日志文件不存在: ${log_file}${NC}"
+                fi
             fi
         fi
         ;;
 
     clean)
-        echo "清理日志和 PID 文件..."
+        echo "清理日志、PID 文件和二进制文件..."
         rm -rf logs/
         echo -e "${GREEN}清理完成${NC}"
         ;;
@@ -189,7 +249,8 @@ case "$1" in
         echo "  clean   - 清理日志文件"
         echo ""
         echo "服务列表:"
-        echo "  user    - 用户服务 (实例1: 8082, 实例2: 8085)"
+        echo "  user-1  - 用户服务实例1 (8082)"
+        echo "  user-2  - 用户服务实例2 (8085)"
         echo "  payment - 支付服务 (8083)"
         echo "  order   - 订单服务 (8081)"
         echo "  gateway - 网关服务 (8080)"

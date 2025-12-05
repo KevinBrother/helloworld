@@ -1,6 +1,7 @@
 package main
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
 	"io"
@@ -168,13 +169,28 @@ func main() {
 		w.Write([]byte("OK"))
 	})
 
-	go http.ListenAndServe(fmt.Sprintf(":%d", config.Service.Port), nil)
-	fmt.Printf("用户服务已启动在 :%d\n", config.Service.Port)
+	server := &http.Server{
+		Addr:    fmt.Sprintf(":%d", config.Service.Port),
+		Handler: nil,
+	}
+
+	go func() {
+		fmt.Printf("用户服务已启动在 :%d\n", config.Service.Port)
+		if err := server.ListenAndServe(); err != nil && err != http.ErrServerClosed {
+			fmt.Printf("启动 HTTP 服务器失败: %v\n", err)
+			os.Exit(1)
+		}
+	}()
 
 	// 优雅退出
 	c := make(chan os.Signal, 1)
 	signal.Notify(c, os.Interrupt)
 	<-c
+
+	fmt.Println("正在关闭服务...")
+	if err := server.Shutdown(context.Background()); err != nil {
+		fmt.Printf("关闭服务器失败: %v\n", err)
+	}
 
 	namingClient.DeregisterInstance(vo.DeregisterInstanceParam{
 		Ip:          config.Service.IP,
