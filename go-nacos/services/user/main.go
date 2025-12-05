@@ -17,13 +17,7 @@ import (
 	"github.com/nacos-group/nacos-sdk-go/v2/vo"
 )
 
-type User struct {
-	ID    int    `json:"id"`
-	Name  string `json:"name"`
-	Email string `json:"email"`
-}
-
-var users = map[int]User{
+var users = map[int]common.User{
 	1: {ID: 1, Name: "Alice", Email: "alice@example.com"},
 	2: {ID: 2, Name: "Bob", Email: "bob@example.com"},
 }
@@ -113,7 +107,7 @@ func main() {
 
 	http.HandleFunc("/user", func(w http.ResponseWriter, r *http.Request) {
 		if r.Method == "POST" {
-			var user User
+			var user common.User
 			body, _ := io.ReadAll(r.Body)
 			json.Unmarshal(body, &user)
 			user.ID = len(users) + 1

@@ -18,27 +18,12 @@ import (
 	"github.com/nacos-group/nacos-sdk-go/v2/vo"
 )
 
-type Payment struct {
-	ID      int     `json:"id"`
-	OrderID int     `json:"order_id"`
-	Amount  float64 `json:"amount"`
-	Status  string  `json:"status"`
-	Method  string  `json:"method"`
-}
-
-type Order struct {
-	ID     int     `json:"id"`
-	UserID int     `json:"user_id"`
-	Amount float64 `json:"amount"`
-	Status string  `json:"status"`
-}
-
-var payments = map[int]Payment{
+var payments = map[int]common.Payment{
 	1: {ID: 1, OrderID: 1, Amount: 100.0, Status: "completed", Method: "alipay"},
 }
 
 // 【Nacos 服务发现】通过 Nacos 获取订单服务并调用
-func getOrderInfo(namingClient interface{}, orderID int) (*Order, error) {
+func getOrderInfo(namingClient interface{}, orderID int) (*common.Order, error) {
 	// 类型断言获取 naming client
 	client, ok := namingClient.(interface {
 		SelectInstances(param vo.SelectInstancesParam) ([]model.Instance, error)
@@ -78,7 +63,7 @@ func getOrderInfo(namingClient interface{}, orderID int) (*Order, error) {
 	}
 
 	var result struct {
-		Order Order `json:"order"`
+		Order common.Order `json:"order"`
 	}
 	body, err := io.ReadAll(resp.Body)
 	if err != nil {
@@ -228,7 +213,7 @@ func main() {
 	// 创建支付（会调用订单服务验证订单）
 	http.HandleFunc("/payment", func(w http.ResponseWriter, r *http.Request) {
 		if r.Method == "POST" {
-			var payment Payment
+			var payment common.Payment
 			body, _ := io.ReadAll(r.Body)
 			json.Unmarshal(body, &payment)
 
@@ -253,7 +238,7 @@ func main() {
 			payments[payment.ID] = payment
 
 			// 模拟支付处理
-			go func(p Payment) {
+			go func(p common.Payment) {
 				// 模拟支付延迟
 				// time.Sleep(2 * time.Second)
 

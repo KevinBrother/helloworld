@@ -17,26 +17,13 @@ import (
 	"github.com/nacos-group/nacos-sdk-go/v2/vo"
 )
 
-type Order struct {
-	ID     int     `json:"id"`
-	UserID int     `json:"user_id"`
-	Amount float64 `json:"amount"`
-	Status string  `json:"status"`
-}
-
-type User struct {
-	ID    int    `json:"id"`
-	Name  string `json:"name"`
-	Email string `json:"email"`
-}
-
-var orders = map[int]Order{
+var orders = map[int]common.Order{
 	1: {ID: 1, UserID: 1, Amount: 100.0, Status: "pending"},
 	2: {ID: 2, UserID: 2, Amount: 200.0, Status: "pending"},
 }
 
 // 使用 Nacos 服务发现调用用户服务
-func getUserInfo(namingClient interface{}, userID int) (*User, error) {
+func getUserInfo(namingClient interface{}, userID int) (*common.User, error) {
 	// 类型断言获取 naming client
 	client, ok := namingClient.(interface {
 		SelectInstances(param vo.SelectInstancesParam) ([]model.Instance, error)
@@ -75,7 +62,7 @@ func getUserInfo(namingClient interface{}, userID int) (*User, error) {
 		return nil, fmt.Errorf("user service returned status %d", resp.StatusCode)
 	}
 
-	var user User
+	var user common.User
 	body, err := io.ReadAll(resp.Body)
 	if err != nil {
 		return nil, fmt.Errorf("failed to read response: %v", err)
@@ -170,12 +157,12 @@ func main() {
 			user, err := getUserInfo(namingClient, order.UserID)
 			if err != nil {
 				fmt.Printf("⚠️  获取用户信息失败: %v\n", err)
-				user = &User{ID: order.UserID, Name: "Unknown", Email: "unknown@example.com"}
+				user = &common.User{ID: order.UserID, Name: "Unknown", Email: "unknown@example.com"}
 			}
 
 			response := struct {
-				Order Order `json:"order"`
-				User  User  `json:"user"`
+				Order common.Order `json:"order"`
+				User  common.User  `json:"user"`
 			}{
 				Order: order,
 				User:  *user,
@@ -191,7 +178,7 @@ func main() {
 	// 创建订单
 	http.HandleFunc("/order", func(w http.ResponseWriter, r *http.Request) {
 		if r.Method == "POST" {
-			var order Order
+			var order common.Order
 			body, _ := io.ReadAll(r.Body)
 			json.Unmarshal(body, &order)
 			order.ID = len(orders) + 1
