@@ -1,20 +1,14 @@
 package main
 
 import (
-	"context"
 	"encoding/json"
 	"fmt"
 	"io"
 	"net/http"
 	"os"
-	"os/signal"
 	"strconv"
 
 	"go-nacos-demo/common"
-
-	"github.com/nacos-group/nacos-sdk-go/v2/clients"
-	"github.com/nacos-group/nacos-sdk-go/v2/common/constant"
-	"github.com/nacos-group/nacos-sdk-go/v2/vo"
 )
 
 var users = map[int]common.User{
@@ -34,59 +28,24 @@ func main() {
 		return
 	}
 
-	// 创建配置客户端
-	configClient, _ := clients.NewConfigClient(
-		vo.NacosClientParam{
-			ServerConfigs: []constant.ServerConfig{{
-				IpAddr: config.Nacos.ServerIP,
-				Port:   config.Nacos.ServerPort,
-			}},
-			ClientConfig: &constant.ClientConfig{
-				NamespaceId:    config.Nacos.Namespace,
-				TimeoutMs:      config.Nacos.TimeoutMs,
-				ListenInterval: config.Nacos.ListenInterval,
-				CacheDir:       config.Nacos.CacheDir,
-				LogDir:         config.Nacos.LogDir,
-			},
-		},
-	)
+	// 初始化Nacos客户端
+	clients, err := common.InitNacosClients(config)
+	if err != nil {
+		fmt.Printf("Failed to init Nacos clients: %v\n", err)
+		return
+	}
 
 	// 发布配置
-	configClient.PublishConfig(vo.ConfigParam{
-		DataId:  config.Config.DataID,
-		Group:   config.Config.Group,
-		Content: config.Config.Content,
-	})
+	if err := clients.PublishConfig(config); err != nil {
+		fmt.Printf("Failed to publish config: %v\n", err)
+		return
+	}
 
-	// 创建服务注册客户端
-	namingClient, _ := clients.NewNamingClient(
-		vo.NacosClientParam{
-			ServerConfigs: []constant.ServerConfig{{
-				IpAddr: config.Nacos.ServerIP,
-				Port:   config.Nacos.ServerPort,
-			}},
-			ClientConfig: &constant.ClientConfig{
-				NamespaceId: config.Nacos.Namespace,
-				CacheDir:    config.Nacos.CacheDir,
-				LogDir:      config.Nacos.LogDir,
-			},
-		},
-	)
-
-	// 注册服务实例
-	success, _ := namingClient.RegisterInstance(vo.RegisterInstanceParam{
-		Ip:          config.Service.IP,
-		Port:        config.Service.Port,
-		ServiceName: config.Service.Name,
-		Weight:      config.Service.Weight,
-		Enable:      config.Service.Enable,
-		Healthy:     config.Service.Healthy,
-		Ephemeral:   config.Service.Ephemeral,
-		Metadata:    config.Service.Metadata,
-		GroupName:   config.Service.GroupName,
-	})
-
-	fmt.Printf("用户服务注册结果: %v\n", success)
+	// 注册服务
+	if err := clients.RegisterService(config); err != nil {
+		fmt.Printf("Failed to register service: %v\n", err)
+		return
+	}
 
 	// API 路由
 	http.HandleFunc("/user/", func(w http.ResponseWriter, r *http.Request) {
@@ -137,21 +96,5 @@ func main() {
 	}()
 
 	// 优雅退出
-	c := make(chan os.Signal, 1)
-	signal.Notify(c, os.Interrupt)
-	<-c
-
-	fmt.Println("正在关闭服务...")
-	if err := server.Shutdown(context.Background()); err != nil {
-		fmt.Printf("关闭服务器失败: %v\n", err)
-	}
-
-	namingClient.DeregisterInstance(vo.DeregisterInstanceParam{
-		Ip:          config.Service.IP,
-		Port:        config.Service.Port,
-		ServiceName: config.Service.Name,
-		GroupName:   config.Service.GroupName,
-		Ephemeral:   config.Service.Ephemeral,
-	})
-	fmt.Println("用户服务已注销")
+	clients.GracefulShutdown(config)
 }

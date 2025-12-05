@@ -7,13 +7,10 @@ import (
 	"io"
 	"net/http"
 	"os"
-	"os/signal"
 	"strconv"
 
 	"go-nacos-demo/common"
 
-	"github.com/nacos-group/nacos-sdk-go/v2/clients"
-	"github.com/nacos-group/nacos-sdk-go/v2/common/constant"
 	"github.com/nacos-group/nacos-sdk-go/v2/model"
 	"github.com/nacos-group/nacos-sdk-go/v2/vo"
 )
@@ -138,59 +135,24 @@ func main() {
 		return
 	}
 
-	// 创建配置客户端
-	configClient, _ := clients.NewConfigClient(
-		vo.NacosClientParam{
-			ServerConfigs: []constant.ServerConfig{{
-				IpAddr: config.Nacos.ServerIP,
-				Port:   config.Nacos.ServerPort,
-			}},
-			ClientConfig: &constant.ClientConfig{
-				NamespaceId:    config.Nacos.Namespace,
-				TimeoutMs:      config.Nacos.TimeoutMs,
-				ListenInterval: config.Nacos.ListenInterval,
-				CacheDir:       config.Nacos.CacheDir,
-				LogDir:         config.Nacos.LogDir,
-			},
-		},
-	)
+	// 初始化Nacos客户端
+	clients, err := common.InitNacosClients(config)
+	if err != nil {
+		fmt.Printf("Failed to init Nacos clients: %v\n", err)
+		return
+	}
 
 	// 发布配置
-	configClient.PublishConfig(vo.ConfigParam{
-		DataId:  config.Config.DataID,
-		Group:   config.Config.Group,
-		Content: config.Config.Content,
-	})
+	if err := clients.PublishConfig(config); err != nil {
+		fmt.Printf("Failed to publish config: %v\n", err)
+		return
+	}
 
-	// 创建服务注册客户端
-	namingClient, _ := clients.NewNamingClient(
-		vo.NacosClientParam{
-			ServerConfigs: []constant.ServerConfig{{
-				IpAddr: config.Nacos.ServerIP,
-				Port:   config.Nacos.ServerPort,
-			}},
-			ClientConfig: &constant.ClientConfig{
-				NamespaceId: config.Nacos.Namespace,
-				CacheDir:    config.Nacos.CacheDir,
-				LogDir:      config.Nacos.LogDir,
-			},
-		},
-	)
-
-	// 【Nacos 服务注册】注册支付服务到 Nacos
-	success, _ := namingClient.RegisterInstance(vo.RegisterInstanceParam{
-		Ip:          config.Service.IP,
-		Port:        config.Service.Port,
-		ServiceName: config.Service.Name,
-		Weight:      config.Service.Weight,
-		Enable:      config.Service.Enable,
-		Healthy:     config.Service.Healthy,
-		Ephemeral:   config.Service.Ephemeral,
-		Metadata:    config.Service.Metadata,
-		GroupName:   config.Service.GroupName,
-	})
-
-	fmt.Printf("✅ 支付服务注册到 Nacos: %v (端口: %d)\n", success, config.Service.Port)
+	// 注册服务
+	if err := clients.RegisterService(config); err != nil {
+		fmt.Printf("Failed to register service: %v\n", err)
+		return
+	}
 
 	// API 路由
 	// 获取支付详情
@@ -218,7 +180,7 @@ func main() {
 			json.Unmarshal(body, &payment)
 
 			// 【服务依赖】支付前先验证订单是否存在
-			order, err := getOrderInfo(namingClient, payment.OrderID)
+			order, err := getOrderInfo(clients.NamingClient, payment.OrderID)
 			if err != nil {
 				fmt.Printf("⚠️  验证订单失败: %v\n", err)
 				http.Error(w, fmt.Sprintf("Invalid order: %v", err), http.StatusBadRequest)
@@ -247,7 +209,7 @@ func main() {
 				fmt.Printf("✅ 支付 %d 完成\n", p.ID)
 
 				// 【服务依赖】支付成功后更新订单状态
-				err := updateOrderStatus(namingClient, p.OrderID, "paid")
+				err := updateOrderStatus(clients.NamingClient, p.OrderID, "paid")
 				if err != nil {
 					fmt.Printf("⚠️  更新订单状态失败: %v\n", err)
 				} else {
@@ -266,20 +228,8 @@ func main() {
 		w.Write([]byte("OK"))
 	})
 
-	go http.ListenAndServe(fmt.Sprintf(":%d", config.Service.Port), nil)
-	fmt.Printf("🚀 支付服务已启动在 :%d\n", config.Service.Port)
+	common.StartServer(config.Service.Port, "支付")
 
 	// 优雅退出
-	c := make(chan os.Signal, 1)
-	signal.Notify(c, os.Interrupt)
-	<-c
-
-	namingClient.DeregisterInstance(vo.DeregisterInstanceParam{
-		Ip:          config.Service.IP,
-		Port:        config.Service.Port,
-		ServiceName: config.Service.Name,
-		GroupName:   config.Service.GroupName,
-		Ephemeral:   config.Service.Ephemeral,
-	})
-	fmt.Println("👋 支付服务已注销")
+	clients.GracefulShutdown(config)
 }
