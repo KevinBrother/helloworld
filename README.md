@@ -187,6 +187,9 @@
 - [ ] go-nacos
   - go项目集成nacos的案例
 
+- [ ] swift-cli
+  - swift命令行工具的案例
+
 ## C语言
 
 - c-build
