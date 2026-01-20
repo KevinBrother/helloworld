@@ -478,4 +478,103 @@ const (
 
 ---
 
+# English Documentation
+
+## Quick Start - Examples
+
+The `examples/` directory contains working implementations of various RPC frameworks.
+
+### JSON-RPC (Go)
+
+```bash
+cd examples/json-rpc/go/server
+go run main.go service.go types.go
+
+# In another terminal
+cd client
+go run main.go ../server/types.go ../server/service.go
+```
+
+### gRPC (Go)
+
+```bash
+cd examples/grpc/go
+
+# Generate protobuf code (requires protoc)
+make generate
+
+# Run server
+make server
+
+# In another terminal
+make client
+```
+
+### JSON-RPC (TypeScript)
+
+```bash
+cd examples/json-rpc/ts
+npm install
+npm run dev:server    # Terminal 1
+npm run dev:client    # Terminal 2
+```
+
+### gRPC (TypeScript)
+
+```bash
+cd examples/grpc/ts
+npm install
+npm run dev:server    # Terminal 1
+npm run dev:client    # Terminal 2
+```
+
+### Thrift (Go)
+
+```bash
+cd examples/thrift
+
+# Generate code (requires thrift compiler)
+make generate
+
+# Run demo
+make server
+make client
+```
+
+### tRPC (TypeScript)
+
+```bash
+cd examples/trpc/ts
+npm install
+npm run dev:server    # Terminal 1
+npm run dev:client    # Terminal 2
+```
+
+## Example Structure
+
+All examples implement a User Service with:
+
+| Method | Description |
+|--------|-------------|
+| `getUser(id)` | Get a user by ID |
+| `create(user)` | Create a new user |
+| `list()` | List all users |
+| `update(id, user)` | Update an existing user |
+| `delete(id)` | Delete a user |
+
+## Documentation
+
+- [Comparison Guide](./docs/comparison.md) - Detailed comparison of all frameworks
+- [Learning Notes](./docs/notes.md) - Core concepts and best practices
+
+## Resources
+
+- [gRPC Documentation](https://grpc.io/docs/)
+- [Protocol Buffers](https://protobuf.dev/)
+- [Apache Thrift](https://thrift.apache.org/)
+- [tRPC](https://trpc.io/)
+- [JSON-RPC 2.0 Specification](https://www.jsonrpc.org/specification)
+
+---
+
 > 本文档持续更新中...
