@@ -190,6 +190,10 @@
 - [ ] swift-cli
   - swift命令行工具的案例
 
+- [ ] json
+  json的序列化与反序列化
+  - 自己实现一个 kjson
+
 - [ ] RPC
   - GRPC
   - TRPC
