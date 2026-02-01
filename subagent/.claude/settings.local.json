@@ -1,0 +1,20 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(wc:*)",
+      "Bash(npm run build-storybook:*)",
+      "Bash(grep:*)",
+      "Bash(npx eslint:*)",
+      "Bash(node:*)",
+      "Bash(curl:*)",
+      "Bash(tree:*)",
+      "Bash(pnpm build:sdk:*)",
+      "Bash(pnpm build:module:*)",
+      "mcp__chrome-devtools__list_pages",
+      "mcp__chrome-devtools__navigate_page",
+      "Bash(pnpm dev:sdk)",
+      "mcp__chrome-devtools__take_snapshot",
+      "Bash(pnpm run build:module:*)"
+    ]
+  }
+}
