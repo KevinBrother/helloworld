@@ -204,6 +204,9 @@
 
 - [ ] subagent
 
+- [x] remotion-video
+  - remotion视频制作
+
 ## C语言
 
 - c-build
