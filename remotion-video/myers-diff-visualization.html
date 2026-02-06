@@ -1,0 +1,925 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Myers Diff Algorithm Visualization</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'SF Mono', 'Monaco', 'Inconsolata', 'Fira Code', monospace;
+            background: linear-gradient(135deg, #0a0a0f 0%, #1a1a2e 50%, #0f0f1a 100%);
+            color: #e0e0e0;
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+        }
+
+        h1 {
+            text-align: center;
+            font-size: 2.5em;
+            margin-bottom: 10px;
+            background: linear-gradient(90deg, #00d4ff, #7c3aed, #f472b6);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+        .subtitle {
+            text-align: center;
+            color: #888;
+            margin-bottom: 30px;
+        }
+
+        .main-content {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 30px;
+            margin-bottom: 30px;
+        }
+
+        .panel {
+            background: rgba(255, 255, 255, 0.03);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 16px;
+            padding: 20px;
+            backdrop-filter: blur(10px);
+        }
+
+        .panel-title {
+            font-size: 1.3em;
+            margin-bottom: 15px;
+            color: #00d4ff;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .input-group {
+            margin-bottom: 20px;
+        }
+
+        label {
+            display: block;
+            margin-bottom: 5px;
+            color: #aaa;
+            font-size: 0.9em;
+        }
+
+        input[type="text"] {
+            width: 100%;
+            padding: 12px 15px;
+            background: rgba(0, 0, 0, 0.3);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            border-radius: 8px;
+            color: #fff;
+            font-family: inherit;
+            font-size: 1em;
+            transition: border-color 0.3s;
+        }
+
+        input[type="text"]:focus {
+            outline: none;
+            border-color: #00d4ff;
+        }
+
+        .btn-group {
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+        }
+
+        button {
+            padding: 12px 24px;
+            background: linear-gradient(135deg, #7c3aed, #00d4ff);
+            border: none;
+            border-radius: 8px;
+            color: #fff;
+            font-family: inherit;
+            font-size: 1em;
+            cursor: pointer;
+            transition: transform 0.2s, box-shadow 0.2s;
+        }
+
+        button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 20px rgba(0, 212, 255, 0.3);
+        }
+
+        button:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        button.secondary {
+            background: rgba(255, 255, 255, 0.1);
+        }
+
+        .visualization-container {
+            position: relative;
+        }
+
+        #graphCanvas {
+            width: 100%;
+            background: rgba(0, 0, 0, 0.3);
+            border-radius: 12px;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .info-panel {
+            grid-column: 1 / -1;
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 20px;
+        }
+
+        .info-card {
+            background: rgba(255, 255, 255, 0.02);
+            border-radius: 12px;
+            padding: 15px;
+            border: 1px solid rgba(255, 255, 255, 0.05);
+        }
+
+        .info-card h3 {
+            color: #7c3aed;
+            font-size: 0.9em;
+            margin-bottom: 10px;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
+        .info-value {
+            font-size: 1.8em;
+            font-weight: bold;
+            color: #00d4ff;
+        }
+
+        .sequence-display {
+            display: flex;
+            gap: 20px;
+            margin-top: 10px;
+        }
+
+        .sequence {
+            flex: 1;
+        }
+
+        .sequence-label {
+            color: #888;
+            font-size: 0.8em;
+            margin-bottom: 5px;
+        }
+
+        .sequence-chars {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 2px;
+        }
+
+        .char {
+            width: 28px;
+            height: 28px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 4px;
+            font-size: 0.9em;
+            transition: all 0.3s;
+        }
+
+        .char.match {
+            background: rgba(0, 212, 255, 0.3);
+            color: #00d4ff;
+        }
+
+        .char.delete {
+            background: rgba(239, 68, 68, 0.3);
+            color: #ef4444;
+        }
+
+        .char.insert {
+            background: rgba(34, 197, 94, 0.3);
+            color: #22c55e;
+        }
+
+        .char.current {
+            box-shadow: 0 0 10px rgba(255, 255, 255, 0.5);
+            transform: scale(1.1);
+        }
+
+        .explanation {
+            grid-column: 1 / -1;
+            background: rgba(255, 255, 255, 0.02);
+            border-radius: 12px;
+            padding: 20px;
+            border: 1px solid rgba(255, 255, 255, 0.05);
+        }
+
+        .explanation h3 {
+            color: #f472b6;
+            margin-bottom: 15px;
+        }
+
+        .explanation p {
+            line-height: 1.8;
+            color: #bbb;
+        }
+
+        .explanation code {
+            background: rgba(0, 0, 0, 0.3);
+            padding: 2px 8px;
+            border-radius: 4px;
+            color: #00d4ff;
+        }
+
+        .legend {
+            display: flex;
+            gap: 20px;
+            flex-wrap: wrap;
+            margin-top: 15px;
+        }
+
+        .legend-item {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .legend-color {
+            width: 30px;
+            height: 4px;
+            border-radius: 2px;
+        }
+
+        .legend-color.horizontal { background: #ef4444; }
+        .legend-color.vertical { background: #22c55e; }
+        .legend-color.diagonal { background: #00d4ff; }
+        .legend-color.path { background: #f472b6; }
+        .legend-color.current { background: #ffff00; }
+
+        .speed-control {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            margin-top: 15px;
+        }
+
+        .speed-control input[type="range"] {
+            flex: 1;
+            accent-color: #00d4ff;
+        }
+
+        @media (max-width: 900px) {
+            .main-content {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Myers Diff Algorithm</h1>
+        <p class="subtitle">交互式可视化演示 Git Diff 使用的核心算法</p>
+
+        <div class="main-content">
+            <div class="panel">
+                <div class="panel-title">输入序列</div>
+                <div class="input-group">
+                    <label>序列 A (原始序列)</label>
+                    <input type="text" id="inputA" value="ABCABBA" placeholder="输入序列A">
+                </div>
+                <div class="input-group">
+                    <label>序列 B (目标序列)</label>
+                    <input type="text" id="inputB" value="CBABAC" placeholder="输入序列B">
+                </div>
+                <div class="btn-group">
+                    <button id="startBtn">开始演示</button>
+                    <button id="stepBtn" class="secondary" disabled>单步执行</button>
+                    <button id="resetBtn" class="secondary">重置</button>
+                </div>
+                <div class="speed-control">
+                    <label>速度</label>
+                    <input type="range" id="speedSlider" min="100" max="2000" value="800">
+                </div>
+                <div class="sequence-display">
+                    <div class="sequence">
+                        <div class="sequence-label">序列 A</div>
+                        <div class="sequence-chars" id="seqA"></div>
+                    </div>
+                    <div class="sequence">
+                        <div class="sequence-label">序列 B</div>
+                        <div class="sequence-chars" id="seqB"></div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="panel">
+                <div class="panel-title">编辑图可视化</div>
+                <div class="visualization-container">
+                    <canvas id="graphCanvas" width="500" height="500"></canvas>
+                </div>
+                <div class="legend">
+                    <div class="legend-item">
+                        <div class="legend-color horizontal"></div>
+                        <span>删除 (→)</span>
+                    </div>
+                    <div class="legend-item">
+                        <div class="legend-color vertical"></div>
+                        <span>插入 (↓)</span>
+                    </div>
+                    <div class="legend-item">
+                        <div class="legend-color diagonal"></div>
+                        <span>匹配 (↘)</span>
+                    </div>
+                    <div class="legend-item">
+                        <div class="legend-color path"></div>
+                        <span>当前路径</span>
+                    </div>
+                    <div class="legend-item">
+                        <div class="legend-color current"></div>
+                        <span>探索边界</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="info-panel">
+            <div class="info-card">
+                <h3>当前 D 值</h3>
+                <div class="info-value" id="dValue">-</div>
+                <div style="color: #666; font-size: 0.8em; margin-top: 5px;">编辑距离</div>
+            </div>
+            <div class="info-card">
+                <h3>当前 k 值</h3>
+                <div class="info-value" id="kValue">-</div>
+                <div style="color: #666; font-size: 0.8em; margin-top: 5px;">x - y = k</div>
+            </div>
+            <div class="info-card">
+                <h3>当前位置</h3>
+                <div class="info-value" id="posValue">(-,-)</div>
+                <div style="color: #666; font-size: 0.8em; margin-top: 5px;">(x, y)</div>
+            </div>
+            <div class="info-card">
+                <h3>状态</h3>
+                <div class="info-value" id="statusValue">就绪</div>
+            </div>
+        </div>
+
+        <div class="explanation">
+            <h3>算法原理</h3>
+            <p>
+                <strong>Myers Diff Algorithm</strong> 是 Git diff 使用的核心算法，由 Eugene Myers 在 1986 年发表。
+                它将求<strong>最长公共子序列(LCS)</strong>问题转化为在<strong>编辑图</strong>上寻找<strong>最短路径</strong>的问题。
+            </p>
+            <p>
+                <strong>编辑图</strong>：将序列 A 沿 x 轴排列，序列 B 沿 y 轴排列，形成一个网格图。
+                从左上角 (0,0) 到右下角 (N,M) 的每条路径都对应一个有效的编辑脚本。
+            </p>
+            <p>
+                <strong>边的含义</strong>：
+                <code>水平移动</code> 表示删除 A 中的元素，
+                <code>垂直移动</code> 表示插入 B 中的元素，
+                <code>对角线移动</code> 表示元素匹配（当 A[x] == B[y]）。
+            </p>
+            <p>
+                <strong>k 线</strong>：定义为 <code>x - y = k</code> 的对角线。
+                算法使用广度优先搜索，逐步增加编辑距离 D，在每个 k 线上寻找能够到达的最远 x 值。
+                当找到一条能够到达终点的路径时，算法结束。
+            </p>
+            <p>
+                <strong>复杂度</strong>：时间复杂度 O(ND)，其中 N 是序列长度，D 是编辑距离。
+                空间复杂度可以通过分治法优化到 O(N)。
+            </p>
+        </div>
+    </div>
+
+    <script>
+        class MyersDiffVisualizer {
+            constructor() {
+                this.canvas = document.getElementById('graphCanvas');
+                this.ctx = this.canvas.getContext('2d');
+                this.inputA = document.getElementById('inputA');
+                this.inputB = document.getElementById('inputB');
+                this.startBtn = document.getElementById('startBtn');
+                this.stepBtn = document.getElementById('stepBtn');
+                this.resetBtn = document.getElementById('resetBtn');
+                this.speedSlider = document.getElementById('speedSlider');
+
+                this.seqA = [];
+                this.seqB = [];
+                this.animationSpeed = 800;
+                this.isRunning = false;
+                this.currentStep = 0;
+                this.steps = [];
+                this.timer = null;
+
+                this.cellSize = 50;
+                this.padding = 60;
+
+                this.init();
+            }
+
+            init() {
+                this.updateSequenceDisplay();
+
+                this.startBtn.addEventListener('click', () => this.startAnimation());
+                this.stepBtn.addEventListener('click', () => this.step());
+                this.resetBtn.addEventListener('click', () => this.reset());
+                this.speedSlider.addEventListener('input', (e) => {
+                    this.animationSpeed = 2100 - e.target.value;
+                });
+
+                this.inputA.addEventListener('input', () => this.updateSequenceDisplay());
+                this.inputB.addEventListener('input', () => this.updateSequenceDisplay());
+
+                this.drawEmptyGraph();
+            }
+
+            updateSequenceDisplay() {
+                this.seqA = this.inputA.value.split('');
+                this.seqB = this.inputB.value.split('');
+
+                const seqADiv = document.getElementById('seqA');
+                const seqBDiv = document.getElementById('seqB');
+
+                seqADiv.innerHTML = this.seqA.map((c, i) =>
+                    `<div class="char" data-index="${i}">${c}</div>`
+                ).join('');
+
+                seqBDiv.innerHTML = this.seqB.map((c, i) =>
+                    `<div class="char" data-index="${i}">${c}</div>`
+                ).join('');
+
+                this.drawEmptyGraph();
+            }
+
+            drawEmptyGraph() {
+                const N = this.seqA.length;
+                const M = this.seqB.length;
+
+                this.canvas.width = (N + 1) * this.cellSize + this.padding * 2;
+                this.canvas.height = (M + 1) * this.cellSize + this.padding * 2;
+
+                this.ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);
+
+                // Draw grid
+                this.ctx.strokeStyle = 'rgba(255, 255, 255, 0.1)';
+                this.ctx.lineWidth = 1;
+
+                for (let i = 0; i <= N; i++) {
+                    const x = this.padding + i * this.cellSize;
+                    this.ctx.beginPath();
+                    this.ctx.moveTo(x, this.padding);
+                    this.ctx.lineTo(x, this.padding + M * this.cellSize);
+                    this.ctx.stroke();
+                }
+
+                for (let j = 0; j <= M; j++) {
+                    const y = this.padding + j * this.cellSize;
+                    this.ctx.beginPath();
+                    this.ctx.moveTo(this.padding, y);
+                    this.ctx.lineTo(this.padding + N * this.cellSize, y);
+                    this.ctx.stroke();
+                }
+
+                // Draw diagonal match lines
+                this.ctx.strokeStyle = 'rgba(0, 212, 255, 0.3)';
+                this.ctx.lineWidth = 2;
+
+                for (let i = 0; i < N; i++) {
+                    for (let j = 0; j < M; j++) {
+                        if (this.seqA[i] === this.seqB[j]) {
+                            const x1 = this.padding + i * this.cellSize + this.cellSize / 2;
+                            const y1 = this.padding + j * this.cellSize + this.cellSize / 2;
+                            const x2 = this.padding + (i + 1) * this.cellSize + this.cellSize / 2;
+                            const y2 = this.padding + (j + 1) * this.cellSize + this.cellSize / 2;
+
+                            this.ctx.beginPath();
+                            this.ctx.moveTo(x1, y1);
+                            this.ctx.lineTo(x2, y2);
+                            this.ctx.stroke();
+                        }
+                    }
+                }
+
+                // Draw labels
+                this.ctx.fillStyle = '#888';
+                this.ctx.font = '14px monospace';
+                this.ctx.textAlign = 'center';
+
+                for (let i = 0; i < N; i++) {
+                    const x = this.padding + i * this.cellSize + this.cellSize / 2;
+                    this.ctx.fillText(this.seqA[i], x, this.padding - 10);
+                }
+
+                for (let j = 0; j < M; j++) {
+                    const y = this.padding + j * this.cellSize + this.cellSize / 2;
+                    this.ctx.save();
+                    this.ctx.translate(this.padding - 25, y);
+                    this.ctx.rotate(-Math.PI / 2);
+                    this.ctx.fillText(this.seqB[j], 0, 0);
+                    this.ctx.restore();
+                }
+
+                // Draw axes
+                this.ctx.strokeStyle = 'rgba(255, 255, 255, 0.3)';
+                this.ctx.lineWidth = 2;
+
+                // X axis
+                this.ctx.beginPath();
+                this.ctx.moveTo(this.padding - 5, this.padding - 5);
+                this.ctx.lineTo(this.padding + 5, this.padding - 5);
+                this.ctx.stroke();
+
+                // Y axis
+                this.ctx.beginPath();
+                this.ctx.moveTo(this.padding - 5, this.padding - 5);
+                this.ctx.lineTo(this.padding - 5, this.padding + 5);
+                this.ctx.stroke();
+
+                // Draw k lines (diagonals)
+                this.ctx.strokeStyle = 'rgba(124, 58, 237, 0.2)';
+                this.ctx.setLineDash([5, 5]);
+
+                for (let k = -Math.max(N, M); k <= Math.max(N, M); k++) {
+                    const startI = Math.max(0, k);
+                    const startJ = startI - k;
+
+                    if (startI <= N && startJ <= M) {
+                        const x = this.padding + startI * this.cellSize;
+                        const y = this.padding + startJ * this.cellSize;
+
+                        this.ctx.beginPath();
+                        this.ctx.moveTo(x, y);
+
+                        let i = startI, j = startJ;
+                        while (i <= N && j <= M) {
+                            const px = this.padding + i * this.cellSize;
+                            const py = this.padding + j * this.cellSize;
+                            this.ctx.lineTo(px, py);
+                            i++; j++;
+                        }
+
+                        this.ctx.stroke();
+                    }
+                }
+
+                this.ctx.setLineDash([]);
+
+                // Draw start and end points
+                this.drawPoint(0, 0, '#00d4ff', 8);
+                this.drawPoint(N, M, '#22c55e', 8);
+
+                this.ctx.fillStyle = '#fff';
+                this.ctx.font = '12px monospace';
+                this.ctx.fillText('(0,0)', this.padding - 20, this.padding - 15);
+                this.ctx.fillText(`(${N},${M})`, this.padding + N * this.cellSize + 20, this.padding + M * this.cellSize + 20);
+            }
+
+            drawPoint(x, y, color, radius = 6) {
+                const px = this.padding + x * this.cellSize;
+                const py = this.padding + y * this.cellSize;
+
+                this.ctx.beginPath();
+                this.ctx.arc(px, py, radius, 0, Math.PI * 2);
+                this.ctx.fillStyle = color;
+                this.ctx.fill();
+                this.ctx.strokeStyle = '#fff';
+                this.ctx.lineWidth = 2;
+                this.ctx.stroke();
+            }
+
+            drawEdge(fromX, fromY, toX, toY, color, width = 3) {
+                const x1 = this.padding + fromX * this.cellSize;
+                const y1 = this.padding + fromY * this.cellSize;
+                const x2 = this.padding + toX * this.cellSize;
+                const y2 = this.padding + toY * this.cellSize;
+
+                this.ctx.beginPath();
+                this.ctx.moveTo(x1, y1);
+                this.ctx.lineTo(x2, y2);
+                this.ctx.strokeStyle = color;
+                this.ctx.lineWidth = width;
+                this.ctx.stroke();
+            }
+
+            drawSnake(startX, startY, endX, endY, color) {
+                const x1 = this.padding + startX * this.cellSize;
+                const y1 = this.padding + startY * this.cellSize;
+                const x2 = this.padding + endX * this.cellSize;
+                const y2 = this.padding + endY * this.cellSize;
+
+                this.ctx.beginPath();
+                this.ctx.moveTo(x1, y1);
+                this.ctx.lineTo(x2, y2);
+                this.ctx.strokeStyle = color;
+                this.ctx.lineWidth = 4;
+                this.ctx.stroke();
+            }
+
+            computeSteps() {
+                const N = this.seqA.length;
+                const M = this.seqB.length;
+                const MAX = N + M;
+
+                const V = new Array(2 * MAX + 1).fill(null);
+                V[MAX] = 0;
+
+                const steps = [];
+
+                for (let D = 0; D <= MAX; D++) {
+                    steps.push({
+                        type: 'newD',
+                        D: D,
+                        description: `开始搜索编辑距离 D = ${D}`
+                    });
+
+                    for (let k = -D; k <= D; k += 2) {
+                        // Determine which direction to go
+                        let x, y;
+                        let fromDirection;
+
+                        if (k === -D || (k !== D && V[MAX + k - 1] < V[MAX + k + 1])) {
+                            // Came from k + 1 (insertion, go down)
+                            x = V[MAX + k + 1];
+                            fromDirection = 'down';
+                        } else {
+                            // Came from k - 1 (deletion, go right)
+                            x = V[MAX + k - 1] + 1;
+                            fromDirection = 'right';
+                        }
+
+                        y = x - k;
+
+                        const startX = x;
+                        const startY = y;
+
+                        steps.push({
+                            type: 'step',
+                            D: D,
+                            k: k,
+                            x: startX,
+                            y: startY,
+                            fromDirection: fromDirection,
+                            description: `在 k=${k} 线上，从${fromDirection === 'down' ? `上方 (k=${k+1})` : `下方 (k=${k-1})`}到达 (${startX}, ${startY})`
+                        });
+
+                        // Snake - follow diagonal while characters match
+                        while (x < N && y < M && this.seqA[x] === this.seqB[y]) {
+                            const prevX = x;
+                            const prevY = y;
+                            x++;
+                            y++;
+
+                            steps.push({
+                                type: 'match',
+                                D: D,
+                                k: k,
+                                x: x,
+                                y: y,
+                                prevX: prevX,
+                                prevY: prevY,
+                                char: this.seqA[prevX],
+                                description: `匹配字符 '${this.seqA[prevX]}'，沿对角线移动到 (${x}, ${y})`
+                            });
+                        }
+
+                        V[MAX + k] = x;
+
+                        steps.push({
+                            type: 'updateV',
+                            D: D,
+                            k: k,
+                            x: x,
+                            y: y,
+                            description: `更新 V[${k}] = ${x}`
+                        });
+
+                        if (x >= N && y >= M) {
+                            steps.push({
+                                type: 'found',
+                                D: D,
+                                description: `找到最短编辑路径！编辑距离 = ${D}`
+                            });
+                            return steps;
+                        }
+                    }
+
+                    steps.push({
+                        type: 'dComplete',
+                        D: D,
+                        description: `D = ${D} 搜索完成，未找到路径，继续 D = ${D + 1}`
+                    });
+                }
+
+                return steps;
+            }
+
+            renderStep(step) {
+                this.drawEmptyGraph();
+
+                if (step.type === 'newD') {
+                    document.getElementById('dValue').textContent = step.D;
+                    document.getElementById('statusValue').textContent = `搜索 D=${step.D}`;
+
+                    // Highlight current k lines being explored
+                    this.ctx.strokeStyle = 'rgba(124, 58, 237, 0.4)';
+                    this.ctx.lineWidth = 2;
+
+                    for (let k = -step.D; k <= step.D; k += 2) {
+                        const startI = Math.max(0, k);
+                        const startJ = Math.max(0, -k);
+
+                        if (startI <= this.seqA.length && startJ <= this.seqB.length) {
+                            const x = this.padding + startI * this.cellSize;
+                            const y = this.padding + startJ * this.cellSize;
+
+                            this.ctx.beginPath();
+                            this.ctx.moveTo(x, y);
+
+                            let i = startI, j = startJ;
+                            while (i <= this.seqA.length && j <= this.seqB.length) {
+                                const px = this.padding + i * this.cellSize;
+                                const py = this.padding + j * this.cellSize;
+                                this.ctx.lineTo(px, py);
+                                i++; j++;
+                            }
+
+                            this.ctx.stroke();
+                        }
+                    }
+
+                } else if (step.type === 'step') {
+                    document.getElementById('kValue').textContent = step.k;
+                    document.getElementById('posValue').textContent = `(${step.x},${step.y})`;
+
+                    // Draw the edge we came from
+                    if (step.fromDirection === 'down') {
+                        // Came from above (insertion)
+                        this.drawEdge(step.x, step.y - 1, step.x, step.y, '#22c55e', 5);
+                    } else {
+                        // Came from left (deletion)
+                        this.drawEdge(step.x - 1, step.y, step.x, step.y, '#ef4444', 5);
+                    }
+
+                    // Highlight current point
+                    this.drawPoint(step.x, step.y, '#ffff00', 10);
+
+                    // Highlight k line
+                    this.ctx.strokeStyle = 'rgba(124, 58, 237, 0.6)';
+                    this.ctx.lineWidth = 3;
+                    this.ctx.setLineDash([10, 5]);
+
+                    let i = Math.max(0, step.k), j = Math.max(0, -step.k);
+                    const x = this.padding + i * this.cellSize;
+                    const y = this.padding + j * this.cellSize;
+
+                    this.ctx.beginPath();
+                    this.ctx.moveTo(x, y);
+
+                    while (i <= this.seqA.length && j <= this.seqB.length) {
+                        const px = this.padding + i * this.cellSize;
+                        const py = this.padding + j * this.cellSize;
+                        this.ctx.lineTo(px, py);
+                        i++; j++;
+                    }
+
+                    this.ctx.stroke();
+                    this.ctx.setLineDash([]);
+
+                    document.getElementById('statusValue').textContent = `探索 k=${step.k}`;
+
+                } else if (step.type === 'match') {
+                    document.getElementById('posValue').textContent = `(${step.x},${step.y})`;
+
+                    // Draw snake (diagonal match)
+                    this.drawSnake(step.prevX, step.prevY, step.x, step.y, '#00d4ff');
+
+                    // Highlight matching characters
+                    const charsA = document.querySelectorAll('#seqA .char');
+                    const charsB = document.querySelectorAll('#seqB .char');
+
+                    charsA[step.prevX]?.classList.add('match');
+                    charsB[step.prevY]?.classList.add('match');
+
+                    this.drawPoint(step.x, step.y, '#00d4ff', 8);
+                    document.getElementById('statusValue').textContent = `匹配 '${step.char}'`;
+
+                } else if (step.type === 'updateV') {
+                    document.getElementById('statusValue').textContent = `V[${step.k}] = ${step.x}`;
+                    this.drawPoint(step.x, step.y, '#f472b6', 8);
+
+                } else if (step.type === 'found') {
+                    document.getElementById('statusValue').textContent = `完成！D=${step.D}`;
+                    document.getElementById('statusValue').style.color = '#22c55e';
+
+                    // Draw final path highlighting
+                    this.ctx.strokeStyle = 'rgba(34, 197, 94, 0.5)';
+                    this.ctx.lineWidth = 8;
+                    this.ctx.beginPath();
+                    this.ctx.moveTo(this.padding, this.padding);
+                    this.ctx.lineTo(
+                        this.padding + this.seqA.length * this.cellSize,
+                        this.padding + this.seqB.length * this.cellSize
+                    );
+                    this.ctx.stroke();
+                }
+
+                // Update description
+                const descEl = document.querySelector('.explanation p');
+                if (descEl) {
+                    descEl.innerHTML = `<strong>当前步骤:</strong> ${step.description}`;
+                }
+            }
+
+            async startAnimation() {
+                if (this.isRunning) return;
+
+                this.isRunning = true;
+                this.startBtn.disabled = true;
+                this.stepBtn.disabled = false;
+
+                this.steps = this.computeSteps();
+                this.currentStep = 0;
+
+                // Reset character highlights
+                document.querySelectorAll('.char').forEach(c => {
+                    c.classList.remove('match', 'current');
+                });
+
+                this.animate();
+            }
+
+            animate() {
+                if (this.currentStep >= this.steps.length) {
+                    this.isRunning = false;
+                    this.startBtn.disabled = false;
+                    this.stepBtn.disabled = true;
+                    return;
+                }
+
+                const step = this.steps[this.currentStep];
+                this.renderStep(step);
+
+                this.currentStep++;
+
+                if (this.isRunning) {
+                    this.timer = setTimeout(() => this.animate(), this.animationSpeed);
+                }
+            }
+
+            step() {
+                if (this.currentStep >= this.steps.length) {
+                    this.isRunning = false;
+                    this.startBtn.disabled = false;
+                    this.stepBtn.disabled = true;
+                    return;
+                }
+
+                const step = this.steps[this.currentStep];
+                this.renderStep(step);
+                this.currentStep++;
+            }
+
+            reset() {
+                this.isRunning = false;
+                if (this.timer) {
+                    clearTimeout(this.timer);
+                }
+
+                this.currentStep = 0;
+                this.steps = [];
+
+                this.startBtn.disabled = false;
+                this.stepBtn.disabled = true;
+
+                document.getElementById('dValue').textContent = '-';
+                document.getElementById('kValue').textContent = '-';
+                document.getElementById('posValue').textContent = '(-,-)';
+                document.getElementById('statusValue').textContent = '就绪';
+                document.getElementById('statusValue').style.color = '';
+
+                document.querySelectorAll('.char').forEach(c => {
+                    c.classList.remove('match', 'current');
+                });
+
+                this.drawEmptyGraph();
+            }
+        }
+
+        // Initialize
+        const visualizer = new MyersDiffVisualizer();
+    </script>
+</body>
+</html>
