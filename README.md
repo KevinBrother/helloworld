@@ -101,6 +101,8 @@
 
 - [x] nodejs-study
 
+- [ ] flutter
+
 - [] rxjs
 - [x]typescript-study
 
