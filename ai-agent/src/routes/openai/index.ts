@@ -1,8 +1,49 @@
 import { FastifyPluginAsync } from 'fastify';
-import OpenAI from 'openai';
 
 const openaiRoute: FastifyPluginAsync = async (fastify, opts): Promise<void> => {
-  fastify.post('/chat', async function (request, reply) {
+  fastify.post('/chat', {
+    schema: {
+      tags: ['openai'],
+      summary: 'OpenAI 聊天接口',
+      description: '发送消息到 OpenAI 兼容的 API 并获取响应',
+      body: {
+        type: 'object',
+        required: ['message'],
+        properties: {
+          message: { type: 'string', description: '用户消息内容' },
+          model: { type: 'string', description: '模型名称，默认使用配置中的默认模型' },
+        },
+      },
+      response: {
+        200: {
+          type: 'object',
+          properties: {
+            content: { type: 'string', description: 'AI 响应内容' },
+            usage: {
+              type: 'object',
+              properties: {
+                prompt_tokens: { type: 'number' },
+                completion_tokens: { type: 'number' },
+                total_tokens: { type: 'number' },
+              },
+            },
+          },
+        },
+        400: {
+          type: 'object',
+          properties: {
+            error: { type: 'string' },
+          },
+        },
+        500: {
+          type: 'object',
+          properties: {
+            error: { type: 'string' },
+          },
+        },
+      },
+    },
+  }, async function (request, reply) {
     const { message, model } = request.body as {
       message?: string;
       model?: string;
@@ -30,7 +71,40 @@ const openaiRoute: FastifyPluginAsync = async (fastify, opts): Promise<void> => 
     }
   });
 
-  fastify.post('/chat/stream', async function (request, reply) {
+  fastify.post('/chat/stream', {
+    schema: {
+      tags: ['openai'],
+      summary: 'OpenAI 流式聊天接口',
+      description: '发送消息到 OpenAI API 并以 SSE (Server-Sent Events) 流式接收响应',
+      body: {
+        type: 'object',
+        required: ['message'],
+        properties: {
+          message: { type: 'string', description: '用户消息内容' },
+          model: { type: 'string', description: '模型名称' },
+        },
+      },
+      response: {
+        200: {
+          description: 'SSE 流式响应',
+          content: {
+            'text/event-stream': {
+              schema: {
+                type: 'string',
+                format: 'binary',
+              },
+            },
+          },
+        },
+        400: {
+          type: 'object',
+          properties: {
+            error: { type: 'string' },
+          },
+        },
+      },
+    },
+  }, async function (request, reply) {
     const { message, model } = request.body as {
       message?: string;
       model?: string;
