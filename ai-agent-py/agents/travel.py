@@ -1,7 +1,7 @@
 import re
 import os
 from dotenv import load_dotenv
-from client.openai import OpenAICompatibleClient
+from client.openai_client import OpenAICompatibleClient
 from tools.get_weather import get_weather
 from tools.get_attraction import get_attraction
 
