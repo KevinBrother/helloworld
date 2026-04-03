@@ -1,0 +1,146 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <title>向量数据库与语义搜索技术指南</title>
+</head>
+<body>
+
+<h1>向量数据库与语义搜索</h1>
+
+<p>
+向量数据库（Vector Database）是专为存储和检索高维浮点向量而设计的数据库系统。
+与传统关系型数据库存储结构化数据不同，向量数据库优化了向量之间的近似最近邻（ANN）搜索，
+使得"语义相似性"搜索成为可能。
+</p>
+
+<h2>为什么需要向量数据库</h2>
+
+<p>
+在 RAG（检索增强生成）系统中，文档被转化为高维向量（Embedding）并存储起来。
+当用户提问时，问题也被转化为向量，然后在数据库中找到语义最相近的文档片段。
+</p>
+
+<p>
+传统数据库（如 MySQL、PostgreSQL）不适合向量搜索，原因在于：
+</p>
+<ul>
+  <li>向量维度通常为 768 到 3072 维，暴力比较计算量巨大</li>
+  <li>传统 B-Tree 索引无法加速高维向量搜索</li>
+  <li>需要专门的近似最近邻算法（如 HNSW、IVF）才能实现毫秒级响应</li>
+</ul>
+
+<h2>主流向量数据库对比</h2>
+
+<h3>Qdrant</h3>
+
+<p>
+Qdrant 是一个用 Rust 编写的高性能开源向量数据库，提供 gRPC 和 REST 两种 API。
+其核心特点包括：
+</p>
+<ul>
+  <li>支持余弦相似度、点积、欧氏距离等多种距离度量</li>
+  <li>支持 Payload 过滤——在向量搜索的同时按元数据过滤</li>
+  <li>支持量化（Scalar Quantization、Product Quantization）降低内存占用</li>
+  <li>提供 Go、Python、Rust、TypeScript 等多语言 SDK</li>
+</ul>
+
+<h3>Weaviate</h3>
+
+<p>
+Weaviate 是一个功能丰富的向量数据库，内置 BM25 关键词搜索，支持混合搜索（Hybrid Search）。
+它使用 GraphQL API，提供模块化的向量化插件系统，可直接对接 OpenAI、Cohere 等模型。
+</p>
+
+<h3>Chroma</h3>
+
+<p>
+Chroma 是一个轻量级的嵌入式向量数据库，设计目标是简单易用。
+适合原型开发和小规模实验，Python 生态集成良好，但 Go SDK 不是官方维护的。
+</p>
+
+<h3>pgvector</h3>
+
+<p>
+pgvector 是 PostgreSQL 的向量扩展，允许在已有的 PG 数据库中存储和搜索向量。
+对于已有 PostgreSQL 基础设施的团队，这是成本最低的向量搜索方案，
+但性能和扩展性不如专用向量数据库。
+</p>
+
+<h2>近似最近邻（ANN）搜索算法</h2>
+
+<h3>HNSW（Hierarchical Navigable Small World）</h3>
+
+<p>
+HNSW 是目前最流行的 ANN 算法，被 Qdrant、Weaviate 等主流向量数据库采用。
+它构建一个分层图结构，搜索时从最高层开始，逐层向目标向量"导航"，
+在接近线性时间内找到近似最近邻。
+</p>
+
+<p>
+HNSW 的关键参数：
+</p>
+<ul>
+  <li><strong>M</strong>：每个节点的最大连接数，影响搜索精度和内存占用</li>
+  <li><strong>ef_construction</strong>：构建索引时的候选集大小，影响索引质量</li>
+  <li><strong>ef</strong>（search ef）：搜索时的候选集大小，影响召回率与速度的权衡</li>
+</ul>
+
+<h3>IVF（Inverted File Index）</h3>
+
+<p>
+IVF 将向量空间划分为若干聚类（Voronoi 单元），搜索时只在最近的几个聚类中查找。
+适合超大规模数据集，但需要训练聚类中心，且对数据分布敏感。
+</p>
+
+<h2>距离度量方式</h2>
+
+<p>
+向量数据库支持多种距离（相似度）计算方式，选择哪种取决于 Embedding 模型的训练方式：
+</p>
+
+<h3>余弦相似度（Cosine Similarity）</h3>
+
+<p>
+计算两向量夹角的余弦值，值域 [-1, 1]。使用 L2 归一化后的向量时，余弦相似度等价于点积。
+OpenAI 的 Embedding 模型推荐使用余弦相似度，Qdrant 默认也支持此度量。
+</p>
+
+<h3>点积（Dot Product）</h3>
+
+<p>
+直接计算向量各分量乘积之和。当向量已归一化时与余弦相似度等价。
+计算速度略快于余弦相似度（省去归一化步骤）。
+</p>
+
+<h3>欧氏距离（Euclidean Distance / L2）</h3>
+
+<p>
+计算两点之间的直线距离，值越小越相似。某些 Embedding 模型（如 CLIP）推荐使用欧氏距离。
+</p>
+
+<h2>在 RAG 中如何选择 topK</h2>
+
+<p>
+topK 是向量搜索返回的结果数量，直接影响 RAG 的效果：
+</p>
+<ul>
+  <li>topK 过小（如 1-2）：可能遗漏重要信息，导致回答不完整</li>
+  <li>topK 过大（如 10+）：引入大量噪声，且可能超出 LLM 上下文窗口限制</li>
+  <li>推荐起点：topK = 3 到 5，根据 chunk 大小和 LLM 上下文窗口调整</li>
+</ul>
+
+<h2>向量索引的持久化与扩展</h2>
+
+<p>
+生产环境中，向量数据库需要考虑：
+</p>
+<ul>
+  <li><strong>持久化存储</strong>：向量数据写入磁盘，重启后不丢失</li>
+  <li><strong>水平扩展</strong>：Qdrant 支持分布式集群，自动分片和复制</li>
+  <li><strong>快照与备份</strong>：定期快照，支持灾难恢复</li>
+  <li><strong>增量更新</strong>：支持插入、更新、删除单个点，无需重建全量索引</li>
+</ul>
+
+</body>
+</html>

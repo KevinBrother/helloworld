@@ -1,0 +1,23 @@
+# RAG pipeline configuration.
+# Copy this file and fill in your values.
+# All fields can be overridden by environment variables (see README).
+
+# Vector store backend.
+vector_store:
+  type: "qdrant"      # supported: qdrant (default)
+  host: "localhost"
+  port: 6334          # gRPC port used by the Go SDK
+
+# Embedding model — any OpenAI-compatible endpoint works.
+# Leave host empty for OpenAI. For Ollama use "http://localhost:11434/v1".
+embedding:
+  host: ""                          # e.g. "http://localhost:11434/v1" for Ollama
+  model: "text-embedding-3-small"   # or "nomic-embed-text", "mxbai-embed-large", etc.
+  api_key: ""                       # or set EMBEDDING_API_KEY / OPENAI_API_KEY env var
+
+# Chat model — any OpenAI-compatible endpoint works.
+# Leave host empty for OpenAI. For Ollama use "http://localhost:11434/v1".
+chat:
+  host: ""              # e.g. "http://localhost:11434/v1" for Ollama
+  model: "gpt-4o-mini"  # or "llama3", "qwen2.5", "deepseek-chat", etc.
+  api_key: ""           # or set CHAT_API_KEY / OPENAI_API_KEY env var
