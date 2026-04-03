@@ -206,6 +206,8 @@
 
 - [ ] subagent
 
+- [ ] rag
+
 - [x] remotion-video
   - remotion视频制作
 
