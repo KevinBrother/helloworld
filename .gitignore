@@ -104,3 +104,5 @@ z2.json
 output
 
 cmake-build-debug
+
+rag/config.yaml
