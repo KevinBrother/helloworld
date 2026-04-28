@@ -1,4 +1,7 @@
 {
+  "go.testFlags": [
+    "-ldflags=-linkmode=external"
+  ],
   "cSpell.words": [
     "vuepress"
   ]
