@@ -1,0 +1,42 @@
+<h2>Basic input + button demo</h2>
+<p class="subtitle">独立页面里只保留一个输入框、一个按钮，以及服务端回显结果区。</p>
+
+<div class="mockup">
+  <div class="mockup-header">Preview: /basic-form</div>
+  <div class="mockup-body" style="display:grid;gap:16px">
+    <div class="section">
+      <div class="label">Input</div>
+      <input class="mock-input" value="hello from client" />
+    </div>
+
+    <div class="section">
+      <div class="label">Action</div>
+      <button class="mock-button">Send to server</button>
+    </div>
+
+    <div class="section">
+      <div class="label">Response</div>
+      <div class="placeholder">
+        server received: hello from client
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="pros-cons">
+  <div class="pros">
+    <h4>What this keeps</h4>
+    <ul>
+      <li>Only the minimum UI you asked for</li>
+      <li>Server response is visible on the page</li>
+      <li>Easy to understand end-to-end data flow</li>
+    </ul>
+  </div>
+  <div class="cons">
+    <h4>What this avoids</h4>
+    <ul>
+      <li>No AGUI/CopilotKit abstractions in this demo</li>
+      <li>No extra fields or styling complexity</li>
+    </ul>
+  </div>
+</div>
