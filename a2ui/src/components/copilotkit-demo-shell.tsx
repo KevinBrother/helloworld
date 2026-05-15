@@ -2,34 +2,22 @@
 
 import {
   CopilotChat,
-  CopilotChatAssistantMessage,
   CopilotKit,
   useAgentContext,
   useConfigureSuggestions,
+  createA2UIMessageRenderer,
+  a2uiDefaultTheme,
 } from "@copilotkit/react-core/v2";
-import { CopilotkitA2uiAssistantMessage } from "./copilotkit-a2ui-assistant-message";
 
-const AGENT_ID = "a2ui-fixed-schema";
+// Create the A2UI renderer once (outside component to avoid re-instantiation).
+// The renderer is registered on CopilotKit and handles all ACTIVITY_SNAPSHOT
+// events that carry a2ui surfaces emitted by the A2UIMiddleware on the backend.
+const a2uiRenderer = createA2UIMessageRenderer({ theme: a2uiDefaultTheme });
 
-const A2UI_INSTRUCTIONS = `
+const SYSTEM_PROMPT = `
 You are a learning assistant for a2ui, AGUI, and CopilotKit.
-
-When the user asks a question, answer with exactly one JSON object and nothing else.
-The JSON must match this shape:
-{
-  "topic": string,
-  "agent": "agui-learning-agent",
-  "followUp": string,
-  "cards": [
-    {
-      "id": string,
-      "question": string,
-      "answer": string,
-      "tags": string[],
-      "protocol": "a2ui"
-    }
-  ]
-}
+When the user asks about any concept, always call show_learning_cards to
+render beautiful visual cards. Do not answer with plain text only.
 `.trim();
 
 const SUGGESTIONS = [
@@ -40,7 +28,13 @@ const SUGGESTIONS = [
 
 export function CopilotkitDemoShell() {
   return (
-    <CopilotKit runtimeUrl="/api/copilotkit-a2ui-fixed-schema" agent={AGENT_ID}>
+    // renderActivityMessages wires the A2UI renderer into the CopilotKit
+    // provider so that every ActivityMessage of type "a2ui-surface" is
+    // rendered via the real @google/a2ui component library.
+    <CopilotKit
+      runtimeUrl="/api/copilotkit"
+      renderActivityMessages={[a2uiRenderer]}
+    >
       <div className="rounded-3xl border border-slate-200 bg-white p-4 shadow-sm">
         <ConfiguredCopilotChat />
       </div>
@@ -50,34 +44,24 @@ export function CopilotkitDemoShell() {
 
 function ConfiguredCopilotChat() {
   useAgentContext({
-    description: "a2ui fixed schema instructions",
-    value: A2UI_INSTRUCTIONS,
+    description: "Learning assistant instructions",
+    value: SYSTEM_PROMPT,
   });
 
   useConfigureSuggestions({
-    suggestions: SUGGESTIONS.map((message) => ({
-      title: message,
-      message,
-    })),
+    suggestions: SUGGESTIONS.map((message) => ({ title: message, message })),
     available: "always",
   });
 
-  const messageView = {
-    assistantMessage:
-      CopilotkitA2uiAssistantMessage as unknown as typeof CopilotChatAssistantMessage,
-  };
-
   return (
     <CopilotChat
-      agentId={AGENT_ID}
       className="h-[700px]"
       labels={{
         modalHeaderTitle: "a2ui / AGUI / CopilotKit",
         welcomeMessageText:
-          "Ask a question and I will return structured a2ui cards.",
+          "Ask a question and I will render structured a2ui cards.",
         chatInputPlaceholder: "Explain a2ui, AGUI, and CopilotKit together...",
       }}
-      messageView={messageView}
     />
   );
 }

@@ -11,9 +11,13 @@ export default function CopilotkitPage() {
           CopilotKit + AGUI + a2ui
         </h1>
         <p className="max-w-3xl text-base leading-7 text-slate-600">
-          This page uses CopilotKit to orchestrate the chat while the service
-          returns structured a2ui data through an AGUI-style route. The frontend
-          renders the assistant JSON as Q&A cards.
+          Real a2ui pipeline: a <code>BuiltInAgent</code> calls the LLM, which
+          invokes the <code>show_learning_cards</code> tool. The tool returns{" "}
+          <code>{"{ a2ui_operations: [...] }"}</code>, which the{" "}
+          <code>A2UIMiddleware</code> converts to an{" "}
+          <code>ACTIVITY_SNAPSHOT</code> event. The frontend renders it via{" "}
+          <code>createA2UIMessageRenderer</code> registered on{" "}
+          <code>CopilotKit</code>.
         </p>
       </div>
 
