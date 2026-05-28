@@ -1,4 +1,5 @@
 #!/usr/bin/env bash
 set -euo pipefail
-go run ./cmd/rpawf compile examples/sample-workflow/ast.json examples/sample-workflow/block.json > /tmp/rpawf-sample.py
-PYTHONPATH=runtime/python python3 /tmp/rpawf-sample.py
+mkdir -p output
+go run ./apps/cli/rpawf compile examples/sample-workflow/ast.json examples/sample-workflow/block.json > output/workflow.py
+uv --project runtimes/python run python output/workflow.py

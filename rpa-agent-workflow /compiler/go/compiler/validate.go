@@ -5,10 +5,10 @@ import (
 	"fmt"
 	"strings"
 
-	"rpa-agent-workflow/internal/ast"
-	"rpa-agent-workflow/internal/block"
-	"rpa-agent-workflow/internal/diagnostic"
-	"rpa-agent-workflow/internal/schema"
+	"rpa-agent-workflow/contracts/ast"
+	"rpa-agent-workflow/contracts/block"
+	"rpa-agent-workflow/compiler/go/diagnostic"
+	"rpa-agent-workflow/compiler/go/schema"
 )
 
 func ValidateWorkflow(data []byte, blocks map[string]block.Definition) (*ast.Workflow, []diagnostic.Diagnostic) {

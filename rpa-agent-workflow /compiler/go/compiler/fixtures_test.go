@@ -5,7 +5,7 @@ import (
 	"path/filepath"
 	"testing"
 
-	"rpa-agent-workflow/internal/block"
+	"rpa-agent-workflow/contracts/block"
 )
 
 func TestCompilerFixtures(t *testing.T) {

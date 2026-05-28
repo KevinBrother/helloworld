@@ -3,8 +3,8 @@ package compiler
 import (
 	"testing"
 
-	"rpa-agent-workflow/internal/block"
-	"rpa-agent-workflow/internal/diagnostic"
+	"rpa-agent-workflow/contracts/block"
+	"rpa-agent-workflow/compiler/go/diagnostic"
 )
 
 func TestRejectsUnknownBlock(t *testing.T) {

@@ -5,9 +5,9 @@ import (
 	"fmt"
 	"os"
 
-	"rpa-agent-workflow/internal/block"
-	"rpa-agent-workflow/internal/compiler"
-	codegenpython "rpa-agent-workflow/internal/codegen/python"
+	"rpa-agent-workflow/contracts/block"
+	"rpa-agent-workflow/compiler/go/compiler"
+	codegenpython "rpa-agent-workflow/compiler/go/codegen/python"
 )
 
 func main() {

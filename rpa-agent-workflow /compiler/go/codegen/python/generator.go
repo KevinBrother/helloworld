@@ -5,8 +5,8 @@ import (
 	"sort"
 	"strings"
 
-	"rpa-agent-workflow/internal/ast"
-	"rpa-agent-workflow/internal/block"
+	"rpa-agent-workflow/contracts/ast"
+	"rpa-agent-workflow/contracts/block"
 )
 
 func Generate(workflow *ast.Workflow, blocks map[string]block.Definition) (string, error) {
