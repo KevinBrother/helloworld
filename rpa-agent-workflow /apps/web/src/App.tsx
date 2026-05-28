@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { memo, useEffect, useMemo, useState } from "react";
 import {
   Download,
   FileJson,
@@ -10,10 +10,51 @@ import {
   SplitSquareHorizontal,
   ClipboardList,
 } from "lucide-react";
+import {
+  Background,
+  BaseEdge,
+  Controls,
+  EdgeLabelRenderer,
+  Handle,
+  MarkerType,
+  MiniMap,
+  Position,
+  ReactFlow,
+  getBezierPath,
+  type Edge,
+  type EdgeProps,
+  type Node,
+  type NodeProps,
+} from "@xyflow/react";
+import "@xyflow/react/dist/style.css";
 import sampleDocument from "./sample-ui-node.json";
 import type { EditOperation, InspectorField, UIDocument, UINode } from "./types";
 
 type ViewMode = "outline" | "canvas" | "operations";
+type WorkflowNodeData = {
+  uiNode: UINode;
+  ghost?: boolean;
+  branchLabel?: string;
+} & Record<string, unknown>;
+type WorkflowFlowNode = Node<WorkflowNodeData, "workflow">;
+type WorkflowFlowEdge = Edge<Record<string, unknown>, "workflow">;
+type Measure = {
+  width: number;
+  height: number;
+};
+
+const nodeTypes = {
+  workflow: memo(WorkflowFlowNode),
+};
+
+const edgeTypes = {
+  workflow: WorkflowFlowEdge,
+};
+
+const NODE_WIDTH = 286;
+const NODE_HEIGHT = 104;
+const GAP_Y = 118;
+const GAP_X = 88;
 
 const DEFAULT_ACTOR = {
   id: "local-user",
@@ -236,31 +277,40 @@ function WorkflowCanvas({
   selectedId: string;
   onSelect: (id: string) => void;
 }) {
-  const open = !node.collapsed;
+  const graph = useMemo(() => buildFlowGraph(node, selectedId), [node, selectedId]);
   return (
-    <div className="canvas-root">
-      <NodeCard node={node} selectedId={selectedId} onSelect={onSelect} />
-      {open && node.children?.length ? (
-        <div className="stack">
-          {node.children.map((child) => (
-            <WorkflowCanvas key={child.id} node={child} selectedId={selectedId} onSelect={onSelect} />
-          ))}
-        </div>
-      ) : null}
-      {open && node.branches?.length ? (
-        <div className="branch-grid">
-          {node.branches.map((branch) => (
-            <section key={branch.id} className="branch-column">
-              <div className="branch-label">{branch.label ?? branch.kind ?? branch.id}</div>
-              <div className="stack">
-                {branch.children?.map((child) => (
-                  <WorkflowCanvas key={child.id} node={child} selectedId={selectedId} onSelect={onSelect} />
-                ))}
-              </div>
-            </section>
-          ))}
-        </div>
-      ) : null}
+    <div className="flow-pane">
+      <ReactFlow
+        nodes={graph.nodes}
+        edges={graph.edges}
+        nodeTypes={nodeTypes}
+        edgeTypes={edgeTypes}
+        nodesDraggable={false}
+        nodesConnectable={false}
+        edgesFocusable={false}
+        nodesFocusable={false}
+        edgesReconnectable={false}
+        elementsSelectable
+        deleteKeyCode={null}
+        fitView
+        fitViewOptions={{ padding: 0.18 }}
+        minZoom={0.45}
+        maxZoom={1.4}
+        onNodeClick={(_, flowNode) => {
+          if (!flowNode.data.ghost) {
+            onSelect(flowNode.data.uiNode.id);
+          }
+        }}
+      >
+        <Background color="#c9d8d5" gap={22} size={1} />
+        <Controls showInteractive={false} />
+        <MiniMap
+          pannable
+          zoomable
+          nodeColor={(miniNode) => (miniNode.id === selectedId ? "#4c9b94" : "#bfd3ce")}
+          maskColor="rgba(245, 247, 244, 0.62)"
+        />
+      </ReactFlow>
     </div>
   );
 }
@@ -272,11 +322,11 @@ function NodeCard({
 }: {
   node: UINode;
   selectedId: string;
-  onSelect: (id: string) => void;
+  onSelect?: (id: string) => void;
 }) {
   const selected = node.id === selectedId;
   return (
-    <article className={selected ? "node-card selected" : "node-card"} onClick={() => onSelect(node.id)}>
+    <article className={selected ? "node-card selected" : "node-card"} onClick={() => onSelect?.(node.id)}>
       <div className="node-head">
         <div>
           <div className="node-label">{node.label ?? node.id}</div>
@@ -291,6 +341,54 @@ function NodeCard({
         </div>
       </div>
     </article>
+  );
+}
+
+function WorkflowFlowNode({ data, selected }: NodeProps<WorkflowFlowNode>) {
+  if (data.ghost) {
+    return (
+      <div className="branch-ghost">
+        <Handle type="target" position={Position.Top} />
+        <span>{data.branchLabel ?? "Empty branch"}</span>
+      </div>
+    );
+  }
+
+  return (
+    <div className="flow-node-shell">
+      <Handle type="target" position={Position.Top} />
+      <NodeCard node={data.uiNode} selectedId={selected ? data.uiNode.id : ""} />
+      <Handle type="source" position={Position.Bottom} />
+    </div>
+  );
+}
+
+function WorkflowFlowEdge(props: EdgeProps<WorkflowFlowEdge>) {
+  const [edgePath, labelX, labelY] = getBezierPath({
+    sourceX: props.sourceX,
+    sourceY: props.sourceY,
+    sourcePosition: props.sourcePosition,
+    targetX: props.targetX,
+    targetY: props.targetY,
+    targetPosition: props.targetPosition,
+  });
+
+  return (
+    <>
+      <BaseEdge path={edgePath} markerEnd={props.markerEnd} style={props.style} />
+      {props.label ? (
+        <EdgeLabelRenderer>
+          <div
+            className="edge-label"
+            style={{
+              transform: `translate(-50%, -50%) translate(${labelX}px,${labelY}px)`,
+            }}
+          >
+            {props.label}
+          </div>
+        </EdgeLabelRenderer>
+      ) : null}
+    </>
   );
 }
 
@@ -423,6 +521,182 @@ function flattenNodes(node: UINode): UINode[] {
     }
   }
   return nodes;
+}
+
+function buildFlowGraph(root: UINode, selectedId: string): { nodes: WorkflowFlowNode[]; edges: WorkflowFlowEdge[] } {
+  const nodes: WorkflowFlowNode[] = [];
+  const edges: WorkflowFlowEdge[] = [];
+  const measure = measureNode(root);
+  placeNode(root, 32, 32, measure.width, selectedId, nodes, edges);
+  return { nodes, edges };
+}
+
+function measureNode(node: UINode): Measure {
+  if (node.collapsed) {
+    return { width: NODE_WIDTH, height: NODE_HEIGHT };
+  }
+
+  const children = node.children ?? [];
+  const branches = node.branches ?? [];
+  if (branches.length > 0) {
+    const branchMeasures = branches.map((branch) => measureSequence(branch.children ?? []));
+    const width = Math.max(
+      NODE_WIDTH,
+      branchMeasures.reduce((total, branch, index) => total + branch.width + (index > 0 ? GAP_X : 0), 0),
+    );
+    return {
+      width,
+      height: NODE_HEIGHT + GAP_Y + Math.max(...branchMeasures.map((branch) => branch.height), NODE_HEIGHT),
+    };
+  }
+
+  if (children.length > 0) {
+    const sequence = measureSequence(children);
+    return {
+      width: Math.max(NODE_WIDTH, sequence.width),
+      height: NODE_HEIGHT + GAP_Y + sequence.height,
+    };
+  }
+
+  return { width: NODE_WIDTH, height: NODE_HEIGHT };
+}
+
+function measureSequence(nodes: UINode[]): Measure {
+  if (nodes.length === 0) {
+    return { width: NODE_WIDTH, height: NODE_HEIGHT * 0.72 };
+  }
+  const measures = nodes.map(measureNode);
+  return {
+    width: Math.max(NODE_WIDTH, ...measures.map((measure) => measure.width)),
+    height: measures.reduce((total, measure, index) => total + measure.height + (index > 0 ? GAP_Y : 0), 0),
+  };
+}
+
+function placeNode(
+  node: UINode,
+  x: number,
+  y: number,
+  width: number,
+  selectedId: string,
+  nodes: WorkflowFlowNode[],
+  edges: WorkflowFlowEdge[],
+) {
+  const measured = measureNode(node);
+  const nodeX = x + (width - NODE_WIDTH) / 2;
+  nodes.push({
+    id: node.id,
+    type: "workflow",
+    position: { x: nodeX, y },
+    data: { uiNode: node },
+    selected: node.id === selectedId,
+    width: NODE_WIDTH,
+    height: NODE_HEIGHT,
+  });
+
+  if (node.collapsed) {
+    return measured;
+  }
+
+  const branches = node.branches ?? [];
+  if (branches.length > 0) {
+    placeBranches(node, x, y + NODE_HEIGHT + GAP_Y, measured.width, selectedId, nodes, edges);
+    return measured;
+  }
+
+  const children = node.children ?? [];
+  if (children.length > 0) {
+    placeSequence(children, x, y + NODE_HEIGHT + GAP_Y, measured.width, selectedId, nodes, edges, node.id);
+  }
+
+  return measured;
+}
+
+function placeSequence(
+  sequence: UINode[],
+  x: number,
+  y: number,
+  width: number,
+  selectedId: string,
+  nodes: WorkflowFlowNode[],
+  edges: WorkflowFlowEdge[],
+  incomingId?: string,
+  incomingLabel?: string,
+) {
+  let cursorY = y;
+  let previousId = incomingId;
+
+  sequence.forEach((child, index) => {
+    const childMeasure = measureNode(child);
+    placeNode(child, x + (width - childMeasure.width) / 2, cursorY, childMeasure.width, selectedId, nodes, edges);
+    if (previousId) {
+      edges.push(makeEdge(previousId, child.id, index === 0 ? incomingLabel : undefined));
+    }
+    previousId = child.id;
+    cursorY += childMeasure.height + GAP_Y;
+  });
+}
+
+function placeBranches(
+  node: UINode,
+  x: number,
+  y: number,
+  width: number,
+  selectedId: string,
+  nodes: WorkflowFlowNode[],
+  edges: WorkflowFlowEdge[],
+) {
+  const branches = node.branches ?? [];
+  const measures = branches.map((branch) => measureSequence(branch.children ?? []));
+  const totalWidth = measures.reduce((total, measure, index) => total + measure.width + (index > 0 ? GAP_X : 0), 0);
+  let cursorX = x + (width - totalWidth) / 2;
+
+  branches.forEach((branch, index) => {
+    const branchMeasure = measures[index];
+    const branchLabel = branch.label ?? branch.kind ?? branch.id;
+    if (branch.children?.length) {
+      placeSequence(branch.children, cursorX, y, branchMeasure.width, selectedId, nodes, edges, node.id, branchLabel);
+    } else {
+      const ghostId = `${node.id}::${branch.id}`;
+      nodes.push({
+        id: ghostId,
+        type: "workflow",
+        position: { x: cursorX + (branchMeasure.width - NODE_WIDTH) / 2, y },
+        data: {
+          ghost: true,
+          branchLabel,
+          uiNode: {
+            id: ghostId,
+            kind: "branch",
+            label: "No steps",
+          },
+        },
+        width: NODE_WIDTH,
+        height: NODE_HEIGHT,
+      });
+      edges.push(makeEdge(node.id, ghostId, branchLabel));
+    }
+    cursorX += branchMeasure.width + GAP_X;
+  });
+}
+
+function makeEdge(source: string, target: string, label?: string): WorkflowFlowEdge {
+  return {
+    id: `${source}->${target}`,
+    type: "workflow",
+    source,
+    target,
+    label,
+    markerEnd: {
+      type: MarkerType.ArrowClosed,
+      width: 16,
+      height: 16,
+      color: "#4c9b94",
+    },
+    style: {
+      stroke: "#4c9b94",
+      strokeWidth: 1.8,
+    },
+  };
 }
 
 function updateNode(document: UIDocument, id: string, updater: (node: UINode) => UINode): UIDocument {
