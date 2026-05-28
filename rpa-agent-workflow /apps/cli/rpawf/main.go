@@ -5,9 +5,11 @@ import (
 	"fmt"
 	"os"
 
-	"rpa-agent-workflow/contracts/block"
-	"rpa-agent-workflow/compiler/go/compiler"
 	codegenpython "rpa-agent-workflow/compiler/go/codegen/python"
+	"rpa-agent-workflow/compiler/go/compiler"
+	"rpa-agent-workflow/compiler/go/schema"
+	"rpa-agent-workflow/compiler/go/transform"
+	"rpa-agent-workflow/contracts/block"
 )
 
 func main() {
@@ -33,13 +35,28 @@ func main() {
 			os.Exit(1)
 		}
 		fmt.Print(src)
+	case "project-ui":
+		if len(args) > 1 && args[1] == "--help" {
+			printUsage()
+			return
+		}
+		if len(args) < 2 {
+			printUsage()
+			return
+		}
+		src, err := projectUIFile(args[1])
+		if err != nil {
+			fmt.Fprintln(os.Stderr, err)
+			os.Exit(1)
+		}
+		fmt.Print(src)
 	default:
 		printUsage()
 	}
 }
 
 func printUsage() {
-	fmt.Println("Usage: rpawf <compile|run> [--help]")
+	fmt.Println("Usage: rpawf <compile|run|project-ui> [--help]")
 }
 
 func compileFile(astPath, blockPath string) (string, error) {
@@ -66,6 +83,26 @@ func compileFile(astPath, blockPath string) (string, error) {
 		return "", err
 	}
 	return src, nil
+}
+
+func projectUIFile(astPath string) (string, error) {
+	astBytes, err := os.ReadFile(astPath)
+	if err != nil {
+		return "", err
+	}
+	if err := schema.ValidateAstBytes(astBytes); err != nil {
+		return "", err
+	}
+	workflow, err := schema.LoadAst(astPath)
+	if err != nil {
+		return "", err
+	}
+	doc := transform.ProjectWorkflow(*workflow)
+	out, err := json.MarshalIndent(doc, "", "  ")
+	if err != nil {
+		return "", err
+	}
+	return string(out) + "\n", nil
 }
 
 func decodeBlocks(data []byte) (map[string]block.Definition, error) {

@@ -8,7 +8,12 @@ import (
 
 func TestSchemaFilesExist(t *testing.T) {
 	base := findSchemaDir(t)
-	for _, path := range []string{filepath.Join(base, "ast.schema.json"), filepath.Join(base, "block.schema.json")} {
+	for _, path := range []string{
+		filepath.Join(base, "ast.schema.json"),
+		filepath.Join(base, "block.schema.json"),
+		filepath.Join(base, "ui-node.schema.json"),
+		filepath.Join(base, "edit-operation.schema.json"),
+	} {
 		if _, err := os.Stat(path); err != nil {
 			t.Fatal(err)
 		}

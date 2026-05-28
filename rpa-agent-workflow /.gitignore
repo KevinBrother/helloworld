@@ -1,4 +1,6 @@
 output/
+node_modules/
+apps/web/dist/
 runtimes/python/.venv/
 runtimes/python/*.egg-info/
 __pycache__/

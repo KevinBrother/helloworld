@@ -1,0 +1,101 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://example.com/rpa-agent-workflow/ui-node.schema.json",
+  "title": "UI Node Document",
+  "type": "object",
+  "required": ["schemaVersion", "workflowId", "root"],
+  "properties": {
+    "schemaVersion": { "type": "string" },
+    "workflowId": { "type": "string" },
+    "root": { "$ref": "#/$defs/node" },
+    "nodes": { "type": "array", "items": { "$ref": "#/$defs/node" } },
+    "metadata": { "type": "object" }
+  },
+  "additionalProperties": true,
+  "$defs": {
+    "node": {
+      "type": "object",
+      "required": ["id", "kind"],
+      "properties": {
+        "id": { "type": "string" },
+        "kind": { "type": "string" },
+        "label": { "type": "string" },
+        "path": { "type": "string" },
+        "children": { "type": "array", "items": { "$ref": "#/$defs/node" } },
+        "branches": { "type": "array", "items": { "$ref": "#/$defs/branch" } },
+        "ports": { "type": "array", "items": { "$ref": "#/$defs/port" } },
+        "layout": { "$ref": "#/$defs/layout" },
+        "collapsed": { "type": "boolean" },
+        "editable": { "type": "boolean" },
+        "operations": { "type": "array", "items": { "$ref": "#/$defs/operation" } },
+        "inspector": { "type": "array", "items": { "$ref": "#/$defs/inspectorField" } },
+        "validationSummary": { "$ref": "#/$defs/validationSummary" },
+        "metadata": { "type": "object" }
+      },
+      "additionalProperties": true
+    },
+    "branch": {
+      "type": "object",
+      "required": ["id"],
+      "properties": {
+        "id": { "type": "string" },
+        "label": { "type": "string" },
+        "kind": { "type": "string" },
+        "children": { "type": "array", "items": { "$ref": "#/$defs/node" } }
+      },
+      "additionalProperties": true
+    },
+    "port": {
+      "type": "object",
+      "required": ["name"],
+      "properties": {
+        "name": { "type": "string" },
+        "kind": { "type": "string" },
+        "role": { "type": "string" }
+      },
+      "additionalProperties": true
+    },
+    "layout": {
+      "type": "object",
+      "properties": {
+        "direction": { "type": "string" },
+        "x": { "type": "number" },
+        "y": { "type": "number" },
+        "width": { "type": "number" },
+        "height": { "type": "number" },
+        "lane": { "type": "integer" }
+      },
+      "additionalProperties": true
+    },
+    "operation": {
+      "type": "object",
+      "required": ["type"],
+      "properties": {
+        "type": { "type": "string" },
+        "label": { "type": "string" },
+        "enabled": { "type": "boolean" }
+      },
+      "additionalProperties": true
+    },
+    "inspectorField": {
+      "type": "object",
+      "required": ["path"],
+      "properties": {
+        "path": { "type": "string" },
+        "label": { "type": "string" },
+        "control": { "type": "string" },
+        "value": {},
+        "readonly": { "type": "boolean" }
+      },
+      "additionalProperties": true
+    },
+    "validationSummary": {
+      "type": "object",
+      "properties": {
+        "errors": { "type": "integer" },
+        "warnings": { "type": "integer" }
+      },
+      "additionalProperties": true
+    }
+  }
+}

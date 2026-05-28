@@ -1,0 +1,26 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://example.com/rpa-agent-workflow/edit-operation.schema.json",
+  "title": "Edit Operation",
+  "type": "object",
+  "required": ["schemaVersion", "operationId", "type"],
+  "properties": {
+    "schemaVersion": { "type": "string" },
+    "operationId": { "type": "string" },
+    "type": { "type": "string" },
+    "targetNodeId": { "type": "string" },
+    "path": { "type": "string" },
+    "payload": { "type": "object" },
+    "actor": {
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "name": { "type": "string" },
+        "kind": { "type": "string" }
+      },
+      "additionalProperties": true
+    },
+    "metadata": { "type": "object" }
+  },
+  "additionalProperties": true
+}
