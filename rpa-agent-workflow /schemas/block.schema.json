@@ -21,10 +21,72 @@
       },
       "additionalProperties": true
     },
-    "inputs": { "type": "array" },
-    "outputs": { "type": "array" },
-    "config": { "type": "array" },
+    "display": {
+      "type": "object",
+      "properties": {
+        "label": { "type": "string" },
+        "icon": { "type": "string" },
+        "color": { "type": "string" }
+      },
+      "additionalProperties": true
+    },
+    "description": { "type": "string" },
+    "inputs": { "type": "array", "items": { "$ref": "#/$defs/port" } },
+    "outputs": { "type": "array", "items": { "$ref": "#/$defs/port" } },
+    "config": { "type": "array", "items": { "$ref": "#/$defs/port" } },
+    "permissions": { "type": "array", "items": { "type": "string" } },
+    "sideEffects": { "type": "array", "items": { "type": "string" } },
+    "errors": { "type": "array", "items": { "$ref": "#/$defs/errorSpec" } },
+    "examples": { "type": "array", "items": { "$ref": "#/$defs/example" } },
+    "compatibility": { "$ref": "#/$defs/compatibility" },
     "metadata": { "type": "object" }
   },
-  "additionalProperties": true
+  "additionalProperties": true,
+  "$defs": {
+    "type": {
+      "type": "object",
+      "properties": {
+        "name": { "type": "string" },
+        "optional": { "type": "boolean" },
+        "nullable": { "type": "boolean" }
+      },
+      "required": ["name"],
+      "additionalProperties": true
+    },
+    "port": {
+      "type": "object",
+      "required": ["name", "type"],
+      "properties": {
+        "name": { "type": "string" },
+        "type": { "$ref": "#/$defs/type" }
+      },
+      "additionalProperties": true
+    },
+    "errorSpec": {
+      "type": "object",
+      "required": ["code"],
+      "properties": {
+        "code": { "type": "string" },
+        "description": { "type": "string" }
+      },
+      "additionalProperties": true
+    },
+    "example": {
+      "type": "object",
+      "properties": {
+        "name": { "type": "string" },
+        "input": { "type": "string" },
+        "output": { "type": "string" }
+      },
+      "additionalProperties": true
+    },
+    "compatibility": {
+      "type": "object",
+      "properties": {
+        "minVersion": { "type": "string" },
+        "maxVersion": { "type": "string" }
+      },
+      "additionalProperties": true
+    }
+  }
 }

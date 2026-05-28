@@ -1,0 +1,11 @@
+{
+  "schemaVersion": "1.0.0",
+  "workflow": {
+    "id": "invalid_unknown_block"
+  },
+  "body": {
+    "id": "root",
+    "kind": "callBlock",
+    "block": "missing.block"
+  }
+}

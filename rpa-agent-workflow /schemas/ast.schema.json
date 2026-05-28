@@ -16,12 +16,149 @@
       },
       "additionalProperties": true
     },
-    "inputs": { "type": "array" },
-    "outputs": { "type": "array" },
-    "variables": { "type": "array" },
-    "body": {},
-    "policies": { "type": "object" },
+    "inputs": { "type": "array", "items": { "$ref": "#/$defs/port" } },
+    "outputs": { "type": "array", "items": { "$ref": "#/$defs/port" } },
+    "variables": { "type": "array", "items": { "$ref": "#/$defs/variable" } },
+    "workflows": { "type": "array", "items": { "$ref": "#/$defs/subWorkflow" } },
+    "body": { "$ref": "#/$defs/statement" },
+    "policies": { "$ref": "#/$defs/policies" },
     "metadata": { "type": "object" }
   },
-  "additionalProperties": true
+  "additionalProperties": true,
+  "$defs": {
+    "type": {
+      "type": "object",
+      "properties": {
+        "name": { "type": "string" },
+        "optional": { "type": "boolean" },
+        "nullable": { "type": "boolean" }
+      },
+      "required": ["name"],
+      "additionalProperties": true
+    },
+    "port": {
+      "type": "object",
+      "required": ["name", "type"],
+      "properties": {
+        "name": { "type": "string" },
+        "type": { "$ref": "#/$defs/type" }
+      },
+      "additionalProperties": true
+    },
+    "variable": {
+      "type": "object",
+      "required": ["name", "type"],
+      "properties": {
+        "name": { "type": "string" },
+        "type": { "$ref": "#/$defs/type" },
+        "scope": { "type": "string" },
+        "mutable": { "type": "boolean" }
+      },
+      "additionalProperties": true
+    },
+    "expression": {
+      "type": "object",
+      "required": ["kind"],
+      "properties": {
+        "kind": { "type": "string" },
+        "value": {},
+        "ref": { "type": "string" },
+        "name": { "type": "string" },
+        "op": { "type": "string" },
+        "left": { "$ref": "#/$defs/expression" },
+        "right": { "$ref": "#/$defs/expression" },
+        "args": { "type": "array", "items": { "$ref": "#/$defs/expression" } },
+        "items": { "type": "array", "items": { "$ref": "#/$defs/expression" } },
+        "fields": { "type": "object", "additionalProperties": { "$ref": "#/$defs/expression" } },
+        "selector": { "type": "string" }
+      },
+      "additionalProperties": true
+    },
+    "statement": {
+      "type": "object",
+      "required": ["id", "kind"],
+      "properties": {
+        "id": { "type": "string" },
+        "kind": { "type": "string" },
+        "block": { "type": "string" },
+        "workflow": { "type": "string" },
+        "inputs": { "type": "object", "additionalProperties": { "$ref": "#/$defs/expression" } },
+        "outputs": { "type": "object", "additionalProperties": { "$ref": "#/$defs/expression" } },
+        "target": { "type": "string" },
+        "value": { "$ref": "#/$defs/expression" },
+        "condition": { "$ref": "#/$defs/expression" },
+        "iterable": { "$ref": "#/$defs/expression" },
+        "itemVar": { "type": "string" },
+        "statements": { "type": "array", "items": { "$ref": "#/$defs/statement" } },
+        "then": { "type": "array", "items": { "$ref": "#/$defs/statement" } },
+        "else": { "type": "array", "items": { "$ref": "#/$defs/statement" } },
+        "branches": { "type": "array", "items": { "$ref": "#/$defs/branch" } },
+        "catches": { "type": "array", "items": { "$ref": "#/$defs/catchClause" } },
+        "finally": { "type": "array", "items": { "$ref": "#/$defs/statement" } },
+        "loopKind": { "type": "string" },
+        "join": { "$ref": "#/$defs/parallelJoin" },
+        "returns": { "type": "object", "additionalProperties": { "$ref": "#/$defs/expression" } },
+        "metadata": { "type": "object" }
+      },
+      "additionalProperties": true
+    },
+    "branch": {
+      "type": "object",
+      "required": ["id"],
+      "properties": {
+        "id": { "type": "string" },
+        "body": { "type": "array", "items": { "$ref": "#/$defs/statement" } }
+      },
+      "additionalProperties": true
+    },
+    "catchClause": {
+      "type": "object",
+      "properties": {
+        "pattern": { "type": "string" },
+        "as": { "type": "string" },
+        "body": { "type": "array", "items": { "$ref": "#/$defs/statement" } }
+      },
+      "additionalProperties": true
+    },
+    "parallelJoin": {
+      "type": "object",
+      "required": ["strategy"],
+      "properties": {
+        "strategy": { "type": "string" },
+        "timeoutMs": { "type": "integer" },
+        "onError": { "type": "string" }
+      },
+      "additionalProperties": true
+    },
+    "policies": {
+      "type": "object",
+      "properties": {
+        "timeoutMs": { "type": "integer" },
+        "onError": { "type": "string" },
+        "retry": {
+          "type": "object",
+          "properties": {
+            "maxAttempts": { "type": "integer" },
+            "backoffMs": { "type": "integer" }
+          },
+          "additionalProperties": true
+        }
+      },
+      "additionalProperties": true
+    },
+    "subWorkflow": {
+      "type": "object",
+      "required": ["id", "body"],
+      "properties": {
+        "id": { "type": "string" },
+        "inputs": { "type": "array", "items": { "$ref": "#/$defs/port" } },
+        "outputs": { "type": "array", "items": { "$ref": "#/$defs/port" } },
+        "variables": { "type": "array", "items": { "$ref": "#/$defs/variable" } },
+        "body": { "$ref": "#/$defs/statement" },
+        "policies": { "$ref": "#/$defs/policies" },
+        "metadata": { "type": "object" }
+      },
+      "additionalProperties": true
+    }
+  }
 }

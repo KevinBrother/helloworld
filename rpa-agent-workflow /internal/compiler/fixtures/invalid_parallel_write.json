@@ -1,0 +1,49 @@
+{
+  "schemaVersion": "1.0.0",
+  "workflow": {
+    "id": "invalid_parallel_write"
+  },
+  "variables": [
+    {
+      "name": "shared",
+      "type": {
+        "name": "string"
+      },
+      "mutable": true
+    }
+  ],
+  "body": {
+    "id": "root",
+    "kind": "parallel",
+    "branches": [
+      {
+        "id": "a",
+        "body": [
+          {
+            "id": "a_assign",
+            "kind": "assign",
+            "target": "shared",
+            "value": {
+              "kind": "literal",
+              "value": "a"
+            }
+          }
+        ]
+      },
+      {
+        "id": "b",
+        "body": [
+          {
+            "id": "b_assign",
+            "kind": "assign",
+            "target": "shared",
+            "value": {
+              "kind": "literal",
+              "value": "b"
+            }
+          }
+        ]
+      }
+    ]
+  }
+}

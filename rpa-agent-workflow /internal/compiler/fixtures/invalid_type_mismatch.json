@@ -1,0 +1,17 @@
+{
+  "schemaVersion": "1.0.0",
+  "workflow": {
+    "id": "invalid_type_mismatch"
+  },
+  "body": {
+    "id": "root",
+    "kind": "callBlock",
+    "block": "core.log",
+    "inputs": {
+      "message": {
+        "kind": "literal",
+        "value": 42
+      }
+    }
+  }
+}

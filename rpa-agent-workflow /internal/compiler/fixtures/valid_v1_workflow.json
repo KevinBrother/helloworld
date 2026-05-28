@@ -1,0 +1,56 @@
+{
+  "schemaVersion": "1.0.0",
+  "workflow": {
+    "id": "valid_v1_workflow"
+  },
+  "variables": [
+    {
+      "name": "x",
+      "type": {
+        "name": "string"
+      },
+      "mutable": true
+    }
+  ],
+  "workflows": [
+    {
+      "id": "child",
+      "body": {
+        "id": "child_return",
+        "kind": "return",
+        "returns": {}
+      }
+    }
+  ],
+  "body": {
+    "id": "root",
+    "kind": "sequence",
+    "statements": [
+      {
+        "id": "assign",
+        "kind": "assign",
+        "target": "x",
+        "value": {
+          "kind": "literal",
+          "value": "ok"
+        }
+      },
+      {
+        "id": "call_child",
+        "kind": "callWorkflow",
+        "workflow": "child",
+        "inputs": {}
+      },
+      {
+        "id": "return",
+        "kind": "return",
+        "returns": {
+          "x": {
+            "kind": "ref",
+            "ref": "var.x"
+          }
+        }
+      }
+    ]
+  }
+}

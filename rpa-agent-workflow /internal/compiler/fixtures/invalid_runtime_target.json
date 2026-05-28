@@ -1,0 +1,11 @@
+{
+  "schemaVersion": "1.0.0",
+  "workflow": {
+    "id": "invalid_runtime_target"
+  },
+  "body": {
+    "id": "root",
+    "kind": "callBlock",
+    "block": "bad.runtime"
+  }
+}
