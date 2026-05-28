@@ -1,0 +1,27 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://example.com/rpa-agent-workflow/ast.schema.json",
+  "title": "IAST",
+  "type": "object",
+  "required": ["schemaVersion", "workflow", "body"],
+  "properties": {
+    "schemaVersion": { "type": "string" },
+    "workflow": {
+      "type": "object",
+      "required": ["id"],
+      "properties": {
+        "id": { "type": "string" },
+        "name": { "type": "string" },
+        "label": { "type": "string" }
+      },
+      "additionalProperties": true
+    },
+    "inputs": { "type": "array" },
+    "outputs": { "type": "array" },
+    "variables": { "type": "array" },
+    "body": {},
+    "policies": { "type": "object" },
+    "metadata": { "type": "object" }
+  },
+  "additionalProperties": true
+}

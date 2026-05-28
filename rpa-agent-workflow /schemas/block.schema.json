@@ -1,0 +1,30 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://example.com/rpa-agent-workflow/block.schema.json",
+  "title": "IBlock",
+  "type": "object",
+  "required": ["schemaVersion", "id", "namespace", "name", "version", "runtime"],
+  "properties": {
+    "schemaVersion": { "type": "string" },
+    "id": { "type": "string" },
+    "namespace": { "type": "string" },
+    "name": { "type": "string" },
+    "version": { "type": "string" },
+    "runtime": {
+      "type": "object",
+      "required": ["target", "module", "callable", "mode"],
+      "properties": {
+        "target": { "type": "string" },
+        "module": { "type": "string" },
+        "callable": { "type": "string" },
+        "mode": { "type": "string" }
+      },
+      "additionalProperties": true
+    },
+    "inputs": { "type": "array" },
+    "outputs": { "type": "array" },
+    "config": { "type": "array" },
+    "metadata": { "type": "object" }
+  },
+  "additionalProperties": true
+}

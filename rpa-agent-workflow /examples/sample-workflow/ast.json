@@ -1,0 +1,56 @@
+{
+  "schemaVersion": "1.0.0",
+  "workflow": {
+    "id": "sample_workflow",
+    "name": "Sample Workflow"
+  },
+  "body": {
+    "id": "root",
+    "kind": "sequence",
+    "statements": [
+      {
+        "id": "start_log",
+        "kind": "callBlock",
+        "block": "core.log",
+        "inputs": {
+          "message": {
+            "kind": "literal",
+            "value": "starting sample workflow"
+          }
+        }
+      },
+      {
+        "id": "parallel_system_info",
+        "kind": "parallel",
+        "branches": [
+          {
+            "id": "os_branch",
+            "body": [
+              {
+                "id": "get_os_info",
+                "kind": "callBlock",
+                "block": "system.get_os_info"
+              }
+            ]
+          },
+          {
+            "id": "log_branch",
+            "body": [
+              {
+                "id": "parallel_log",
+                "kind": "callBlock",
+                "block": "core.log",
+                "inputs": {
+                  "message": {
+                    "kind": "literal",
+                    "value": "parallel branch executed"
+                  }
+                }
+              }
+            ]
+          }
+        ]
+      }
+    ]
+  }
+}
