@@ -1,0 +1,202 @@
+package executor
+
+import (
+	"context"
+	"errors"
+	"fmt"
+	"reflect"
+
+	"rpa-agent-workflow/contracts/ast"
+)
+
+func RunWorkflow(ctx context.Context, workflow ast.Workflow, opts Options) (Result, error) {
+	if workflow.Workflow.ID == "" || workflow.Body.ID == "" || workflow.Body.Kind == "" {
+		return Result{}, &RuntimeError{
+			Phase:      PhaseLoad,
+			WorkflowID: workflow.Workflow.ID,
+			Cause:      errors.New("workflow body is incomplete"),
+		}
+	}
+
+	if err := runtimeContextError(ctx, workflow.Workflow.ID, ast.Statement{}); err != nil {
+		return Result{}, err
+	}
+
+	st := newState(workflow, opts)
+	st.emit(Event{
+		Name:       "workflow.start",
+		WorkflowID: workflow.Workflow.ID,
+	})
+
+	err := st.runStatement(ctx, workflow.Body)
+	if err != nil {
+		var signal returnSignal
+		if errors.As(err, &signal) {
+			st.emit(Event{
+				Name:       "workflow.end",
+				WorkflowID: workflow.Workflow.ID,
+			})
+			return Result{
+				Returns:   signal.values,
+				Variables: st.variables,
+				Events:    st.events,
+			}, nil
+		}
+		st.emit(Event{
+			Name:       "workflow.end",
+			WorkflowID: workflow.Workflow.ID,
+		})
+		return Result{}, err
+	}
+
+	st.emit(Event{
+		Name:       "workflow.end",
+		WorkflowID: workflow.Workflow.ID,
+	})
+	return Result{
+		Returns:   map[string]any{},
+		Variables: st.variables,
+		Events:    st.events,
+	}, nil
+}
+
+func (s *state) runStatement(ctx context.Context, stmt ast.Statement) error {
+	if err := runtimeContextError(ctx, s.currentWorkflowID(), stmt); err != nil {
+		return err
+	}
+
+	s.emit(Event{
+		Name:          "statement.start",
+		WorkflowID:    s.currentWorkflowID(),
+		StatementID:   stmt.ID,
+		StatementKind: stmt.Kind,
+	})
+	defer s.emit(Event{
+		Name:          "statement.end",
+		WorkflowID:    s.currentWorkflowID(),
+		StatementID:   stmt.ID,
+		StatementKind: stmt.Kind,
+	})
+
+	switch stmt.Kind {
+	case "sequence":
+		return s.runStatements(ctx, stmt.Statements)
+	case "assign":
+		value, err := s.evalExpression(stmt.Value)
+		if err != nil {
+			return err
+		}
+		s.setVariable(stmt.Target, value)
+		return nil
+	case "if":
+		condition, err := s.evalExpression(stmt.Condition)
+		if err != nil {
+			return err
+		}
+		var branch []ast.Statement
+		if isTruthy(condition) {
+			branch = stmt.Then
+		} else {
+			branch = stmt.Else
+		}
+		return s.runStatements(ctx, branch)
+	case "parallel":
+		return s.runParallel(ctx, stmt)
+	case "loop":
+		return s.runLoop(ctx, stmt)
+	case "callBlock":
+		return s.runCallBlock(ctx, stmt)
+	case "callWorkflow":
+		return s.runCallWorkflow(ctx, stmt)
+	case "try":
+		return s.runTry(ctx, stmt)
+	case "return":
+		values := make(map[string]any, len(stmt.Returns))
+		for name, expr := range stmt.Returns {
+			value, err := s.evalExpression(&expr)
+			if err != nil {
+				return err
+			}
+			values[name] = value
+		}
+		return returnSignal{values: values}
+	default:
+		return &RuntimeError{
+			Phase:         PhaseExecute,
+			WorkflowID:    s.currentWorkflowID(),
+			StatementID:   stmt.ID,
+			StatementKind: stmt.Kind,
+			Cause:         fmt.Errorf("unsupported statement kind %q", stmt.Kind),
+		}
+	}
+}
+
+func runtimeContextError(ctx context.Context, workflowID string, stmt ast.Statement) error {
+	if ctx == nil || ctx.Err() == nil {
+		return nil
+	}
+	return &RuntimeError{
+		Phase:         PhaseExecute,
+		WorkflowID:    workflowID,
+		StatementID:   stmt.ID,
+		StatementKind: stmt.Kind,
+		Cause:         ctx.Err(),
+	}
+}
+
+func isTruthy(value any) bool {
+	if value == nil {
+		return false
+	}
+
+	switch typed := value.(type) {
+	case bool:
+		return typed
+	case string:
+		return typed != ""
+	case int:
+		return typed != 0
+	case int8:
+		return typed != 0
+	case int16:
+		return typed != 0
+	case int32:
+		return typed != 0
+	case int64:
+		return typed != 0
+	case uint:
+		return typed != 0
+	case uint8:
+		return typed != 0
+	case uint16:
+		return typed != 0
+	case uint32:
+		return typed != 0
+	case uint64:
+		return typed != 0
+	case uintptr:
+		return typed != 0
+	case float32:
+		return typed != 0
+	case float64:
+		return typed != 0
+	}
+
+	rv := reflect.ValueOf(value)
+	switch rv.Kind() {
+	case reflect.Bool:
+		return rv.Bool()
+	case reflect.Int, reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int64:
+		return rv.Int() != 0
+	case reflect.Uint, reflect.Uint8, reflect.Uint16, reflect.Uint32, reflect.Uint64, reflect.Uintptr:
+		return rv.Uint() != 0
+	case reflect.Float32, reflect.Float64:
+		return rv.Float() != 0
+	case reflect.Array, reflect.Map, reflect.Slice, reflect.String:
+		return rv.Len() > 0
+	case reflect.Interface, reflect.Pointer:
+		return !rv.IsNil()
+	default:
+		return true
+	}
+}
