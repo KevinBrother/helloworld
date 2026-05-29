@@ -54,7 +54,7 @@ func (s *state) runParallel(ctx context.Context, stmt ast.Statement) error {
 		})
 
 		go func(index int, branch ast.Branch) {
-			branchState := s.cloneForParallel()
+			branchState := s.cloneForParallel(branch.ID)
 			err := branchState.runStatements(branchCtx, branch.Body)
 			if err != nil && shouldCancelParallel(err) {
 				once.Do(cancel)

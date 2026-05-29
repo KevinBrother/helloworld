@@ -62,7 +62,7 @@ func RunWorkflow(ctx context.Context, workflow ast.Workflow, opts Options) (Resu
 
 func (s *state) runStatement(ctx context.Context, stmt ast.Statement) error {
 	if err := runtimeContextError(ctx, s.currentWorkflowID(), stmt); err != nil {
-		return err
+		return s.statementError(ctx, stmt, err)
 	}
 
 	s.emit(Event{
@@ -78,6 +78,25 @@ func (s *state) runStatement(ctx context.Context, stmt ast.Statement) error {
 		StatementKind: stmt.Kind,
 	})
 
+	if err := s.beforeStatement(ctx, stmt); err != nil {
+		return err
+	}
+
+	err := s.runStatementBody(ctx, stmt)
+	if err != nil {
+		var signal returnSignal
+		if errors.As(err, &signal) {
+			if hookErr := s.afterStatement(ctx, stmt); hookErr != nil {
+				return hookErr
+			}
+			return err
+		}
+		return s.statementError(ctx, stmt, err)
+	}
+	return s.afterStatement(ctx, stmt)
+}
+
+func (s *state) runStatementBody(ctx context.Context, stmt ast.Statement) error {
 	switch stmt.Kind {
 	case "sequence":
 		return s.runStatements(ctx, stmt.Statements)

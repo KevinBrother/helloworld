@@ -1,6 +1,7 @@
 package executor
 
 import (
+	"context"
 	"fmt"
 	"strings"
 
@@ -28,6 +29,8 @@ type state struct {
 	blocks    map[string]block.Definition
 	host      Host
 	recorder  Recorder
+	debugHook DebugHook
+	branchID  string
 	events    []Event
 }
 
@@ -53,6 +56,7 @@ func newState(workflow ast.Workflow, opts Options) *state {
 		blocks:    blocks,
 		host:      host,
 		recorder:  recorder,
+		debugHook: opts.DebugHook,
 	}
 	st.pushFrame(workflow.Workflow.ID)
 	for name, value := range opts.Inputs {
@@ -73,7 +77,7 @@ func (s *state) currentFrame() *frame {
 	return &s.frames[len(s.frames)-1]
 }
 
-func (s *state) cloneForParallel() *state {
+func (s *state) cloneForParallel(branchID string) *state {
 	frames := make([]frame, len(s.frames))
 	for i, frm := range s.frames {
 		frames[i] = frame{
@@ -89,6 +93,8 @@ func (s *state) cloneForParallel() *state {
 		blocks:    s.blocks,
 		host:      s.host,
 		recorder:  nopRecorder{},
+		debugHook: s.debugHook,
+		branchID:  branchID,
 	}
 }
 
@@ -98,9 +104,24 @@ func cloneAnyMap(src map[string]any) map[string]any {
 	}
 	dst := make(map[string]any, len(src))
 	for key, value := range src {
-		dst[key] = value
+		dst[key] = cloneJSONValue(value)
 	}
 	return dst
+}
+
+func cloneJSONValue(value any) any {
+	switch typed := value.(type) {
+	case map[string]any:
+		return cloneAnyMap(typed)
+	case []any:
+		cloned := make([]any, len(typed))
+		for i := range typed {
+			cloned[i] = cloneJSONValue(typed[i])
+		}
+		return cloned
+	default:
+		return value
+	}
 }
 
 func (s *state) currentWorkflowID() string {
@@ -109,6 +130,52 @@ func (s *state) currentWorkflowID() string {
 		return s.workflow.Workflow.ID
 	}
 	return frame.workflowID
+}
+
+func (s *state) statementSnapshot(stmt ast.Statement) StatementSnapshot {
+	frames := make([]FrameSnapshot, len(s.frames))
+	for i := range s.frames {
+		frames[i] = FrameSnapshot{
+			WorkflowID: s.frames[i].workflowID,
+			Locals:     cloneAnyMap(s.frames[i].locals),
+		}
+	}
+
+	return StatementSnapshot{
+		WorkflowID:    s.currentWorkflowID(),
+		StatementID:   stmt.ID,
+		StatementKind: stmt.Kind,
+		BranchID:      s.branchID,
+		Frames:        frames,
+		Variables:     cloneAnyMap(s.variables),
+	}
+}
+
+func (s *state) beforeStatement(ctx context.Context, stmt ast.Statement) error {
+	if s.debugHook == nil {
+		return nil
+	}
+	snapshot := s.statementSnapshot(stmt)
+	return s.debugHook.BeforeStatement(ctx, snapshot)
+}
+
+func (s *state) afterStatement(ctx context.Context, stmt ast.Statement) error {
+	if s.debugHook == nil {
+		return nil
+	}
+	snapshot := s.statementSnapshot(stmt)
+	return s.debugHook.AfterStatement(ctx, snapshot)
+}
+
+func (s *state) statementError(ctx context.Context, stmt ast.Statement, err error) error {
+	if s.debugHook == nil {
+		return err
+	}
+	snapshot := s.statementSnapshot(stmt)
+	if hookErr := s.debugHook.OnError(ctx, snapshot, err); hookErr != nil {
+		return hookErr
+	}
+	return err
 }
 
 func (s *state) subworkflow(id string) (ast.SubWorkflow, bool) {
