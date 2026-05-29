@@ -78,6 +78,10 @@ func (s *Session) Snapshot() Snapshot {
 	return s.stop.Copy()
 }
 
+func (s *Session) StopVersion() uint64 {
+	return s.stopVersion()
+}
+
 func (s *Session) BeforeStatement(_ context.Context, snapshot executor.StatementSnapshot) error {
 	return s.handleStatement(snapshot, nil, false)
 }
@@ -142,6 +146,11 @@ func (s *Session) shouldStopLocked(snapshot executor.StatementSnapshot, runErr e
 		return StopReasonPause, true
 	}
 
+	if s.skipStop.valid() && s.skipStop.equals(nodeRef{workflowID: snapshot.WorkflowID, statementID: snapshot.StatementID}) && !after {
+		s.skipStop = nodeRef{}
+		return StopReasonEnd, false
+	}
+
 	if _, ok := s.breakpoints[snapshot.StatementID]; ok && !after {
 		return StopReasonBreakpoint, true
 	}
@@ -173,6 +182,7 @@ func shouldWait(reason StopReason) bool {
 }
 
 func (s *Session) updateSnapshotLocked(snapshot executor.StatementSnapshot, runErr error, reason StopReason) {
+	s.stopSeq++
 	frames := make([]FrameSnapshot, len(snapshot.Frames))
 	for i := range snapshot.Frames {
 		frames[i] = FrameSnapshot{
@@ -206,11 +216,20 @@ func (s *Session) setMode(mode runMode, reason StopReason) error {
 	defer s.mu.Unlock()
 	s.mode = mode
 	s.stop.StopReason = reason
+	if reason == StopReasonContinue() && s.stop.StatementID != "" {
+		s.skipStop = nodeRef{workflowID: s.stop.WorkflowID, statementID: s.stop.StatementID}
+	}
 	s.focus = nodeRef{workflowID: s.stop.WorkflowID, statementID: s.stop.StatementID}
 	s.focusDepth = len(s.stop.Frames)
 	s.waiting = false
 	s.cond.Broadcast()
 	return nil
+}
+
+func (s *Session) stopVersion() uint64 {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	return s.stopSeq
 }
 
 func (s *Session) indexWorkflow(workflow ast.Workflow) {
@@ -388,6 +407,9 @@ func (s *Session) sameOrShallower(snapshot executor.StatementSnapshot) bool {
 
 func (s *Session) shouldStopForNext(snapshot executor.StatementSnapshot) bool {
 	if sameFocus(s.focus, snapshot) {
+		return false
+	}
+	if s.skipStop.valid() && s.skipStop.equals(nodeRef{workflowID: snapshot.WorkflowID, statementID: snapshot.StatementID}) {
 		return false
 	}
 	if s.isWorkflowRoot(s.focus) {

@@ -22,6 +22,11 @@ func main() {
 	}
 
 	switch args[0] {
+	case "debug":
+		code := runDebugCommand(args[1:], os.Stdin, os.Stdout, os.Stderr)
+		if code != 0 {
+			os.Exit(code)
+		}
 	case "exec":
 		if len(args) > 1 && args[1] == "--help" {
 			printUsage()
@@ -73,7 +78,7 @@ func main() {
 }
 
 func printUsage() {
-	fmt.Println("Usage: rpawf <compile|run|exec|project-ui> [--help]")
+	fmt.Println("Usage: rpawf <compile|run|exec|debug|project-ui> [--help]")
 }
 
 func compileFile(astPath, blockPath string) (string, error) {

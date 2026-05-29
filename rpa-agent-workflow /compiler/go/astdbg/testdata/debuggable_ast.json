@@ -1,0 +1,138 @@
+{
+  "schemaVersion": "1.0.0",
+  "workflow": {
+    "id": "wf",
+    "name": "Debuggable Workflow"
+  },
+  "workflows": [
+    {
+      "id": "child",
+      "body": {
+        "id": "child-return",
+        "kind": "return",
+        "returns": {
+          "value": {
+            "kind": "literal",
+            "value": "child"
+          }
+        }
+      }
+    }
+  ],
+  "body": {
+    "id": "root",
+    "kind": "sequence",
+    "statements": [
+      {
+        "id": "assign-start",
+        "kind": "assign",
+        "target": "seed",
+        "value": {
+          "kind": "literal",
+          "value": "start"
+        }
+      },
+      {
+        "id": "if-branch",
+        "kind": "if",
+        "condition": {
+          "kind": "literal",
+          "value": true
+        },
+        "then": [
+          {
+            "id": "then-log",
+            "kind": "callBlock",
+            "block": "core.log"
+          }
+        ],
+        "else": [
+          {
+            "id": "else-return",
+            "kind": "return",
+            "returns": {
+              "status": {
+                "kind": "literal",
+                "value": "else"
+              }
+            }
+          }
+        ]
+      },
+      {
+        "id": "parallel-work",
+        "kind": "parallel",
+        "branches": [
+          {
+            "id": "left",
+            "body": [
+              {
+                "id": "left-call",
+                "kind": "callWorkflow",
+                "workflow": "child"
+              }
+            ]
+          },
+          {
+            "id": "right",
+            "body": [
+              {
+                "id": "right-call",
+                "kind": "callBlock",
+                "block": "core.log"
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "id": "try-work",
+        "kind": "try",
+        "statements": [
+          {
+            "id": "try-call",
+            "kind": "callBlock",
+            "block": "missing"
+          }
+        ],
+        "catches": [
+          {
+            "pattern": "*",
+            "body": [
+              {
+                "id": "catch-assign",
+                "kind": "assign",
+                "target": "caught",
+                "value": {
+                  "kind": "literal",
+                  "value": true
+                }
+              }
+            ]
+          }
+        ],
+        "finally": [
+          {
+            "id": "finally-assign",
+            "kind": "assign",
+            "target": "finally",
+            "value": {
+              "kind": "literal",
+              "value": true
+            }
+          }
+        ]
+      },
+      {
+        "id": "return-done",
+        "kind": "return",
+        "returns": {
+          "status": {
+            "kind": "literal",
+            "value": "done"
+          }
+        }
+      }
+    ]
+  }
+}

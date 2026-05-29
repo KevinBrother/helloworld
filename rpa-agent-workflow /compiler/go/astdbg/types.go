@@ -54,11 +54,13 @@ type Session struct {
 	waiting     bool
 	terminated  bool
 	pauseNext   bool
+	skipStop    nodeRef
 
-	mode  runMode
-	focus nodeRef
+	mode       runMode
+	focus      nodeRef
 	focusDepth int
-	stop  Snapshot
+	stop       Snapshot
+	stopSeq    uint64
 }
 
 type runMode int
@@ -87,6 +89,10 @@ func newNodeRef(workflowID, statementID string) nodeRef {
 
 func (r nodeRef) valid() bool {
 	return r.workflowID != "" && r.statementID != ""
+}
+
+func (r nodeRef) equals(other nodeRef) bool {
+	return r.workflowID == other.workflowID && r.statementID == other.statementID
 }
 
 func nodeKey(workflowID, statementID string) string {
