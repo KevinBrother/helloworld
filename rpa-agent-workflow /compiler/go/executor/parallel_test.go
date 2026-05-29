@@ -385,6 +385,63 @@ func TestRunWorkflowParallelBranchReturnPropagatesToWorkflow(t *testing.T) {
 	}
 }
 
+func TestRunWorkflowParallelBranchReturnWinsOverEarlierBranchError(t *testing.T) {
+	workflow := ast.Workflow{
+		SchemaVersion: "1.0.0",
+		Workflow:      ast.Metadata{ID: "parallel-return-error"},
+		Body: ast.Statement{
+			ID:   "root",
+			Kind: "sequence",
+			Statements: []ast.Statement{
+				{
+					ID:   "run-both",
+					Kind: "parallel",
+					Branches: []ast.Branch{
+						{
+							ID: "fail",
+							Body: []ast.Statement{
+								{
+									ID:     "missing-ref",
+									Kind:   "assign",
+									Target: "failed",
+									Value:  &ast.Expression{Kind: "ref", Ref: "var.missing"},
+								},
+							},
+						},
+						{
+							ID: "return",
+							Body: []ast.Statement{
+								{
+									ID:   "branch-return",
+									Kind: "return",
+									Returns: map[string]ast.Expression{
+										"value": {Kind: "literal", Value: "from-return-branch"},
+									},
+								},
+							},
+						},
+					},
+				},
+				{
+					ID:   "after-parallel",
+					Kind: "return",
+					Returns: map[string]ast.Expression{
+						"value": {Kind: "literal", Value: "after"},
+					},
+				},
+			},
+		},
+	}
+
+	result, err := RunWorkflow(context.Background(), workflow, Options{})
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if got := result.Returns["value"]; got != "from-return-branch" {
+		t.Fatalf("return value = %#v, want %q", got, "from-return-branch")
+	}
+}
+
 func parallelHostWorkflow(id string, join ast.ParallelJoin) ast.Workflow {
 	return ast.Workflow{
 		SchemaVersion: "1.0.0",

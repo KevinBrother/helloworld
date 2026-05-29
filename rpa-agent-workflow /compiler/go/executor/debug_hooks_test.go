@@ -245,19 +245,19 @@ func TestRunWorkflowCallsDebugHookOnStatementBoundaries(t *testing.T) {
 }
 
 func TestRunWorkflowDebugHookSnapshotsDeepCloneValues(t *testing.T) {
-	inputPayload := map[string]any{
+	inputPayload := typedPayload{
 		"name": "input",
-		"nested": map[string]any{
+		"nested": typedPayload{
 			"value": "input-nested",
 		},
-		"items": []any{"input-item"},
+		"items": typedItems{"input-item"},
 	}
-	assignedPayload := map[string]any{
+	assignedPayload := typedPayload{
 		"name": "assigned",
-		"nested": map[string]any{
+		"nested": typedPayload{
 			"value": "assigned-nested",
 		},
-		"items": []any{"assigned-item"},
+		"items": typedItems{"assigned-item"},
 	}
 	workflow := ast.Workflow{
 		SchemaVersion: "1.0.0",
@@ -294,23 +294,23 @@ func TestRunWorkflowDebugHookSnapshotsDeepCloneValues(t *testing.T) {
 		t.Fatalf("unexpected error: %v", err)
 	}
 
-	wantInput := map[string]any{
+	wantInput := typedPayload{
 		"name": "input",
-		"nested": map[string]any{
+		"nested": typedPayload{
 			"value": "input-nested",
 		},
-		"items": []any{"input-item"},
+		"items": typedItems{"input-item"},
 	}
 	if !reflect.DeepEqual(result.Returns["input"], wantInput) {
 		t.Fatalf("input return = %#v, want %#v", result.Returns["input"], wantInput)
 	}
 
-	wantVariable := map[string]any{
+	wantVariable := typedPayload{
 		"name": "assigned",
-		"nested": map[string]any{
+		"nested": typedPayload{
 			"value": "assigned-nested",
 		},
-		"items": []any{"assigned-item"},
+		"items": typedItems{"assigned-item"},
 	}
 	if !reflect.DeepEqual(result.Returns["variable"], wantVariable) {
 		t.Fatalf("variable return = %#v, want %#v", result.Returns["variable"], wantVariable)
@@ -402,6 +402,10 @@ func mutateDebugSnapshot(snapshot StatementSnapshot) {
 
 type deepMutatingDebugHook struct{}
 
+type typedPayload map[string]any
+
+type typedItems []any
+
 func (h deepMutatingDebugHook) BeforeStatement(_ context.Context, snapshot StatementSnapshot) error {
 	mutateNestedSnapshotValues(snapshot)
 	return nil
@@ -425,16 +429,26 @@ func mutateNestedSnapshotValues(snapshot StatementSnapshot) {
 }
 
 func mutatePayload(value any) {
-	payload, ok := value.(map[string]any)
-	if !ok {
+	payload := reflect.ValueOf(value)
+	if !payload.IsValid() || payload.Kind() != reflect.Map || payload.Type().Key().Kind() != reflect.String {
 		return
 	}
-	payload["name"] = "mutated"
-	if nested, ok := payload["nested"].(map[string]any); ok {
-		nested["value"] = "mutated"
+	payload.SetMapIndex(reflect.ValueOf("name"), reflect.ValueOf("mutated"))
+
+	nested := payload.MapIndex(reflect.ValueOf("nested"))
+	if nested.IsValid() && nested.Kind() == reflect.Interface {
+		nested = nested.Elem()
 	}
-	if items, ok := payload["items"].([]any); ok && len(items) > 0 {
-		items[0] = "mutated"
+	if nested.IsValid() && nested.Kind() == reflect.Map && nested.Type().Key().Kind() == reflect.String {
+		nested.SetMapIndex(reflect.ValueOf("value"), reflect.ValueOf("mutated"))
+	}
+
+	items := payload.MapIndex(reflect.ValueOf("items"))
+	if items.IsValid() && items.Kind() == reflect.Interface {
+		items = items.Elem()
+	}
+	if items.IsValid() && items.Kind() == reflect.Slice && items.Len() > 0 {
+		items.Index(0).Set(reflect.ValueOf("mutated"))
 	}
 }
 

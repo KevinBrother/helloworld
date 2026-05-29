@@ -3,6 +3,7 @@ package executor
 import (
 	"context"
 	"fmt"
+	"reflect"
 	"strings"
 
 	"rpa-agent-workflow/contracts/ast"
@@ -110,6 +111,9 @@ func cloneAnyMap(src map[string]any) map[string]any {
 }
 
 func cloneJSONValue(value any) any {
+	if value == nil {
+		return nil
+	}
 	switch typed := value.(type) {
 	case map[string]any:
 		return cloneAnyMap(typed)
@@ -119,6 +123,54 @@ func cloneJSONValue(value any) any {
 			cloned[i] = cloneJSONValue(typed[i])
 		}
 		return cloned
+	}
+
+	rv := reflect.ValueOf(value)
+	switch rv.Kind() {
+	case reflect.Map:
+		if rv.Type().Key().Kind() != reflect.String {
+			return value
+		}
+		cloned := reflect.MakeMapWithSize(rv.Type(), rv.Len())
+		iter := rv.MapRange()
+		for iter.Next() {
+			clonedValue := cloneJSONValue(iter.Value().Interface())
+			if clonedValue == nil {
+				cloned.SetMapIndex(iter.Key(), reflect.Zero(rv.Type().Elem()))
+				continue
+			}
+			cv := reflect.ValueOf(clonedValue)
+			if cv.Type().AssignableTo(rv.Type().Elem()) {
+				cloned.SetMapIndex(iter.Key(), cv)
+				continue
+			}
+			if cv.Type().ConvertibleTo(rv.Type().Elem()) {
+				cloned.SetMapIndex(iter.Key(), cv.Convert(rv.Type().Elem()))
+				continue
+			}
+			cloned.SetMapIndex(iter.Key(), iter.Value())
+		}
+		return cloned.Interface()
+	case reflect.Slice:
+		cloned := reflect.MakeSlice(rv.Type(), rv.Len(), rv.Len())
+		for i := 0; i < rv.Len(); i++ {
+			clonedValue := cloneJSONValue(rv.Index(i).Interface())
+			if clonedValue == nil {
+				cloned.Index(i).Set(reflect.Zero(rv.Type().Elem()))
+				continue
+			}
+			cv := reflect.ValueOf(clonedValue)
+			if cv.Type().AssignableTo(rv.Type().Elem()) {
+				cloned.Index(i).Set(cv)
+				continue
+			}
+			if cv.Type().ConvertibleTo(rv.Type().Elem()) {
+				cloned.Index(i).Set(cv.Convert(rv.Type().Elem()))
+				continue
+			}
+			cloned.Index(i).Set(rv.Index(i))
+		}
+		return cloned.Interface()
 	default:
 		return value
 	}

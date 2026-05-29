@@ -123,6 +123,8 @@ func (s *state) runParallel(ctx context.Context, stmt ast.Statement) error {
 
 func firstParallelControlError(results []branchResult, stmt ast.Statement, workflowID string) error {
 	var contextErr error
+	var nonContextErr error
+	var nonContextErrIndex = -1
 	for i := range results {
 		result := results[i]
 		if result.err == nil {
@@ -138,7 +140,13 @@ func firstParallelControlError(results []branchResult, stmt ast.Statement, workf
 			}
 			continue
 		}
-		return attachBranchError(result.err, stmt, result.id, workflowID)
+		if nonContextErr == nil {
+			nonContextErr = result.err
+			nonContextErrIndex = i
+		}
+	}
+	if nonContextErr != nil {
+		return attachBranchError(nonContextErr, stmt, results[nonContextErrIndex].id, workflowID)
 	}
 	return contextErr
 }
