@@ -5,9 +5,18 @@ import (
 	"errors"
 	"fmt"
 	"strings"
+	"sync"
+	"time"
 
 	"rpa-agent-workflow/contracts/ast"
 )
+
+type branchResult struct {
+	index int
+	id    string
+	state *state
+	err   error
+}
 
 func (s *state) runParallel(ctx context.Context, stmt ast.Statement) error {
 	if err := validateParallelJoinPolicy(stmt, s.currentWorkflowID()); err != nil {
@@ -18,6 +27,19 @@ func (s *state) runParallel(ctx context.Context, stmt ast.Statement) error {
 	if err != nil {
 		return err
 	}
+
+	branchCtx := ctx
+	var cancel context.CancelFunc = func() {}
+	if stmt.Join != nil && stmt.Join.TimeoutMs > 0 {
+		branchCtx, cancel = context.WithTimeout(ctx, time.Duration(stmt.Join.TimeoutMs)*time.Millisecond)
+	} else {
+		branchCtx, cancel = context.WithCancel(ctx)
+	}
+	defer cancel()
+
+	results := make([]branchResult, len(stmt.Branches))
+	resultCh := make(chan branchResult, len(stmt.Branches))
+	var once sync.Once
 
 	for i := range stmt.Branches {
 		branch := stmt.Branches[i]
@@ -31,17 +53,47 @@ func (s *state) runParallel(ctx context.Context, stmt ast.Statement) error {
 			},
 		})
 
-		branchState := s.cloneForParallel()
-		err := branchState.runStatements(ctx, branch.Body)
-		s.appendEvents(branchState.events)
+		go func(index int, branch ast.Branch) {
+			branchState := s.cloneForParallel()
+			err := branchState.runStatements(branchCtx, branch.Body)
+			if err != nil && shouldCancelParallel(err) {
+				once.Do(cancel)
+			}
+			resultCh <- branchResult{
+				index: index,
+				id:    branch.ID,
+				state: branchState,
+				err:   err,
+			}
+		}(i, branch)
+	}
 
-		payload := map[string]any{
-			"branchId": branch.ID,
-		}
-		if err != nil {
+	for range stmt.Branches {
+		result := <-resultCh
+		results[result.index] = result
+		if result.err != nil {
 			var signal returnSignal
-			if !errors.As(err, &signal) {
-				payload["error"] = err.Error()
+			if errors.As(result.err, &signal) {
+				continue
+			}
+			if isParallelFailFast(stmt) {
+				once.Do(cancel)
+			}
+		}
+	}
+
+	for i := range results {
+		result := results[i]
+		if result.state != nil {
+			s.appendEvents(result.state.events)
+		}
+		payload := map[string]any{
+			"branchId": result.id,
+		}
+		if result.err != nil {
+			var signal returnSignal
+			if !errors.As(result.err, &signal) {
+				payload["error"] = result.err.Error()
 			}
 		}
 		s.emit(Event{
@@ -51,16 +103,15 @@ func (s *state) runParallel(ctx context.Context, stmt ast.Statement) error {
 			StatementKind: stmt.Kind,
 			Payload:       payload,
 		})
-		if err != nil {
-			var signal returnSignal
-			if errors.As(err, &signal) {
-				return err
-			}
-			return attachBranchError(err, stmt, branch.ID, s.currentWorkflowID())
-		}
+	}
 
+	if err := firstParallelControlError(results, stmt, s.currentWorkflowID()); err != nil {
+		return err
+	}
+
+	for i := range results {
 		for name := range branchWrites[i] {
-			value, ok := branchState.variables[name]
+			value, ok := results[i].state.variables[name]
 			if ok {
 				s.variables[name] = value
 			}
@@ -70,17 +121,30 @@ func (s *state) runParallel(ctx context.Context, stmt ast.Statement) error {
 	return nil
 }
 
+func firstParallelControlError(results []branchResult, stmt ast.Statement, workflowID string) error {
+	var contextErr error
+	for i := range results {
+		result := results[i]
+		if result.err == nil {
+			continue
+		}
+		var signal returnSignal
+		if errors.As(result.err, &signal) {
+			return result.err
+		}
+		if errors.Is(result.err, context.Canceled) || errors.Is(result.err, context.DeadlineExceeded) {
+			if contextErr == nil {
+				contextErr = attachBranchError(result.err, stmt, result.id, workflowID)
+			}
+			continue
+		}
+		return attachBranchError(result.err, stmt, result.id, workflowID)
+	}
+	return contextErr
+}
+
 func validateParallelJoinPolicy(stmt ast.Statement, workflowID string) error {
 	if stmt.Join == nil || stmt.Join.Strategy == "" || stmt.Join.Strategy == "all" {
-		if stmt.Join != nil && stmt.Join.TimeoutMs > 0 {
-			return &RuntimeError{
-				Phase:         PhaseExecute,
-				WorkflowID:    workflowID,
-				StatementID:   stmt.ID,
-				StatementKind: stmt.Kind,
-				Cause:         fmt.Errorf("%w: parallel timeout is unsupported", ErrUnsupportedFeature),
-			}
-		}
 		if stmt.Join != nil && stmt.Join.OnError != "" && stmt.Join.OnError != "failFast" {
 			return &RuntimeError{
 				Phase:         PhaseExecute,
@@ -103,7 +167,10 @@ func validateParallelJoinPolicy(stmt ast.Statement, workflowID string) error {
 }
 
 func (s *state) appendEvents(events []Event) {
-	s.events = append(s.events, events...)
+	for _, event := range events {
+		s.events = append(s.events, event)
+		s.recorder.Record(event)
+	}
 }
 
 func detectParallelConflicts(stmt ast.Statement, workflowID string) ([]map[string]struct{}, error) {
@@ -187,6 +254,17 @@ func collectOutputWrites(outputs map[string]ast.Expression, writes map[string]st
 		}
 		writes[strings.TrimPrefix(expr.Ref, "var.")] = struct{}{}
 	}
+}
+
+func isParallelFailFast(stmt ast.Statement) bool {
+	return stmt.Join != nil && stmt.Join.OnError == "failFast"
+}
+
+func shouldCancelParallel(err error) bool {
+	if err == nil {
+		return false
+	}
+	return !errors.Is(err, context.Canceled) && !errors.Is(err, context.DeadlineExceeded)
 }
 
 func attachBranchError(err error, stmt ast.Statement, branchID string, workflowID string) error {

@@ -88,7 +88,7 @@ func (s *state) cloneForParallel() *state {
 		variables: cloneAnyMap(s.variables),
 		blocks:    s.blocks,
 		host:      s.host,
-		recorder:  s.recorder,
+		recorder:  nopRecorder{},
 	}
 }
 
