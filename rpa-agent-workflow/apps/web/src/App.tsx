@@ -748,6 +748,18 @@ function QuickExpressionEditor({
     setOperatorDraft(literalOperatorDraft(next));
   }, [value]);
 
+  const dirty = isQuickDraftDirty(initial, kind, kind === "number" ? numberDraft : operatorDraft);
+  const invalid =
+    kind === "number"
+      ? numberDraft.trim() === "" || !Number.isFinite(Number(numberDraft))
+      : operatorDraft.trim() === "";
+  const statusLabel = quickDraftStatus(initial, dirty);
+
+  const revertQuickValue = () => {
+    setNumberDraft(literalNumberDraft(initial));
+    setOperatorDraft(literalOperatorDraft(initial));
+  };
+
   const saveQuickValue = () => {
     if (kind === "number") {
       const numeric = Number(numberDraft);
@@ -755,6 +767,9 @@ function QuickExpressionEditor({
         return;
       }
       onApply({ kind: "literal", value: numeric });
+      return;
+    }
+    if (operatorDraft.trim() === "") {
       return;
     }
     onApply({ kind: "literal", value: operatorDraft });
@@ -773,21 +788,33 @@ function QuickExpressionEditor({
           />
         ) : (
           <select value={operatorDraft} onChange={(event) => setOperatorDraft(event.target.value)}>
+            <option value="" disabled>
+              Select
+            </option>
             <option value="+">+</option>
             <option value="-">-</option>
             <option value="*">*</option>
             <option value="/">/</option>
           </select>
         )}
-        <button className="ghost-button" onClick={saveQuickValue} disabled={kind === "number" && numberDraft.trim() === ""}>
+        <button className="ghost-button" onClick={saveQuickValue} disabled={!dirty || invalid}>
           Save
         </button>
       </div>
-      <div className="field-value current-expression">{renderExpressionSummary(initial)}</div>
-      <details className="advanced-expression">
-        <summary>Advanced expression</summary>
-        <ExpressionEditor value={field.value} onApply={onApply} />
-      </details>
+      <div className={dirty ? "quick-editor-status dirty" : "quick-editor-status"}>
+        <span>{statusLabel}</span>
+        {dirty ? (
+          <button className="text-button" onClick={revertQuickValue}>
+            Revert
+          </button>
+        ) : null}
+      </div>
+      {dirty ? null : (
+        <details className="advanced-expression">
+          <summary>Use expression mode</summary>
+          <ExpressionEditor value={field.value} onApply={onApply} />
+        </details>
+      )}
     </div>
   );
 }
@@ -1188,7 +1215,30 @@ function literalOperatorDraft(expression: Record<string, unknown>) {
   if (expression.kind === "literal" && typeof expression.value === "string" && ["+", "-", "*", "/"].includes(expression.value)) {
     return expression.value;
   }
-  return "+";
+  return "";
+}
+
+function isQuickDraftDirty(expression: Record<string, unknown>, kind: "number" | "operator", draft: string) {
+  if (expression.kind !== "literal") {
+    return draft.trim() !== "";
+  }
+  if (kind === "number") {
+    return typeof expression.value !== "number" || Number(draft) !== expression.value;
+  }
+  return draft !== expression.value;
+}
+
+function quickDraftStatus(expression: Record<string, unknown>, dirty: boolean) {
+  if (dirty) {
+    return "Unsaved changes";
+  }
+  if (expression.kind === "literal") {
+    return "Saved";
+  }
+  if (expression.kind === "ref") {
+    return "Using expression";
+  }
+  return "Saved expression";
 }
 
 function expressionHint(expression: Record<string, unknown>) {
@@ -1196,16 +1246,6 @@ function expressionHint(expression: Record<string, unknown>) {
     return expression.ref;
   }
   return "value";
-}
-
-function renderExpressionSummary(expression: Record<string, unknown>) {
-  if (expression.kind === "literal") {
-    return `Saved literal: ${String(expression.value ?? "")}`;
-  }
-  if (expression.kind === "ref") {
-    return `Currently reads ${String(expression.ref ?? "")}`;
-  }
-  return `Expression: ${String(expression.kind ?? "unknown")}`;
 }
 
 function literalInputType(expression: Record<string, unknown>): LiteralInputType {
