@@ -74,6 +74,25 @@ Returns the updated editor state and the operation that was applied:
 
 If applying, validating, or persisting the edit fails, the service returns a non-2xx response with diagnostics and leaves the in-memory AST and AST file unchanged.
 
+`POST /api/run`
+
+Executes the current server-owned AST and returns the execution result:
+
+```json
+{
+  "result": {
+    "returns": {
+      "result": 19
+    },
+    "variables": {},
+    "events": []
+  },
+  "diagnostics": []
+}
+```
+
+The first version runs the current AST with optional JSON inputs in the request body. The web UI calls it without inputs, which is intended for workflows whose required values have been configured directly in the AST inspector. Later versions can add a dedicated runtime input form for workflows that still reference `input.*`.
+
 ## Server Flow
 
 1. Decode and validate the incoming edit operation.
@@ -96,6 +115,7 @@ If applying, validating, or persisting the edit fails, the service returns a non
 7. Submit the operation to `POST /api/edit`.
 8. Replace local `ast`, `uiDocument`, and diagnostics with the response.
 9. Append the operation to the operation log only after the server accepts it.
+10. Run the current AST through `/api/run` from the toolbar and show returns, variables, and events in the inspector.
 
 ## Expression Editing
 

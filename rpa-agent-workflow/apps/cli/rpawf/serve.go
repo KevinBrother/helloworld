@@ -1,6 +1,7 @@
 package main
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
 	"io"
@@ -11,6 +12,7 @@ import (
 
 	"rpa-agent-workflow/compiler/go/compiler"
 	"rpa-agent-workflow/compiler/go/diagnostic"
+	"rpa-agent-workflow/compiler/go/executor"
 	"rpa-agent-workflow/compiler/go/schema"
 	"rpa-agent-workflow/compiler/go/transform"
 	"rpa-agent-workflow/contracts/ast"
@@ -26,6 +28,15 @@ type editorStateResponse struct {
 	UI          uinode.Document         `json:"ui"`
 	Diagnostics []diagnostic.Diagnostic `json:"diagnostics"`
 	Operation   *editoperation.Document `json:"operation,omitempty"`
+}
+
+type editorRunRequest struct {
+	Inputs map[string]any `json:"inputs,omitempty"`
+}
+
+type editorRunResponse struct {
+	Result      executor.Result         `json:"result,omitempty"`
+	Diagnostics []diagnostic.Diagnostic `json:"diagnostics"`
 }
 
 type editorServer struct {
@@ -48,6 +59,7 @@ func newEditorServerWithPath(workflow ast.Workflow, blocks map[string]block.Defi
 	mux := http.NewServeMux()
 	mux.HandleFunc("/api/workflow", server.handleWorkflow)
 	mux.HandleFunc("/api/edit", server.handleEdit)
+	mux.HandleFunc("/api/run", server.handleRun)
 	return mux
 }
 
@@ -65,6 +77,59 @@ func (s *editorServer) handleWorkflow(w http.ResponseWriter, r *http.Request) {
 		AST:         workflow,
 		UI:          transform.ProjectWorkflow(workflow),
 		Diagnostics: s.validateWorkflow(workflow),
+	})
+}
+
+func (s *editorServer) handleRun(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodPost {
+		http.Error(w, "method not allowed", http.StatusMethodNotAllowed)
+		return
+	}
+
+	var req editorRunRequest
+	if r.Body != nil && r.ContentLength != 0 {
+		if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+			respondRunDiagnostics(w, http.StatusBadRequest, diagnostic.Diagnostic{
+				Code:     "RUN_JSON_INVALID",
+				Severity: diagnostic.SeverityError,
+				Message:  fmt.Sprintf("invalid run request json: %v", err),
+				Path:     "$",
+			})
+			return
+		}
+	}
+
+	s.mu.Lock()
+	workflow := s.workflow
+	blocks := s.blocks
+	s.mu.Unlock()
+
+	if diags := s.validateWorkflow(workflow); len(diags) > 0 {
+		respondRunDiagnostics(w, http.StatusBadRequest, diags...)
+		return
+	}
+
+	opts := executor.Options{
+		Inputs: req.Inputs,
+		Blocks: blocks,
+	}
+	if len(blocks) > 0 {
+		opts.Host = executor.NewPythonHost(executor.PythonHostOptions{})
+	}
+	result, err := executor.RunWorkflow(context.Background(), workflow, opts)
+	if err != nil {
+		respondRunDiagnostics(w, http.StatusInternalServerError, diagnostic.Diagnostic{
+			Code:     "RUN_FAILED",
+			Severity: diagnostic.SeverityError,
+			Message:  err.Error(),
+			Path:     "$",
+		})
+		return
+	}
+
+	respondJSON(w, http.StatusOK, editorRunResponse{
+		Result:      result,
+		Diagnostics: nil,
 	})
 }
 
@@ -224,6 +289,12 @@ func (s *editorServer) persistWorkflow(workflow ast.Workflow) error {
 
 func respondDiagnostics(w http.ResponseWriter, status int, diags ...diagnostic.Diagnostic) {
 	respondJSON(w, status, editorStateResponse{
+		Diagnostics: diags,
+	})
+}
+
+func respondRunDiagnostics(w http.ResponseWriter, status int, diags ...diagnostic.Diagnostic) {
+	respondJSON(w, status, editorRunResponse{
 		Diagnostics: diags,
 	})
 }

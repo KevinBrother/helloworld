@@ -2,9 +2,9 @@
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
-**Goal:** Build a local Go editor service and update the React editor so existing AST expression values can be edited through the full `AST -> UI -> edit operation -> ApplyEdit -> AST -> UI` loop.
+**Goal:** Build a local Go editor service and update the React editor so existing AST expression values can be edited and run through the full `AST -> UI -> edit operation -> ApplyEdit -> persisted AST -> run result` loop.
 
-**Architecture:** The Go service owns the current AST, persists accepted edits to the AST file passed to `rpawf serve`, and exposes `GET /api/workflow` plus `POST /api/edit`. The web app renders server-projected UI state, emits existing edit-operation contracts, and replaces local state with server responses after saved edits.
+**Architecture:** The Go service owns the current AST, persists accepted edits to the AST file passed to `rpawf serve`, and exposes `GET /api/workflow`, `POST /api/edit`, and `POST /api/run`. The web app renders server-projected UI state, emits existing edit-operation contracts, replaces local state with server responses after saved edits, and shows run results from the current AST.
 
 **Tech Stack:** Go `net/http`, existing `compiler/go/schema`, `compiler/go/compiler`, `compiler/go/transform`, React 19, Vite, TypeScript, `@xyflow/react`.
 
@@ -45,6 +45,7 @@ Create `apps/cli/rpawf/serve.go` with:
 - `newEditorServerWithPath`
 - `handleWorkflow`
 - `handleEdit`
+- `handleRun`
 - `persistWorkflow`
 - `respondJSON`
 - `respondDiagnostics`

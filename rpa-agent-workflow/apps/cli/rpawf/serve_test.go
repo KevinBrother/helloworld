@@ -10,6 +10,7 @@ import (
 	"testing"
 
 	"rpa-agent-workflow/compiler/go/diagnostic"
+	"rpa-agent-workflow/compiler/go/executor"
 	"rpa-agent-workflow/contracts/ast"
 	editoperation "rpa-agent-workflow/contracts/edit-operation"
 	uinode "rpa-agent-workflow/contracts/ui-node"
@@ -146,6 +147,21 @@ func TestEditorServerPersistsAcceptedEditToASTFile(t *testing.T) {
 	}
 }
 
+func TestEditorServerRunReturnsCurrentWorkflowResult(t *testing.T) {
+	server := newEditorServer(testRunnableWorkflow(), nil)
+
+	response := postRun(t, server, nil)
+
+	if response.Code != http.StatusOK {
+		t.Fatalf("status = %d, want %d: %s", response.Code, http.StatusOK, response.Body.String())
+	}
+	var result testRunResponse
+	decodeResponse(t, response, &result)
+	if got := result.Result.Returns["result"]; got != float64(19) {
+		t.Fatalf("result = %#v, want 19", got)
+	}
+}
+
 func testEditorWorkflow() ast.Workflow {
 	return ast.Workflow{
 		SchemaVersion: "1.0.0",
@@ -178,6 +194,40 @@ func testEditorWorkflow() ast.Workflow {
 	}
 }
 
+func testRunnableWorkflow() ast.Workflow {
+	return ast.Workflow{
+		SchemaVersion: "1.0.0",
+		Workflow:      ast.Metadata{ID: "runnable"},
+		Variables: []ast.Variable{
+			{Name: "result", Type: ast.Type{Name: "number"}, Mutable: true},
+		},
+		Body: ast.Statement{
+			ID:   "root",
+			Kind: "sequence",
+			Statements: []ast.Statement{
+				{
+					ID:     "assign_result",
+					Kind:   "assign",
+					Target: "result",
+					Value: &ast.Expression{
+						Kind:  "binary",
+						Op:    "+",
+						Left:  &ast.Expression{Kind: "literal", Value: float64(7)},
+						Right: &ast.Expression{Kind: "literal", Value: float64(12)},
+					},
+				},
+				{
+					ID:   "return_result",
+					Kind: "return",
+					Returns: map[string]ast.Expression{
+						"result": {Kind: "ref", Ref: "var.result"},
+					},
+				},
+			},
+		},
+	}
+}
+
 func postEdit(t *testing.T, server http.Handler, op editoperation.Document) *httptest.ResponseRecorder {
 	t.Helper()
 	body, err := json.Marshal(op)
@@ -186,6 +236,21 @@ func postEdit(t *testing.T, server http.Handler, op editoperation.Document) *htt
 	}
 	response := httptest.NewRecorder()
 	request := httptest.NewRequest(http.MethodPost, "/api/edit", bytes.NewReader(body))
+	request.Header.Set("Content-Type", "application/json")
+	server.ServeHTTP(response, request)
+	return response
+}
+
+func postRun(t *testing.T, server http.Handler, payload any) *httptest.ResponseRecorder {
+	t.Helper()
+	var body bytes.Buffer
+	if payload != nil {
+		if err := json.NewEncoder(&body).Encode(payload); err != nil {
+			t.Fatal(err)
+		}
+	}
+	response := httptest.NewRecorder()
+	request := httptest.NewRequest(http.MethodPost, "/api/run", &body)
 	request.Header.Set("Content-Type", "application/json")
 	server.ServeHTTP(response, request)
 	return response
@@ -212,4 +277,9 @@ type testEditorStateResponse struct {
 	UI          uinode.Document         `json:"ui"`
 	Diagnostics []diagnostic.Diagnostic `json:"diagnostics"`
 	Operation   *editoperation.Document `json:"operation,omitempty"`
+}
+
+type testRunResponse struct {
+	Result      executor.Result         `json:"result"`
+	Diagnostics []diagnostic.Diagnostic `json:"diagnostics"`
 }

@@ -98,3 +98,20 @@ export type EditorStateResponse = {
   diagnostics?: Diagnostic[];
   operation?: EditOperation;
 };
+
+export type RunResult = {
+  returns?: Record<string, unknown>;
+  variables?: Record<string, unknown>;
+  events?: Array<{
+    name?: string;
+    workflowId?: string;
+    statementId?: string;
+    statementKind?: string;
+    payload?: Record<string, unknown>;
+  }>;
+};
+
+export type RunResponse = {
+  result?: RunResult;
+  diagnostics?: Diagnostic[];
+};

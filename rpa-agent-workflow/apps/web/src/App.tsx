@@ -9,6 +9,7 @@ import {
   SquarePen,
   SplitSquareHorizontal,
   ClipboardList,
+  Play,
 } from "lucide-react";
 import {
   Background,
@@ -29,7 +30,16 @@ import {
 import "@xyflow/react/dist/style.css";
 // import sampleDocument from "./sample-ui-node.json";
 import sampleDocument from "../../../output/calculator-ui-node.json";
-import type { Diagnostic, EditOperation, EditorStateResponse, InspectorField, UIDocument, UINode } from "./types";
+import type {
+  Diagnostic,
+  EditOperation,
+  EditorStateResponse,
+  InspectorField,
+  RunResult,
+  RunResponse,
+  UIDocument,
+  UINode,
+} from "./types";
 
 type ViewMode = "outline" | "canvas" | "operations";
 type WorkflowNodeData = {
@@ -71,6 +81,8 @@ function App() {
   const [serverAvailable, setServerAvailable] = useState(false);
   const [selectedNodeId, setSelectedNodeId] = useState<string>(() => sampleDocument.root.id);
   const [operationLog, setOperationLog] = useState<EditOperation[]>([]);
+  const [runResult, setRunResult] = useState<RunResult | null>(null);
+  const [runPending, setRunPending] = useState(false);
   const [viewMode, setViewMode] = useState<ViewMode>("canvas");
   const [status, setStatus] = useState("Sample loaded");
   const [metadataDraft, setMetadataDraft] = useState("");
@@ -206,6 +218,38 @@ function App() {
     });
   };
 
+  const handleRunWorkflow = async () => {
+    if (!serverAvailable) {
+      setStatus("Workflow service unavailable; run disabled");
+      return;
+    }
+    setRunPending(true);
+    setDiagnostics([]);
+    try {
+      const response = await fetch("/api/run", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: "{}",
+      });
+      const payload = (await response.json()) as RunResponse;
+      if (!response.ok) {
+        setRunResult(null);
+        setDiagnostics(payload.diagnostics ?? []);
+        setStatus(firstDiagnosticMessage(payload.diagnostics) ?? `Run failed with status ${response.status}`);
+        return;
+      }
+      setRunResult(payload.result ?? null);
+      setDiagnostics(payload.diagnostics ?? []);
+      setStatus("Run completed");
+    } catch (error) {
+      setRunResult(null);
+      setServerAvailable(false);
+      setStatus(`Workflow service unavailable (${formatError(error)})`);
+    } finally {
+      setRunPending(false);
+    }
+  };
+
   const handleFileLoad = async (file: File) => {
     const raw = await file.text();
     const next = JSON.parse(raw) as UIDocument;
@@ -247,6 +291,7 @@ function App() {
               setServerAvailable(false);
               setSelectedNodeId(next.root.id);
               setOperationLog([]);
+              setRunResult(null);
               setStatus("Sample loaded");
             }}
           >
@@ -270,6 +315,10 @@ function App() {
           <button className="icon-button" onClick={handleDownloadOperations} disabled={operationLog.length === 0}>
             <Download size={16} />
             Export ops
+          </button>
+          <button className="icon-button run-button" onClick={handleRunWorkflow} disabled={!serverAvailable || runPending}>
+            <Play size={16} />
+            {runPending ? "Running" : "Run"}
           </button>
         </div>
       </header>
@@ -335,6 +384,7 @@ function App() {
             onSelect={setSelectedNodeId}
             diagnostics={diagnostics}
             astDocument={astDocument}
+            runResult={runResult}
           />
         </aside>
       </main>
@@ -504,6 +554,7 @@ function InspectorPane({
   onSelect,
   diagnostics,
   astDocument,
+  runResult,
 }: {
   node: UINode;
   draftValue: string;
@@ -514,6 +565,7 @@ function InspectorPane({
   onSelect: (id: string) => void;
   diagnostics: Diagnostic[];
   astDocument: unknown;
+  runResult: RunResult | null;
 }) {
   const fields = node.inspector ?? [];
   return (
@@ -582,7 +634,32 @@ function InspectorPane({
         </div>
       ) : null}
 
+      {runResult ? <RunResultPanel result={runResult} /> : null}
+
       {astDocument ? null : <div className="empty-state">No AST document loaded from the workflow service.</div>}
+    </div>
+  );
+}
+
+function RunResultPanel({ result }: { result: RunResult }) {
+  const events = result.events ?? [];
+  return (
+    <div className="inspector-block run-result">
+      <div className="inspector-title">Run result</div>
+      <div className="result-grid">
+        <div>
+          <span>Returns</span>
+          <pre>{JSON.stringify(result.returns ?? {}, null, 2)}</pre>
+        </div>
+        <div>
+          <span>Variables</span>
+          <pre>{JSON.stringify(result.variables ?? {}, null, 2)}</pre>
+        </div>
+      </div>
+      <details className="event-details">
+        <summary>{events.length} events</summary>
+        <pre>{JSON.stringify(events, null, 2)}</pre>
+      </details>
     </div>
   );
 }
