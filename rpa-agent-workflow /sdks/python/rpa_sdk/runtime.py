@@ -165,11 +165,14 @@ class WorkflowRuntime:
             func = self.resolve_binding(binding)
             return func(**inputs)
         if name == "core.log":
-            from .blocks.core import log
+            from .blocks.core.log import log
             return log(**inputs)
         if name == "system.get_os_info":
-            from .blocks.system import get_os_info
+            from .blocks.system.get_os_info import get_os_info
             return get_os_info(**inputs)
+        if name == "math.calculate":
+            from .blocks.math.calculate import calculate
+            return calculate(**inputs)
         raise KeyError(name)
 
     def resolve_binding(self, binding):

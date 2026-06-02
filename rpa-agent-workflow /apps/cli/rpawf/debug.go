@@ -66,7 +66,7 @@ func runDebugCommand(args []string, stdin io.Reader, stdout, stderr io.Writer) i
 }
 
 func printDebugUsage(w io.Writer) {
-	fmt.Fprintln(w, "Usage: rpawf debug <ast.json> [block.json]")
+	fmt.Fprintln(w, "Usage: rpawf debug <ast.json> [block-manifest.json|blocks-dir]")
 	fmt.Fprintln(w, "Commands:")
 	fmt.Fprintln(w, "  break <statementId>")
 	fmt.Fprintln(w, "  break line <n>")
@@ -97,11 +97,7 @@ func startDebugSession(args []string) (*debugRun, error) {
 
 	blocks := map[string]block.Definition{}
 	if len(args) > 1 {
-		blockBytes, err := os.ReadFile(args[1])
-		if err != nil {
-			return nil, err
-		}
-		blocks, err = decodeBlocks(blockBytes)
+		blocks, err = loadBlocks(args[1])
 		if err != nil {
 			return nil, err
 		}

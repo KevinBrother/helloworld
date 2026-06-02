@@ -14,7 +14,7 @@ func Generate(workflow *ast.Workflow, blocks map[string]block.Definition) (strin
 		return "", fmt.Errorf("workflow is nil")
 	}
 	var b strings.Builder
-	b.WriteString("from rpa_runtime.runtime import WorkflowRuntime\n\n")
+	b.WriteString("from rpa_sdk.runtime import WorkflowRuntime\n\n")
 	b.WriteString("BLOCKS = ")
 	b.WriteString(renderBlockBindings(blocks))
 	b.WriteString("\n\n")

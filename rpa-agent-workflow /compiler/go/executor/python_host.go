@@ -124,7 +124,7 @@ func resolvePythonProjectPath(path string) (string, error) {
 	for {
 		candidate := filepath.Join(dir, "go.mod")
 		if _, err := os.Stat(candidate); err == nil {
-			return filepath.Join(dir, "runtimes", "python"), nil
+			return filepath.Join(dir, "sdks", "python"), nil
 		}
 		parent := filepath.Dir(dir)
 		if parent == dir {

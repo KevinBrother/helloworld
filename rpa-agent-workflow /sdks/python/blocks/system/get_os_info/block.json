@@ -1,0 +1,21 @@
+{
+  "schemaVersion": "1.0.0",
+  "id": "system.get_os_info",
+  "namespace": "system",
+  "name": "get_os_info",
+  "version": "1.0.0",
+  "runtime": {
+    "target": "python",
+    "module": "rpa_sdk.blocks.system.get_os_info",
+    "callable": "get_os_info",
+    "mode": "sync"
+  },
+  "outputs": [
+    {
+      "name": "name",
+      "type": {
+        "name": "string"
+      }
+    }
+  ]
+}

@@ -4,7 +4,7 @@
 
 v1 聚焦编译运行闭环：
 
-`ast.json + block.json -> Go compiler -> generated Python -> Python runtime`
+`ast.json + SDK block manifests -> Go compiler -> generated Python -> Python SDK runtime`
 
 v1 必须完成：
 
@@ -72,7 +72,7 @@ IBlock v1 fields:
 
 ## 验证链路
 
-- [x] 编译运行闭环：`ast.json + block.json -> Go compiler -> Python -> runtime`
+- [x] 编译运行闭环：`ast.json + SDK block manifests -> Go compiler -> Python -> SDK runtime`
 - [x] 可视化编辑闭环：`ast.json -> ui-node.json -> React workflow editor`
 - [ ] Agent 生成闭环：自然语言 + IAST + IBlock -> `ast.json` -> 编译运行
 

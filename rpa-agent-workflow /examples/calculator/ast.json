@@ -1,0 +1,85 @@
+{
+  "schemaVersion": "1.0.0",
+  "workflow": {
+    "id": "calculator",
+    "name": "Calculator"
+  },
+  "inputs": [
+    {
+      "name": "left",
+      "type": {
+        "name": "number"
+      }
+    },
+    {
+      "name": "operator",
+      "type": {
+        "name": "string"
+      }
+    },
+    {
+      "name": "right",
+      "type": {
+        "name": "number"
+      }
+    }
+  ],
+  "outputs": [
+    {
+      "name": "result",
+      "type": {
+        "name": "number"
+      }
+    }
+  ],
+  "variables": [
+    {
+      "name": "result",
+      "type": {
+        "name": "number"
+      },
+      "mutable": true
+    }
+  ],
+  "body": {
+    "id": "root",
+    "kind": "sequence",
+    "statements": [
+      {
+        "id": "calculate",
+        "kind": "callBlock",
+        "block": "math.calculate",
+        "inputs": {
+          "left": {
+            "kind": "ref",
+            "ref": "input.left"
+          },
+          "operator": {
+            "kind": "ref",
+            "ref": "input.operator"
+          },
+          "right": {
+            "kind": "ref",
+            "ref": "input.right"
+          }
+        },
+        "outputs": {
+          "result": {
+            "kind": "ref",
+            "ref": "var.result"
+          }
+        }
+      },
+      {
+        "id": "return_result",
+        "kind": "return",
+        "returns": {
+          "result": {
+            "kind": "ref",
+            "ref": "var.result"
+          }
+        }
+      }
+    ]
+  }
+}

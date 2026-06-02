@@ -48,7 +48,7 @@ func TestExecRunsSampleWorkflowWithPythonBlocks(t *testing.T) {
 		t.Skip("uv is unavailable")
 	}
 
-	cmd := exec.Command("go", "run", ".", "exec", "../../../examples/sample-workflow/ast.json", "../../../examples/sample-workflow/block.json")
+	cmd := exec.Command("go", "run", ".", "exec", "../../../examples/sample-workflow/ast.json", "../../../sdks/python/blocks")
 	out, err := cmd.CombinedOutput()
 	if err != nil {
 		t.Fatalf("unexpected error: %v\n%s", err, out)
@@ -64,5 +64,72 @@ func TestExecRunsSampleWorkflowWithPythonBlocks(t *testing.T) {
 	}
 	if got := result.Returns["finally_ran"]; got != true {
 		t.Fatalf("finally_ran = %#v, want true", got)
+	}
+}
+
+func TestExecRunsCalculatorWorkflowWithInputJSON(t *testing.T) {
+	if _, err := exec.LookPath("uv"); err != nil {
+		t.Skip("uv is unavailable")
+	}
+
+	tests := []struct {
+		name  string
+		input string
+		want  float64
+	}{
+		{name: "add", input: "input-add.json", want: 42},
+		{name: "subtract", input: "input-subtract.json", want: 42},
+		{name: "multiply", input: "input-multiply.json", want: 42},
+		{name: "divide", input: "input-divide.json", want: 42},
+	}
+
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			cmd := exec.Command(
+				"go",
+				"run",
+				".",
+				"exec",
+				"../../../examples/calculator/ast.json",
+				"../../../sdks/python/blocks",
+				"../../../examples/calculator/"+tc.input,
+			)
+			out, err := cmd.CombinedOutput()
+			if err != nil {
+				t.Fatalf("unexpected error: %v\n%s", err, out)
+			}
+			var result struct {
+				Returns map[string]any `json:"returns"`
+			}
+			if err := json.Unmarshal(out, &result); err != nil {
+				t.Fatalf("invalid json output: %v\n%s", err, out)
+			}
+			if got := result.Returns["result"]; got != tc.want {
+				t.Fatalf("result = %#v, want %v", got, tc.want)
+			}
+		})
+	}
+}
+
+func TestExecCalculatorReportsDivisionByZero(t *testing.T) {
+	if _, err := exec.LookPath("uv"); err != nil {
+		t.Skip("uv is unavailable")
+	}
+
+	cmd := exec.Command(
+		"go",
+		"run",
+		".",
+		"exec",
+		"../../../examples/calculator/ast.json",
+		"../../../sdks/python/blocks",
+		"../../../examples/calculator/input-divide-by-zero.json",
+	)
+	out, err := cmd.CombinedOutput()
+	if err == nil {
+		t.Fatalf("expected error, got success:\n%s", out)
+	}
+	if !strings.Contains(string(out), "division by zero") {
+		t.Fatalf("expected division by zero error, got:\n%s", out)
 	}
 }

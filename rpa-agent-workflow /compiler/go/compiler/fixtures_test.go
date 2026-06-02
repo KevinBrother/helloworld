@@ -11,12 +11,12 @@ import (
 func TestCompilerFixtures(t *testing.T) {
 	blocks := map[string]block.Definition{
 		"core.log": {
-			ID: "core.log",
-			Runtime: block.RuntimeBinding{Target: "python", Module: "rpa_runtime.blocks.core", Callable: "log", Mode: "sync"},
-			Inputs: []block.Port{{Name: "message", Type: block.Type{Name: "string"}}},
+			ID:      "core.log",
+			Runtime: block.RuntimeBinding{Target: "python", Module: "rpa_sdk.blocks.core.log", Callable: "log", Mode: "sync"},
+			Inputs:  []block.Port{{Name: "message", Type: block.Type{Name: "string"}}},
 		},
 		"bad.runtime": {
-			ID: "bad.runtime",
+			ID:      "bad.runtime",
 			Runtime: block.RuntimeBinding{Target: "node", Module: "bad", Callable: "bad", Mode: "sync"},
 		},
 	}

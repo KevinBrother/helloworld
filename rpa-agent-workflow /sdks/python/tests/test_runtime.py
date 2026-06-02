@@ -1,10 +1,30 @@
 import asyncio
+import importlib
 import unittest
 
-from rpa_runtime.runtime import WorkflowRuntime
+from rpa_sdk.runtime import WorkflowRuntime
 
 
 class RuntimeTest(unittest.TestCase):
+    def test_block_implementations_use_namespace_directories(self):
+        self.assertTrue(hasattr(importlib.import_module("rpa_sdk.blocks.core.log"), "log"))
+        self.assertTrue(hasattr(importlib.import_module("rpa_sdk.blocks.math.calculate"), "calculate"))
+        self.assertTrue(hasattr(importlib.import_module("rpa_sdk.blocks.system.get_os_info"), "get_os_info"))
+
+    def test_math_calculate_block_supports_arithmetic(self):
+        runtime = WorkflowRuntime()
+
+        self.assertEqual(runtime.call_block("math.calculate", {"left": 7, "operator": "+", "right": 3}), {"result": 10})
+        self.assertEqual(runtime.call_block("math.calculate", {"left": 7, "operator": "-", "right": 3}), {"result": 4})
+        self.assertEqual(runtime.call_block("math.calculate", {"left": 7, "operator": "*", "right": 3}), {"result": 21})
+        self.assertEqual(runtime.call_block("math.calculate", {"left": 7, "operator": "/", "right": 2}), {"result": 3.5})
+
+    def test_math_calculate_block_rejects_division_by_zero(self):
+        runtime = WorkflowRuntime()
+
+        with self.assertRaisesRegex(ZeroDivisionError, "division by zero"):
+            runtime.call_block("math.calculate", {"left": 7, "operator": "/", "right": 0})
+
     def test_log_block_runs(self):
         runtime = WorkflowRuntime()
         result = runtime.call_block("core.log", {"message": "hello"})

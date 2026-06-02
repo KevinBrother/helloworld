@@ -5,6 +5,8 @@ import (
 	"encoding/json"
 	"fmt"
 	"os"
+	"path/filepath"
+	"sort"
 
 	codegenpython "rpa-agent-workflow/compiler/go/codegen/python"
 	"rpa-agent-workflow/compiler/go/compiler"
@@ -86,12 +88,7 @@ func compileFile(astPath, blockPath string) (string, error) {
 	if err != nil {
 		return "", err
 	}
-	blockBytes, err := os.ReadFile(blockPath)
-	if err != nil {
-		return "", err
-	}
-
-	blocks, err := decodeBlocks(blockBytes)
+	blocks, err := loadBlocks(blockPath)
 	if err != nil {
 		return "", err
 	}
@@ -135,11 +132,7 @@ func execFile(astPath string, extra []string) (string, error) {
 
 	blocks := map[string]block.Definition{}
 	if len(extra) > 0 {
-		blockBytes, err := os.ReadFile(extra[0])
-		if err != nil {
-			return "", err
-		}
-		blocks, err = decodeBlocks(blockBytes)
+		blocks, err = loadBlocks(extra[0])
 		if err != nil {
 			return "", err
 		}
@@ -152,6 +145,15 @@ func execFile(astPath string, extra []string) (string, error) {
 
 	opts := executor.Options{
 		Blocks: blocks,
+	}
+	if len(extra) > 1 {
+		inputBytes, err := os.ReadFile(extra[1])
+		if err != nil {
+			return "", err
+		}
+		if err := json.Unmarshal(inputBytes, &opts.Inputs); err != nil {
+			return "", err
+		}
 	}
 	if len(blocks) > 0 {
 		opts.Host = executor.NewPythonHost(executor.PythonHostOptions{})
@@ -166,6 +168,53 @@ func execFile(astPath string, extra []string) (string, error) {
 		return "", err
 	}
 	return string(out) + "\n", nil
+}
+
+func loadBlocks(path string) (map[string]block.Definition, error) {
+	info, err := os.Stat(path)
+	if err != nil {
+		return nil, err
+	}
+	if !info.IsDir() {
+		blockBytes, err := os.ReadFile(path)
+		if err != nil {
+			return nil, err
+		}
+		return decodeBlocks(blockBytes)
+	}
+
+	var paths []string
+	if err := filepath.WalkDir(path, func(current string, entry os.DirEntry, err error) error {
+		if err != nil {
+			return err
+		}
+		if entry.IsDir() {
+			return nil
+		}
+		if entry.Name() == "block.json" || filepath.Ext(entry.Name()) == ".json" {
+			paths = append(paths, current)
+		}
+		return nil
+	}); err != nil {
+		return nil, err
+	}
+	sort.Strings(paths)
+
+	blocks := map[string]block.Definition{}
+	for _, manifestPath := range paths {
+		blockBytes, err := os.ReadFile(manifestPath)
+		if err != nil {
+			return nil, err
+		}
+		loaded, err := decodeBlocks(blockBytes)
+		if err != nil {
+			return nil, fmt.Errorf("%s: %w", manifestPath, err)
+		}
+		for id, definition := range loaded {
+			blocks[id] = definition
+		}
+	}
+	return blocks, nil
 }
 
 func decodeBlocks(data []byte) (map[string]block.Definition, error) {

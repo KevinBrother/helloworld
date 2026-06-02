@@ -1,0 +1,41 @@
+{
+  "schemaVersion": "1.0.0",
+  "id": "math.calculate",
+  "namespace": "math",
+  "name": "calculate",
+  "version": "1.0.0",
+  "runtime": {
+    "target": "python",
+    "module": "rpa_sdk.blocks.math.calculate",
+    "callable": "calculate",
+    "mode": "sync"
+  },
+  "inputs": [
+    {
+      "name": "left",
+      "type": {
+        "name": "number"
+      }
+    },
+    {
+      "name": "operator",
+      "type": {
+        "name": "string"
+      }
+    },
+    {
+      "name": "right",
+      "type": {
+        "name": "number"
+      }
+    }
+  ],
+  "outputs": [
+    {
+      "name": "result",
+      "type": {
+        "name": "number"
+      }
+    }
+  ]
+}

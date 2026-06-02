@@ -1,0 +1,21 @@
+{
+  "schemaVersion": "1.0.0",
+  "id": "core.log",
+  "namespace": "core",
+  "name": "log",
+  "version": "1.0.0",
+  "runtime": {
+    "target": "python",
+    "module": "rpa_sdk.blocks.core.log",
+    "callable": "log",
+    "mode": "sync"
+  },
+  "inputs": [
+    {
+      "name": "message",
+      "type": {
+        "name": "string"
+      }
+    }
+  ]
+}

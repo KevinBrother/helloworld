@@ -18,7 +18,7 @@ func TestPythonHostInvokesSyncBlockAndReturnsOutputs(t *testing.T) {
 			ID: "system.get_os_info",
 			Runtime: block.RuntimeBinding{
 				Target:   "python",
-				Module:   "rpa_runtime.blocks.system",
+				Module:   "rpa_sdk.blocks.system.get_os_info",
 				Callable: "get_os_info",
 				Mode:     "sync",
 			},
@@ -41,7 +41,7 @@ func TestPythonHostKeepsBlockStdoutOutOfProtocol(t *testing.T) {
 			ID: "core.log",
 			Runtime: block.RuntimeBinding{
 				Target:   "python",
-				Module:   "rpa_runtime.blocks.core",
+				Module:   "rpa_sdk.blocks.core.log",
 				Callable: "log",
 				Mode:     "sync",
 			},
