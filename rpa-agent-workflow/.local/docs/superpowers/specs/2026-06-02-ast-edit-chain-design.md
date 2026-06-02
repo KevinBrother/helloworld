@@ -23,7 +23,7 @@ Those operations become the second version because they alter tree shape, indexe
 
 ## Architecture
 
-Add a local Go editor service under the existing CLI command surface. The command is `rpawf serve <ast.json> [block-manifest.json|blocks-dir]`. It loads the AST file, optionally loads block manifests for semantic validation, stores the current AST in memory, and exposes HTTP endpoints for the web editor.
+Add a local Go editor service under the existing CLI command surface. The command is `rpawf serve <ast.json> [block-manifest.json|blocks-dir]`. It loads the AST file, optionally loads block manifests for semantic validation, stores the current AST in memory, persists accepted edits back to the same AST file, and exposes HTTP endpoints for the web editor.
 
 The web editor stops treating `ui-node.json` as editable state. It fetches the current workflow from the service, renders the returned UI projection, emits edit operations from user actions, and replaces local AST/UI state with the server response after every successful edit.
 
@@ -72,7 +72,7 @@ Returns the updated editor state and the operation that was applied:
 }
 ```
 
-If applying or validating the edit fails, the service returns a non-2xx response with diagnostics and leaves the in-memory AST unchanged.
+If applying, validating, or persisting the edit fails, the service returns a non-2xx response with diagnostics and leaves the in-memory AST and AST file unchanged.
 
 ## Server Flow
 
@@ -81,8 +81,9 @@ If applying or validating the edit fails, the service returns a non-2xx response
 3. Validate the updated AST against `ast.schema.json`.
 4. If block manifests are available, run compiler semantic validation.
 5. Project the updated AST with `transform.ProjectWorkflow`.
-6. Commit the updated AST to memory only after validation succeeds.
-7. Return `{ ast, ui, diagnostics, operation }`.
+6. Persist the updated AST back to the file passed to `rpawf serve`.
+7. Commit the updated AST to memory only after validation and persistence succeed.
+8. Return `{ ast, ui, diagnostics, operation }`.
 
 ## Frontend Flow
 

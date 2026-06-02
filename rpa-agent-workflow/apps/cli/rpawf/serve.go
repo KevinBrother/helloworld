@@ -6,6 +6,7 @@ import (
 	"io"
 	"net/http"
 	"os"
+	"path/filepath"
 	"sync"
 
 	"rpa-agent-workflow/compiler/go/compiler"
@@ -31,12 +32,18 @@ type editorServer struct {
 	mu       sync.Mutex
 	workflow ast.Workflow
 	blocks   map[string]block.Definition
+	astPath  string
 }
 
 func newEditorServer(workflow ast.Workflow, blocks map[string]block.Definition) http.Handler {
+	return newEditorServerWithPath(workflow, blocks, "")
+}
+
+func newEditorServerWithPath(workflow ast.Workflow, blocks map[string]block.Definition, astPath string) http.Handler {
 	server := &editorServer{
 		workflow: workflow,
 		blocks:   blocks,
+		astPath:  astPath,
 	}
 	mux := http.NewServeMux()
 	mux.HandleFunc("/api/workflow", server.handleWorkflow)
@@ -93,6 +100,16 @@ func (s *editorServer) handleEdit(w http.ResponseWriter, r *http.Request) {
 	if diags := s.validateWorkflow(updated); len(diags) > 0 {
 		s.mu.Unlock()
 		respondDiagnostics(w, http.StatusBadRequest, diags...)
+		return
+	}
+	if err := s.persistWorkflow(updated); err != nil {
+		s.mu.Unlock()
+		respondDiagnostics(w, http.StatusInternalServerError, diagnostic.Diagnostic{
+			Code:     "AST_PERSIST_FAILED",
+			Severity: diagnostic.SeverityError,
+			Message:  fmt.Sprintf("failed to persist ast: %v", err),
+			Path:     "$",
+		})
 		return
 	}
 	s.workflow = updated
@@ -177,6 +194,34 @@ func editDiagnostic(code string, message string, path string) *diagnostic.Diagno
 	}
 }
 
+func (s *editorServer) persistWorkflow(workflow ast.Workflow) error {
+	if s.astPath == "" {
+		return nil
+	}
+	data, err := json.MarshalIndent(workflow, "", "  ")
+	if err != nil {
+		return err
+	}
+	data = append(data, '\n')
+	dir := filepath.Dir(s.astPath)
+	tmp, err := os.CreateTemp(dir, ".rpawf-ast-*.json")
+	if err != nil {
+		return err
+	}
+	tmpPath := tmp.Name()
+	defer func() {
+		_ = os.Remove(tmpPath)
+	}()
+	if _, err := tmp.Write(data); err != nil {
+		_ = tmp.Close()
+		return err
+	}
+	if err := tmp.Close(); err != nil {
+		return err
+	}
+	return os.Rename(tmpPath, s.astPath)
+}
+
 func respondDiagnostics(w http.ResponseWriter, status int, diags ...diagnostic.Diagnostic) {
 	respondJSON(w, status, editorStateResponse{
 		Diagnostics: diags,
@@ -227,7 +272,7 @@ func runServeCommand(args []string, stdout io.Writer, stderr io.Writer) int {
 	}
 
 	fmt.Fprintf(stdout, "serving workflow editor on http://%s\n", addr)
-	if err := http.ListenAndServe(addr, newEditorServer(*workflow, blocks)); err != nil {
+	if err := http.ListenAndServe(addr, newEditorServerWithPath(*workflow, blocks, args[0])); err != nil {
 		fmt.Fprintln(stderr, err)
 		return 1
 	}

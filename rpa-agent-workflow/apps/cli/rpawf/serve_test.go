@@ -5,6 +5,8 @@ import (
 	"encoding/json"
 	"net/http"
 	"net/http/httptest"
+	"os"
+	"path/filepath"
 	"testing"
 
 	"rpa-agent-workflow/compiler/go/diagnostic"
@@ -100,6 +102,47 @@ func TestEditorServerRejectsInvalidEditWithoutChangingState(t *testing.T) {
 	current := state.AST.Body.Statements[0].Value
 	if current == nil || current.Kind != "literal" || current.Value != float64(1) {
 		t.Fatalf("state changed after rejected edit: %#v", current)
+	}
+}
+
+func TestEditorServerPersistsAcceptedEditToASTFile(t *testing.T) {
+	workflow := testEditorWorkflow()
+	astPath := filepath.Join(t.TempDir(), "ast.json")
+	initial, err := json.MarshalIndent(workflow, "", "  ")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(astPath, append(initial, '\n'), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	server := newEditorServerWithPath(workflow, nil, astPath)
+	op := editoperation.Document{
+		SchemaVersion: "1.0.0",
+		OperationID:   "persist-value",
+		Type:          editoperation.OperationTypeUpdateField,
+		TargetNodeID:  "assign_count",
+		Path:          "$.body.statements[0].value",
+		Payload: map[string]any{
+			"value": map[string]any{"kind": "literal", "value": float64(12)},
+		},
+	}
+
+	response := postEdit(t, server, op)
+
+	if response.Code != http.StatusOK {
+		t.Fatalf("status = %d, want %d: %s", response.Code, http.StatusOK, response.Body.String())
+	}
+	var persisted ast.Workflow
+	raw, err := os.ReadFile(astPath)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := json.Unmarshal(raw, &persisted); err != nil {
+		t.Fatalf("persisted ast json is invalid: %v\n%s", err, raw)
+	}
+	value := persisted.Body.Statements[0].Value
+	if value == nil || value.Kind != "literal" || value.Value != float64(12) {
+		t.Fatalf("persisted value = %#v, want literal 12", value)
 	}
 }
 

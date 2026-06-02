@@ -4,7 +4,7 @@
 
 **Goal:** Build a local Go editor service and update the React editor so existing AST expression values can be edited through the full `AST -> UI -> edit operation -> ApplyEdit -> AST -> UI` loop.
 
-**Architecture:** The Go service owns the current AST and exposes `GET /api/workflow` plus `POST /api/edit`. The web app renders server-projected UI state, emits existing edit-operation contracts, and replaces local state with server responses after accepted edits.
+**Architecture:** The Go service owns the current AST, persists accepted edits to the AST file passed to `rpawf serve`, and exposes `GET /api/workflow` plus `POST /api/edit`. The web app renders server-projected UI state, emits existing edit-operation contracts, and replaces local state with server responses after saved edits.
 
 **Tech Stack:** Go `net/http`, existing `compiler/go/schema`, `compiler/go/compiler`, `compiler/go/transform`, React 19, Vite, TypeScript, `@xyflow/react`.
 
@@ -42,8 +42,10 @@ Create `apps/cli/rpawf/serve.go` with:
 - `editorStateResponse`
 - `editorServer`
 - `newEditorServer`
+- `newEditorServerWithPath`
 - `handleWorkflow`
 - `handleEdit`
+- `persistWorkflow`
 - `respondJSON`
 - `respondDiagnostics`
 - `runServeCommand`

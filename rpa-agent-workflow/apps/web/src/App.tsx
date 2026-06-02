@@ -117,7 +117,7 @@ function App() {
 
   const emitOperation = (operation: EditOperation, message?: string) => {
     setOperationLog((current) => [operation, ...current].slice(0, 50));
-    setStatus(message ?? `${operation.type} accepted for ${operation.targetNodeId ?? "document"}`);
+    setStatus(message ?? `${operation.type} saved for ${operation.targetNodeId ?? "document"}`);
   };
 
   const applyServerState = (state: EditorStateResponse) => {
