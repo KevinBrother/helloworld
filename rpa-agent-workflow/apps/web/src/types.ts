@@ -82,3 +82,19 @@ export type EditOperation = {
   };
   metadata?: Record<string, unknown>;
 };
+
+export type Diagnostic = {
+  code?: string;
+  severity?: string;
+  message?: string;
+  path?: string;
+  related?: string;
+  hint?: string;
+};
+
+export type EditorStateResponse = {
+  ast: unknown;
+  ui: UIDocument;
+  diagnostics?: Diagnostic[];
+  operation?: EditOperation;
+};

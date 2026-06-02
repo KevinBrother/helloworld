@@ -29,7 +29,7 @@ import {
 import "@xyflow/react/dist/style.css";
 // import sampleDocument from "./sample-ui-node.json";
 import sampleDocument from "../../../output/calculator-ui-node.json";
-import type { EditOperation, InspectorField, UIDocument, UINode } from "./types";
+import type { Diagnostic, EditOperation, EditorStateResponse, InspectorField, UIDocument, UINode } from "./types";
 
 type ViewMode = "outline" | "canvas" | "operations";
 type WorkflowNodeData = {
@@ -43,6 +43,7 @@ type Measure = {
   width: number;
   height: number;
 };
+type LiteralInputType = "string" | "number" | "boolean";
 
 const nodeTypes = {
   workflow: memo(WorkflowFlowNode),
@@ -65,6 +66,9 @@ const DEFAULT_ACTOR = {
 
 function App() {
   const [uiDocument, setUIDocument] = useState<UIDocument>(() => sampleDocument as UIDocument);
+  const [astDocument, setASTDocument] = useState<unknown>(null);
+  const [diagnostics, setDiagnostics] = useState<Diagnostic[]>([]);
+  const [serverAvailable, setServerAvailable] = useState(false);
   const [selectedNodeId, setSelectedNodeId] = useState<string>(() => sampleDocument.root.id);
   const [operationLog, setOperationLog] = useState<EditOperation[]>([]);
   const [viewMode, setViewMode] = useState<ViewMode>("canvas");
@@ -80,29 +84,98 @@ function App() {
     setMetadataDraft(readEditableValue(selectedNode));
   }, [selectedNode]);
 
+  useEffect(() => {
+    let cancelled = false;
+    async function loadWorkflow() {
+      try {
+        const response = await fetch("/api/workflow");
+        if (!response.ok) {
+          throw new Error(`workflow service returned ${response.status}`);
+        }
+        const state = (await response.json()) as EditorStateResponse;
+        if (cancelled) {
+          return;
+        }
+        applyServerState(state);
+        setServerAvailable(true);
+        setStatus("Workflow service connected");
+      } catch (error) {
+        if (cancelled) {
+          return;
+        }
+        setServerAvailable(false);
+        setStatus(`Using sample projection (${formatError(error)})`);
+      }
+    }
+    void loadWorkflow();
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
   const outline = useMemo(() => flattenNodes(uiDocument.root), [uiDocument]);
 
-  const emitOperation = (operation: EditOperation) => {
+  const emitOperation = (operation: EditOperation, message?: string) => {
     setOperationLog((current) => [operation, ...current].slice(0, 50));
-    setStatus(`${operation.type} queued for ${operation.targetNodeId ?? "document"}`);
+    setStatus(message ?? `${operation.type} accepted for ${operation.targetNodeId ?? "document"}`);
+  };
+
+  const applyServerState = (state: EditorStateResponse) => {
+    setASTDocument(state.ast);
+    setUIDocument(state.ui);
+    setDiagnostics(state.diagnostics ?? []);
+    setSelectedNodeId((current) => (findNode(state.ui.root, current) ? current : state.ui.root.id));
+  };
+
+  const submitOperation = async (operation: EditOperation) => {
+    if (!serverAvailable) {
+      emitOperation(operation, "Workflow service unavailable; operation recorded locally");
+      return false;
+    }
+
+    try {
+      const response = await fetch("/api/edit", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(operation),
+      });
+      const state = (await response.json()) as EditorStateResponse;
+      if (!response.ok) {
+        setDiagnostics(state.diagnostics ?? []);
+        setStatus(firstDiagnosticMessage(state.diagnostics) ?? `Edit rejected with status ${response.status}`);
+        return false;
+      }
+      applyServerState(state);
+      emitOperation(state.operation ?? operation);
+      return true;
+    } catch (error) {
+      setServerAvailable(false);
+      setStatus(`Workflow service unavailable (${formatError(error)})`);
+      return false;
+    }
   };
 
   const handleToggleCollapsed = () => {
     const nextCollapsed = !selectedNode.collapsed;
-    emitOperation({
+    const operation: EditOperation = {
       schemaVersion: "1.0.0",
       operationId: makeOperationId("toggle"),
       type: "toggleCollapsed",
       targetNodeId: selectedNode.id,
       payload: { collapsed: nextCollapsed },
       actor: DEFAULT_ACTOR,
-    });
+    };
+    if (serverAvailable) {
+      void submitOperation(operation);
+      return;
+    }
+    emitOperation(operation);
     setUIDocument((current) => updateNode(current, selectedNode.id, (node) => ({ ...node, collapsed: nextCollapsed })));
   };
 
   const handleApplyMetadata = () => {
     const path = "metadata.ui.note";
-    emitOperation({
+    const operation: EditOperation = {
       schemaVersion: "1.0.0",
       operationId: makeOperationId("update"),
       type: "updateField",
@@ -110,16 +183,36 @@ function App() {
       path,
       payload: { value: metadataDraft },
       actor: DEFAULT_ACTOR,
-    });
+    };
+    if (serverAvailable) {
+      void submitOperation(operation);
+      return;
+    }
+    emitOperation(operation);
     setUIDocument((current) =>
       updateNode(current, selectedNode.id, (node) => updateNodeMetadata(node, "ui.note", metadataDraft)),
     );
+  };
+
+  const handleApplyExpression = (field: InspectorField, value: unknown) => {
+    void submitOperation({
+      schemaVersion: "1.0.0",
+      operationId: makeOperationId("update"),
+      type: "updateField",
+      targetNodeId: selectedNode.id,
+      path: field.path,
+      payload: { value },
+      actor: DEFAULT_ACTOR,
+    });
   };
 
   const handleFileLoad = async (file: File) => {
     const raw = await file.text();
     const next = JSON.parse(raw) as UIDocument;
     setUIDocument(next);
+    setASTDocument(null);
+    setDiagnostics([]);
+    setServerAvailable(false);
     setSelectedNodeId(next.root.id);
     setOperationLog([]);
     setStatus(`Loaded ${file.name}`);
@@ -149,6 +242,9 @@ function App() {
             onClick={() => {
               const next = sampleDocument as UIDocument;
               setUIDocument(next);
+              setASTDocument(null);
+              setDiagnostics([]);
+              setServerAvailable(false);
               setSelectedNodeId(next.root.id);
               setOperationLog([]);
               setStatus("Sample loaded");
@@ -180,8 +276,10 @@ function App() {
 
       <section className="statusbar">
         <div className="status-pill">{status}</div>
+        <div className="status-pill">{serverAvailable ? "server connected" : "sample mode"}</div>
         <div className="status-pill">{operationLog.length} operations</div>
         <div className="status-pill">{selectedNode.kind}</div>
+        {diagnostics.length > 0 ? <div className="status-pill warn">{diagnostics.length} diagnostics</div> : null}
       </section>
 
       <main className="workspace">
@@ -233,7 +331,10 @@ function App() {
             onDraftValueChange={setMetadataDraft}
             onToggleCollapsed={handleToggleCollapsed}
             onApplyMetadata={handleApplyMetadata}
+            onApplyExpression={handleApplyExpression}
             onSelect={setSelectedNodeId}
+            diagnostics={diagnostics}
+            astDocument={astDocument}
           />
         </aside>
       </main>
@@ -399,14 +500,20 @@ function InspectorPane({
   onDraftValueChange,
   onToggleCollapsed,
   onApplyMetadata,
+  onApplyExpression,
   onSelect,
+  diagnostics,
+  astDocument,
 }: {
   node: UINode;
   draftValue: string;
   onDraftValueChange: (value: string) => void;
   onToggleCollapsed: () => void;
   onApplyMetadata: () => void;
+  onApplyExpression: (field: InspectorField, value: unknown) => void;
   onSelect: (id: string) => void;
+  diagnostics: Diagnostic[];
+  astDocument: unknown;
 }) {
   const fields = node.inspector ?? [];
   return (
@@ -456,19 +563,122 @@ function InspectorPane({
         <div className="inspector-title">Inspector fields</div>
         <div className="field-list">
           {fields.map((field) => (
-            <InspectorFieldRow key={field.path} field={field} />
+            <InspectorFieldRow key={field.path} field={field} onApplyExpression={onApplyExpression} />
           ))}
         </div>
       </div>
+
+      {diagnostics.length > 0 ? (
+        <div className="inspector-block">
+          <div className="inspector-title">Diagnostics</div>
+          <div className="diagnostic-list">
+            {diagnostics.map((diag, index) => (
+              <div className="diagnostic-row" key={`${diag.code ?? "diagnostic"}-${index}`}>
+                <strong>{diag.code ?? diag.severity ?? "diagnostic"}</strong>
+                <span>{diag.message ?? "No message"}</span>
+              </div>
+            ))}
+          </div>
+        </div>
+      ) : null}
+
+      {astDocument ? null : <div className="empty-state">No AST document loaded from the workflow service.</div>}
     </div>
   );
 }
 
-function InspectorFieldRow({ field }: { field: InspectorField }) {
+function InspectorFieldRow({
+  field,
+  onApplyExpression,
+}: {
+  field: InspectorField;
+  onApplyExpression: (field: InspectorField, value: unknown) => void;
+}) {
+  const editable = field.control === "expression" && !field.readonly;
   return (
     <div className="field-row">
       <div className="field-label">{field.label ?? field.path}</div>
-      <div className="field-value">{renderFieldValue(field.value)}</div>
+      {editable ? (
+        <ExpressionEditor value={field.value} onApply={(value) => onApplyExpression(field, value)} />
+      ) : (
+        <div className="field-value">{renderFieldValue(field.value)}</div>
+      )}
+    </div>
+  );
+}
+
+function ExpressionEditor({ value, onApply }: { value: unknown; onApply: (value: unknown) => void }) {
+  const initial = normalizeExpression(value);
+  const [kind, setKind] = useState(initial.kind);
+  const [literalType, setLiteralType] = useState(literalInputType(initial));
+  const [literalValue, setLiteralValue] = useState(formatLiteralInput(initial.value));
+  const [refValue, setRefValue] = useState(initial.ref ?? "");
+  const [jsonDraft, setJsonDraft] = useState(JSON.stringify(initial, null, 2));
+  const [error, setError] = useState("");
+
+  useEffect(() => {
+    const next = normalizeExpression(value);
+    setKind(next.kind);
+    setLiteralType(literalInputType(next));
+    setLiteralValue(formatLiteralInput(next.value));
+    setRefValue(next.ref ?? "");
+    setJsonDraft(JSON.stringify(next, null, 2));
+    setError("");
+  }, [value]);
+
+  const apply = () => {
+    try {
+      const expression = buildExpression(kind, literalType, literalValue, refValue, jsonDraft);
+      setError("");
+      onApply(expression);
+    } catch (nextError) {
+      setError(formatError(nextError));
+    }
+  };
+
+  return (
+    <div className="expression-editor">
+      <div className="expression-toolbar">
+        <select value={kind} onChange={(event) => setKind(event.target.value)}>
+          <option value="literal">literal</option>
+          <option value="ref">ref</option>
+          <option value="json">json</option>
+        </select>
+        {kind === "literal" ? (
+          <select value={literalType} onChange={(event) => setLiteralType(event.target.value as LiteralInputType)}>
+            <option value="string">string</option>
+            <option value="number">number</option>
+            <option value="boolean">boolean</option>
+          </select>
+        ) : null}
+      </div>
+      {kind === "literal" ? (
+        literalType === "boolean" ? (
+          <label className="check-row">
+            <input
+              type="checkbox"
+              checked={literalValue === "true"}
+              onChange={(event) => setLiteralValue(event.target.checked ? "true" : "false")}
+            />
+            true
+          </label>
+        ) : (
+          <input
+            type={literalType === "number" ? "number" : "text"}
+            value={literalValue}
+            onChange={(event) => setLiteralValue(event.target.value)}
+          />
+        )
+      ) : null}
+      {kind === "ref" ? <input value={refValue} onChange={(event) => setRefValue(event.target.value)} /> : null}
+      {kind === "json" ? (
+        <textarea value={jsonDraft} onChange={(event) => setJsonDraft(event.target.value)} rows={7} />
+      ) : null}
+      {error ? <div className="edit-error">{error}</div> : null}
+      <button className="ghost-button" onClick={apply}>
+        <SquarePen size={16} />
+        Apply
+      </button>
     </div>
   );
 }
@@ -763,6 +973,86 @@ function renderFieldValue(value: unknown) {
     return "-";
   }
   return JSON.stringify(value);
+}
+
+function normalizeExpression(value: unknown): Record<string, unknown> {
+  if (value && typeof value === "object" && !Array.isArray(value)) {
+    const expression = value as Record<string, unknown>;
+    if (typeof expression.kind === "string") {
+      return expression;
+    }
+  }
+  return { kind: "literal", value: "" };
+}
+
+function literalInputType(expression: Record<string, unknown>): LiteralInputType {
+  switch (typeof expression.value) {
+    case "number":
+      return "number";
+    case "boolean":
+      return "boolean";
+    default:
+      return "string";
+  }
+}
+
+function formatLiteralInput(value: unknown) {
+  if (typeof value === "boolean") {
+    return value ? "true" : "false";
+  }
+  if (typeof value === "number" || typeof value === "string") {
+    return String(value);
+  }
+  return "";
+}
+
+function buildExpression(
+  kind: string,
+  literalType: LiteralInputType,
+  literalValue: string,
+  refValue: string,
+  jsonDraft: string,
+) {
+  if (kind === "literal") {
+    if (literalType === "number") {
+      const numeric = Number(literalValue);
+      if (!Number.isFinite(numeric)) {
+        throw new Error("Number literal is invalid");
+      }
+      return { kind: "literal", value: numeric };
+    }
+    if (literalType === "boolean") {
+      return { kind: "literal", value: literalValue === "true" };
+    }
+    return { kind: "literal", value: literalValue };
+  }
+  if (kind === "ref") {
+    if (!refValue.trim()) {
+      throw new Error("Reference cannot be empty");
+    }
+    return { kind: "ref", ref: refValue.trim() };
+  }
+  const parsed = JSON.parse(jsonDraft) as unknown;
+  if (!parsed || typeof parsed !== "object" || Array.isArray(parsed)) {
+    throw new Error("Expression JSON must be an object");
+  }
+  const expression = parsed as Record<string, unknown>;
+  if (typeof expression.kind !== "string" || expression.kind.length === 0) {
+    throw new Error("Expression JSON requires a string kind");
+  }
+  return expression;
+}
+
+function firstDiagnosticMessage(diags: Diagnostic[] | undefined) {
+  const first = diags?.[0];
+  if (!first) {
+    return "";
+  }
+  return first.message ? `${first.code ?? "diagnostic"}: ${first.message}` : first.code ?? "diagnostic";
+}
+
+function formatError(error: unknown) {
+  return error instanceof Error ? error.message : String(error);
 }
 
 export default App;

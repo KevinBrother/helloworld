@@ -129,6 +129,11 @@ button {
   background: rgba(255, 255, 255, 0.78);
 }
 
+.status-pill.warn {
+  border-color: rgba(194, 142, 92, 0.35);
+  color: var(--warn);
+}
+
 .workspace {
   display: grid;
   grid-template-columns: 280px minmax(0, 1fr) 360px;
@@ -497,11 +502,81 @@ textarea {
   min-height: 110px;
 }
 
+input,
+select {
+  width: 100%;
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  background: rgba(255, 255, 255, 0.9);
+  color: var(--text);
+  padding: 0.62rem 0.7rem;
+}
+
+select {
+  cursor: pointer;
+}
+
 .field-row {
   border: 1px solid rgba(216, 225, 221, 0.9);
   border-radius: 6px;
   padding: 0.7rem;
   background: rgba(255, 255, 255, 0.8);
+}
+
+.expression-editor {
+  display: grid;
+  gap: 0.55rem;
+  margin-top: 0.55rem;
+}
+
+.expression-toolbar {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  gap: 0.45rem;
+}
+
+.check-row {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  color: var(--muted);
+}
+
+.check-row input {
+  width: auto;
+}
+
+.edit-error {
+  color: #9b4a3f;
+  font-size: 0.78rem;
+}
+
+.diagnostic-list {
+  display: grid;
+  gap: 0.5rem;
+}
+
+.diagnostic-row {
+  border: 1px solid rgba(194, 142, 92, 0.25);
+  border-radius: 6px;
+  padding: 0.65rem;
+  background: rgba(194, 142, 92, 0.08);
+}
+
+.diagnostic-row strong,
+.diagnostic-row span {
+  display: block;
+}
+
+.diagnostic-row strong {
+  color: var(--warn);
+  font-family: "IBM Plex Mono", monospace;
+  font-size: 0.75rem;
+}
+
+.diagnostic-row span {
+  margin-top: 0.25rem;
+  color: var(--text);
 }
 
 .operations-feed {

@@ -29,6 +29,15 @@ func main() {
 		if code != 0 {
 			os.Exit(code)
 		}
+	case "serve":
+		if len(args) > 1 && args[1] == "--help" {
+			printUsage()
+			return
+		}
+		code := runServeCommand(args[1:], os.Stdout, os.Stderr)
+		if code != 0 {
+			os.Exit(code)
+		}
 	case "exec":
 		if len(args) > 1 && args[1] == "--help" {
 			printUsage()
@@ -80,7 +89,7 @@ func main() {
 }
 
 func printUsage() {
-	fmt.Println("Usage: rpawf <compile|run|exec|debug|project-ui> [--help]")
+	fmt.Println("Usage: rpawf <compile|run|exec|debug|project-ui|serve> [--help]")
 }
 
 func compileFile(astPath, blockPath string) (string, error) {
