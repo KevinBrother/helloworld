@@ -3,6 +3,7 @@ package transform
 import (
 	"encoding/json"
 	"os"
+	"strings"
 	"testing"
 
 	"rpa-agent-workflow/contracts/ast"
@@ -26,6 +27,12 @@ func TestProjectSampleWorkflow(t *testing.T) {
 	if doc.Root.ID != "root" || doc.Root.Kind != "sequence" {
 		t.Fatalf("unexpected root: %#v", doc.Root)
 	}
+	if !doc.Root.Capabilities.InsertNode.Enabled {
+		t.Fatalf("root insert capability missing: %#v", doc.Root.Capabilities)
+	}
+	if doc.Root.Capabilities.DeleteNode.Enabled {
+		t.Fatalf("root delete capability should be disabled: %#v", doc.Root.Capabilities.DeleteNode)
+	}
 
 	want := map[string]string{
 		"root":                 "sequence",
@@ -37,7 +44,7 @@ func TestProjectSampleWorkflow(t *testing.T) {
 		"return_outputs":       "return",
 	}
 	for id, kind := range want {
-		node := findProjectedNode(doc.Nodes, id)
+		node := findProjectedNode(doc.Root, id)
 		if node == nil {
 			t.Fatalf("missing projected node %s", id)
 		}
@@ -46,16 +53,49 @@ func TestProjectSampleWorkflow(t *testing.T) {
 		}
 	}
 
-	parallel := findProjectedNode(doc.Nodes, "parallel_system_info")
+	startLog := findProjectedNode(doc.Root, "start_log")
+	if startLog == nil || !startLog.Capabilities.DeleteNode.Enabled {
+		t.Fatalf("leaf delete capability missing: %#v", startLog)
+	}
+	if startLog.Capabilities.InsertNode.Enabled {
+		t.Fatalf("leaf insert capability should be disabled: %#v", startLog.Capabilities.InsertNode)
+	}
+
+	parallel := findProjectedNode(doc.Root, "parallel_system_info")
 	if parallel == nil || len(parallel.Branches) != 2 {
 		t.Fatalf("parallel branches not projected: %#v", parallel)
 	}
+
+	out, err := json.Marshal(doc)
+	if err != nil {
+		t.Fatal(err)
+	}
+	text := string(out)
+	if strings.Contains(text, `"nodes"`) {
+		t.Fatalf("projection should not emit top-level flattened nodes: %s", text)
+	}
+	if strings.Contains(text, `"operations"`) {
+		t.Fatalf("projection should not emit legacy operations: %s", text)
+	}
+	if !strings.Contains(text, `"capabilities"`) {
+		t.Fatalf("projection should emit capabilities: %s", text)
+	}
 }
 
-func findProjectedNode(nodes []uinode.Node, id string) *uinode.Node {
-	for i := range nodes {
-		if nodes[i].ID == id {
-			return &nodes[i]
+func findProjectedNode(root uinode.Node, id string) *uinode.Node {
+	if root.ID == id {
+		return &root
+	}
+	for i := range root.Children {
+		if node := findProjectedNode(root.Children[i], id); node != nil {
+			return node
+		}
+	}
+	for i := range root.Branches {
+		for j := range root.Branches[i].Children {
+			if node := findProjectedNode(root.Branches[i].Children[j], id); node != nil {
+				return node
+			}
 		}
 	}
 	return nil

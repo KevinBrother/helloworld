@@ -2,7 +2,6 @@ export type UIDocument = {
   schemaVersion: string;
   workflowId: string;
   root: UINode;
-  nodes?: UINode[];
   metadata?: Record<string, unknown>;
 };
 
@@ -13,11 +12,10 @@ export type UINode = {
   path?: string;
   children?: UINode[];
   branches?: UIBranch[];
-  ports?: UIPort[];
   layout?: UILayout;
   collapsed?: boolean;
   editable?: boolean;
-  operations?: UIOperation[];
+  capabilities?: UICapabilities;
   inspector?: InspectorField[];
   validationSummary?: ValidationSummary;
   metadata?: Record<string, unknown>;
@@ -30,12 +28,6 @@ export type UIBranch = {
   children?: UINode[];
 };
 
-export type UIPort = {
-  name: string;
-  kind?: string;
-  role?: string;
-};
-
 export type UILayout = {
   direction?: string;
   x?: number;
@@ -45,10 +37,22 @@ export type UILayout = {
   lane?: number;
 };
 
-export type UIOperation = {
-  type: string;
+export type UICapabilities = {
+  toggleCollapsed?: UICapability;
+  updateField?: UICapability;
+  insertNode?: UICapability;
+  deleteNode?: UICapability;
+  moveStatement?: UICapability;
+  duplicateNode?: UICapability;
+  replaceSubtree?: UICapability;
+};
+
+export type UICapability = {
+  enabled: boolean;
   label?: string;
-  enabled?: boolean;
+  reason?: string;
+  targetPath?: string;
+  metadata?: Record<string, unknown>;
 };
 
 export type InspectorField = {

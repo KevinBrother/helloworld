@@ -13,12 +13,10 @@ const uiNodeSchemaVersion = "1.0.0"
 
 func ProjectWorkflow(workflow ast.Workflow) uinode.Document {
 	root := projectStatement(workflow.Body, "$.body", 0)
-	nodes := flattenNodes(root)
 	return uinode.Document{
 		SchemaVersion: uiNodeSchemaVersion,
 		WorkflowID:    workflow.Workflow.ID,
 		Root:          root,
-		Nodes:         nodes,
 		Metadata: map[string]any{
 			"workflowName": workflow.Workflow.Name,
 		},
@@ -27,16 +25,16 @@ func ProjectWorkflow(workflow ast.Workflow) uinode.Document {
 
 func projectStatement(stmt ast.Statement, path string, lane int) uinode.Node {
 	node := uinode.Node{
-		ID:         stmt.ID,
-		Kind:       stmt.Kind,
-		Label:      labelForStatement(stmt),
-		Path:       path,
-		Layout:     layoutForKind(stmt.Kind, lane),
-		Collapsed:  metadataCollapsed(stmt.Metadata),
-		Editable:   true,
-		Operations: operationsForKind(stmt.Kind),
-		Inspector:  inspectorForStatement(stmt, path),
-		Metadata:   nodeMetadata(stmt),
+		ID:           stmt.ID,
+		Kind:         stmt.Kind,
+		Label:        labelForStatement(stmt),
+		Path:         path,
+		Layout:       layoutForKind(stmt.Kind, lane),
+		Collapsed:    metadataCollapsed(stmt.Metadata),
+		Editable:     true,
+		Capabilities: capabilitiesForStatement(stmt, path),
+		Inspector:    inspectorForStatement(stmt, path),
+		Metadata:     nodeMetadata(stmt),
 	}
 
 	switch stmt.Kind {
@@ -113,19 +111,6 @@ func projectStatementsWithLane(stmts []ast.Statement, path string, lane int) []u
 	return children
 }
 
-func flattenNodes(root uinode.Node) []uinode.Node {
-	nodes := []uinode.Node{root}
-	for _, child := range root.Children {
-		nodes = append(nodes, flattenNodes(child)...)
-	}
-	for _, branch := range root.Branches {
-		for _, child := range branch.Children {
-			nodes = append(nodes, flattenNodes(child)...)
-		}
-	}
-	return nodes
-}
-
 func layoutForKind(kind string, lane int) uinode.Layout {
 	direction := "top-down"
 	switch kind {
@@ -142,21 +127,57 @@ func layoutForKind(kind string, lane int) uinode.Layout {
 	}
 }
 
-func operationsForKind(kind string) []uinode.Operation {
-	ops := []uinode.Operation{
-		{Type: "toggleCollapsed", Label: "Collapse", Enabled: true},
-		{Type: "updateField", Label: "Edit Metadata", Enabled: true},
+func capabilitiesForStatement(stmt ast.Statement, path string) uinode.Capabilities {
+	caps := uinode.Capabilities{
+		ToggleCollapsed: uinode.Capability{Enabled: true, Label: "Collapse"},
+		UpdateField:     uinode.Capability{Enabled: true, Label: "Edit Metadata"},
+		InsertNode:      uinode.Capability{Enabled: false, Label: "Insert Step", Reason: "Node kind does not accept child statements"},
+		DeleteNode:      uinode.Capability{Enabled: true, Label: "Delete"},
+		MoveStatement:   uinode.Capability{Enabled: true, Label: "Move"},
+		DuplicateNode:   uinode.Capability{Enabled: true, Label: "Duplicate"},
+		ReplaceSubtree:  uinode.Capability{Enabled: true, Label: "Replace", TargetPath: path},
 	}
-	switch kind {
+
+	if stmt.ID == "root" || path == "$.body" {
+		caps.DeleteNode = uinode.Capability{Enabled: false, Label: "Delete", Reason: "Root node cannot be deleted"}
+		caps.MoveStatement = uinode.Capability{Enabled: false, Label: "Move", Reason: "Root node cannot be moved"}
+		caps.DuplicateNode = uinode.Capability{Enabled: false, Label: "Duplicate", Reason: "Root node cannot be duplicated"}
+	}
+
+	switch stmt.Kind {
 	case "sequence", "loop", "if", "parallel", "try":
-		ops = append(ops, uinode.Operation{Type: "insertNode", Label: "Insert Step", Enabled: true})
-	default:
-		ops = append(ops,
-			uinode.Operation{Type: "duplicateNode", Label: "Duplicate", Enabled: true},
-			uinode.Operation{Type: "deleteNode", Label: "Delete", Enabled: true},
-		)
+		caps.InsertNode = uinode.Capability{
+			Enabled:    true,
+			Label:      "Insert Step",
+			TargetPath: insertionTargetPath(stmt.Kind, path),
+			Metadata:   insertionMetadata(stmt.Kind, path),
+		}
 	}
-	return ops
+	return caps
+}
+
+func insertionTargetPath(kind string, path string) string {
+	switch kind {
+	case "sequence", "loop", "try":
+		return path + ".statements"
+	case "if":
+		return path + ".then"
+	case "parallel":
+		return path + ".branches"
+	default:
+		return ""
+	}
+}
+
+func insertionMetadata(kind string, path string) map[string]any {
+	switch kind {
+	case "if":
+		return map[string]any{"targetPaths": []string{path + ".then", path + ".else"}}
+	case "try":
+		return map[string]any{"targetPaths": []string{path + ".statements", path + ".finally"}}
+	default:
+		return nil
+	}
 }
 
 func inspectorForStatement(stmt ast.Statement, path string) []uinode.InspectorField {

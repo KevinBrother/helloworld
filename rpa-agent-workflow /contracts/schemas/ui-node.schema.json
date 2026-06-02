@@ -8,14 +8,13 @@
     "schemaVersion": { "type": "string" },
     "workflowId": { "type": "string" },
     "root": { "$ref": "#/$defs/node" },
-    "nodes": { "type": "array", "items": { "$ref": "#/$defs/node" } },
     "metadata": { "type": "object" }
   },
-  "additionalProperties": true,
+  "additionalProperties": false,
   "$defs": {
     "node": {
       "type": "object",
-      "required": ["id", "kind"],
+      "required": ["id", "kind", "path", "capabilities"],
       "properties": {
         "id": { "type": "string" },
         "kind": { "type": "string" },
@@ -23,37 +22,51 @@
         "path": { "type": "string" },
         "children": { "type": "array", "items": { "$ref": "#/$defs/node" } },
         "branches": { "type": "array", "items": { "$ref": "#/$defs/branch" } },
-        "ports": { "type": "array", "items": { "$ref": "#/$defs/port" } },
         "layout": { "$ref": "#/$defs/layout" },
         "collapsed": { "type": "boolean" },
         "editable": { "type": "boolean" },
-        "operations": { "type": "array", "items": { "$ref": "#/$defs/operation" } },
+        "capabilities": { "$ref": "#/$defs/capabilities" },
         "inspector": { "type": "array", "items": { "$ref": "#/$defs/inspectorField" } },
         "validationSummary": { "$ref": "#/$defs/validationSummary" },
         "metadata": { "type": "object" }
       },
-      "additionalProperties": true
+      "additionalProperties": false
     },
     "branch": {
       "type": "object",
-      "required": ["id"],
+      "required": ["id", "kind", "children"],
       "properties": {
         "id": { "type": "string" },
         "label": { "type": "string" },
         "kind": { "type": "string" },
         "children": { "type": "array", "items": { "$ref": "#/$defs/node" } }
       },
-      "additionalProperties": true
+      "additionalProperties": false
     },
-    "port": {
+    "capabilities": {
       "type": "object",
-      "required": ["name"],
       "properties": {
-        "name": { "type": "string" },
-        "kind": { "type": "string" },
-        "role": { "type": "string" }
+        "toggleCollapsed": { "$ref": "#/$defs/capability" },
+        "updateField": { "$ref": "#/$defs/capability" },
+        "insertNode": { "$ref": "#/$defs/capability" },
+        "deleteNode": { "$ref": "#/$defs/capability" },
+        "moveStatement": { "$ref": "#/$defs/capability" },
+        "duplicateNode": { "$ref": "#/$defs/capability" },
+        "replaceSubtree": { "$ref": "#/$defs/capability" }
       },
-      "additionalProperties": true
+      "additionalProperties": false
+    },
+    "capability": {
+      "type": "object",
+      "required": ["enabled"],
+      "properties": {
+        "enabled": { "type": "boolean" },
+        "label": { "type": "string" },
+        "reason": { "type": "string" },
+        "targetPath": { "type": "string" },
+        "metadata": { "type": "object" }
+      },
+      "additionalProperties": false
     },
     "layout": {
       "type": "object",
@@ -65,17 +78,7 @@
         "height": { "type": "number" },
         "lane": { "type": "integer" }
       },
-      "additionalProperties": true
-    },
-    "operation": {
-      "type": "object",
-      "required": ["type"],
-      "properties": {
-        "type": { "type": "string" },
-        "label": { "type": "string" },
-        "enabled": { "type": "boolean" }
-      },
-      "additionalProperties": true
+      "additionalProperties": false
     },
     "inspectorField": {
       "type": "object",
@@ -87,7 +90,7 @@
         "value": {},
         "readonly": { "type": "boolean" }
       },
-      "additionalProperties": true
+      "additionalProperties": false
     },
     "validationSummary": {
       "type": "object",
@@ -95,7 +98,7 @@
         "errors": { "type": "integer" },
         "warnings": { "type": "integer" }
       },
-      "additionalProperties": true
+      "additionalProperties": false
     }
   }
 }

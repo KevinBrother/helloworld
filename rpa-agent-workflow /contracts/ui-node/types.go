@@ -4,7 +4,6 @@ type Document struct {
 	SchemaVersion string         `json:"schemaVersion"`
 	WorkflowID    string         `json:"workflowId"`
 	Root          Node           `json:"root"`
-	Nodes         []Node         `json:"nodes,omitempty"`
 	Metadata      map[string]any `json:"metadata,omitempty"`
 }
 
@@ -15,11 +14,10 @@ type Node struct {
 	Path              string             `json:"path,omitempty"`
 	Children          []Node             `json:"children,omitempty"`
 	Branches          []Branch           `json:"branches,omitempty"`
-	Ports             []Port             `json:"ports,omitempty"`
 	Layout            Layout             `json:"layout,omitempty"`
 	Collapsed         bool               `json:"collapsed,omitempty"`
 	Editable          bool               `json:"editable,omitempty"`
-	Operations        []Operation        `json:"operations,omitempty"`
+	Capabilities      Capabilities       `json:"capabilities"`
 	Inspector         []InspectorField   `json:"inspector,omitempty"`
 	ValidationSummary *ValidationSummary `json:"validationSummary,omitempty"`
 	Metadata          map[string]any     `json:"metadata,omitempty"`
@@ -29,13 +27,7 @@ type Branch struct {
 	ID       string `json:"id"`
 	Label    string `json:"label,omitempty"`
 	Kind     string `json:"kind,omitempty"`
-	Children []Node `json:"children,omitempty"`
-}
-
-type Port struct {
-	Name string `json:"name"`
-	Kind string `json:"kind,omitempty"`
-	Role string `json:"role,omitempty"`
+	Children []Node `json:"children"`
 }
 
 type Layout struct {
@@ -47,10 +39,22 @@ type Layout struct {
 	Lane      int     `json:"lane,omitempty"`
 }
 
-type Operation struct {
-	Type    string `json:"type"`
-	Label   string `json:"label,omitempty"`
-	Enabled bool   `json:"enabled,omitempty"`
+type Capabilities struct {
+	ToggleCollapsed Capability `json:"toggleCollapsed"`
+	UpdateField     Capability `json:"updateField"`
+	InsertNode      Capability `json:"insertNode"`
+	DeleteNode      Capability `json:"deleteNode"`
+	MoveStatement   Capability `json:"moveStatement"`
+	DuplicateNode   Capability `json:"duplicateNode"`
+	ReplaceSubtree  Capability `json:"replaceSubtree"`
+}
+
+type Capability struct {
+	Enabled    bool           `json:"enabled"`
+	Label      string         `json:"label,omitempty"`
+	Reason     string         `json:"reason,omitempty"`
+	TargetPath string         `json:"targetPath,omitempty"`
+	Metadata   map[string]any `json:"metadata,omitempty"`
 }
 
 type InspectorField struct {

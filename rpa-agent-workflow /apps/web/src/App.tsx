@@ -703,7 +703,6 @@ function updateNode(document: UIDocument, id: string, updater: (node: UINode) =>
   return {
     ...document,
     root: updateNodeRecursive(document.root, id, updater),
-    nodes: document.nodes ? document.nodes.map((node) => (node.id === id ? updater(node) : node)) : document.nodes,
   };
 }
 
