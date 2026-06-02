@@ -86,7 +86,10 @@
       "properties": {
         "path": { "type": "string" },
         "label": { "type": "string" },
-        "control": { "type": "string" },
+        "control": {
+          "type": "string",
+          "enum": ["text", "textarea", "number", "select", "switch", "expression", "json"]
+        },
         "value": {},
         "readonly": { "type": "boolean" }
       },

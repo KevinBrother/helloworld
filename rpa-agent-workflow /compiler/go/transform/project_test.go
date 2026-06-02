@@ -60,6 +60,9 @@ func TestProjectSampleWorkflow(t *testing.T) {
 	if startLog.Capabilities.InsertNode.Enabled {
 		t.Fatalf("leaf insert capability should be disabled: %#v", startLog.Capabilities.InsertNode)
 	}
+	if !hasInspectorField(startLog.Inspector, "$.body.statements[0].inputs.message", "expression") {
+		t.Fatalf("callBlock input expression field missing: %#v", startLog.Inspector)
+	}
 
 	parallel := findProjectedNode(doc.Root, "parallel_system_info")
 	if parallel == nil || len(parallel.Branches) != 2 {
@@ -99,4 +102,13 @@ func findProjectedNode(root uinode.Node, id string) *uinode.Node {
 		}
 	}
 	return nil
+}
+
+func hasInspectorField(fields []uinode.InspectorField, path string, control string) bool {
+	for _, field := range fields {
+		if field.Path == path && field.Control == control {
+			return true
+		}
+	}
+	return false
 }

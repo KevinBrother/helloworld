@@ -46,16 +46,91 @@ func TestApplyUpdateFieldAllowsMetadataOnly(t *testing.T) {
 	}
 }
 
-func TestApplyUpdateFieldRejectsNonMetadataPath(t *testing.T) {
-	_, diags := ApplyEdit(ast.Workflow{}, editoperation.Document{
-		Type: editoperation.OperationTypeUpdateField,
-		Path: "body.kind",
+func TestApplyUpdateFieldUpdatesStatementInputExpression(t *testing.T) {
+	workflow := ast.Workflow{
+		Body: ast.Statement{
+			ID:   "root",
+			Kind: "sequence",
+			Statements: []ast.Statement{
+				{
+					ID:     "calculate",
+					Kind:   "callBlock",
+					Block:  "math.calculate",
+					Inputs: map[string]ast.Expression{},
+				},
+			},
+		},
+	}
+
+	updated, diags := ApplyEdit(workflow, editoperation.Document{
+		Type:         editoperation.OperationTypeUpdateField,
+		TargetNodeID: "calculate",
+		Path:         "$.body.statements[0].inputs.left",
 		Payload: map[string]any{
-			"value": "callBlock",
+			"value": map[string]any{"kind": "literal", "value": float64(1)},
 		},
 	})
+	if len(diags) != 0 {
+		t.Fatalf("unexpected diagnostics: %#v", diags)
+	}
+	left := updated.Body.Statements[0].Inputs["left"]
+	if left.Kind != "literal" || left.Value != float64(1) {
+		t.Fatalf("input expression not applied: %#v", left)
+	}
+}
+
+func TestApplyUpdateFieldUpdatesReturnExpression(t *testing.T) {
+	workflow := ast.Workflow{
+		Body: ast.Statement{
+			ID:   "root",
+			Kind: "sequence",
+			Statements: []ast.Statement{
+				{
+					ID:      "return_result",
+					Kind:    "return",
+					Returns: map[string]ast.Expression{},
+				},
+			},
+		},
+	}
+
+	updated, diags := ApplyEdit(workflow, editoperation.Document{
+		Type:         editoperation.OperationTypeUpdateField,
+		TargetNodeID: "return_result",
+		Path:         "$.body.statements[0].returns.result",
+		Payload: map[string]any{
+			"value": map[string]any{"kind": "ref", "ref": "var.result"},
+		},
+	})
+	if len(diags) != 0 {
+		t.Fatalf("unexpected diagnostics: %#v", diags)
+	}
+	result := updated.Body.Statements[0].Returns["result"]
+	if result.Kind != "ref" || result.Ref != "var.result" {
+		t.Fatalf("return expression not applied: %#v", result)
+	}
+}
+
+func TestApplyUpdateFieldRejectsTargetPathMismatch(t *testing.T) {
+	workflow := ast.Workflow{
+		Body: ast.Statement{
+			ID:   "root",
+			Kind: "sequence",
+			Statements: []ast.Statement{
+				{ID: "first", Kind: "return"},
+				{ID: "second", Kind: "return"},
+			},
+		},
+	}
+
+	_, diags := ApplyEdit(workflow, editoperation.Document{
+		Type:         editoperation.OperationTypeUpdateField,
+		TargetNodeID: "second",
+		Path:         "$.body.statements[0].returns.result",
+		Payload:      map[string]any{"value": map[string]any{"kind": "literal", "value": "x"}},
+	})
 	if len(diags) == 0 || diags[0].Code != "UNSAFE_EDIT_PATH" {
-		t.Fatalf("expected unsafe edit diagnostic, got %#v", diags)
+		t.Fatalf("expected target path mismatch diagnostic, got %#v", diags)
 	}
 }
 

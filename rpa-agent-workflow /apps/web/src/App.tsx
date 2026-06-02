@@ -27,7 +27,8 @@ import {
   type NodeProps,
 } from "@xyflow/react";
 import "@xyflow/react/dist/style.css";
-import sampleDocument from "./sample-ui-node.json";
+// import sampleDocument from "./sample-ui-node.json";
+import sampleDocument from "../../../output/calculator-ui-node.json";
 import type { EditOperation, InspectorField, UIDocument, UINode } from "./types";
 
 type ViewMode = "outline" | "canvas" | "operations";

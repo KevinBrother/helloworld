@@ -5,10 +5,10 @@ import (
 	"fmt"
 	"strings"
 
-	"rpa-agent-workflow/contracts/ast"
-	"rpa-agent-workflow/contracts/block"
 	"rpa-agent-workflow/compiler/go/diagnostic"
 	"rpa-agent-workflow/compiler/go/schema"
+	"rpa-agent-workflow/contracts/ast"
+	"rpa-agent-workflow/contracts/block"
 )
 
 func ValidateWorkflow(data []byte, blocks map[string]block.Definition) (*ast.Workflow, []diagnostic.Diagnostic) {
@@ -22,8 +22,55 @@ func ValidateWorkflow(data []byte, blocks map[string]block.Definition) (*ast.Wor
 	}
 
 	var diags []diagnostic.Diagnostic
+	diags = append(diags, validateUniqueStatementIDs(workflow.Body, "$.body")...)
+	for i, sub := range workflow.Workflows {
+		diags = append(diags, validateUniqueStatementIDs(sub.Body, fmt.Sprintf("$.workflows[%d].body", i))...)
+	}
 	diags = append(diags, validateStatement(workflow.Body, workflow, blocks, "$.body")...)
 	return &workflow, diags
+}
+
+func validateUniqueStatementIDs(root ast.Statement, path string) []diagnostic.Diagnostic {
+	seen := make(map[string]string)
+	var diags []diagnostic.Diagnostic
+	collectStatementIDs(root, path, seen, &diags)
+	return diags
+}
+
+func collectStatementIDs(stmt ast.Statement, path string, seen map[string]string, diags *[]diagnostic.Diagnostic) {
+	if stmt.ID != "" {
+		if firstPath, ok := seen[stmt.ID]; ok {
+			*diags = append(*diags, diagnosticError(
+				"DUPLICATE_STATEMENT_ID",
+				fmt.Sprintf("duplicate statement id %q, first seen at %s", stmt.ID, firstPath+".id"),
+				path+".id",
+			))
+		} else {
+			seen[stmt.ID] = path
+		}
+	}
+	for i, child := range stmt.Statements {
+		collectStatementIDs(child, fmt.Sprintf("%s.statements[%d]", path, i), seen, diags)
+	}
+	for i, child := range stmt.Then {
+		collectStatementIDs(child, fmt.Sprintf("%s.then[%d]", path, i), seen, diags)
+	}
+	for i, child := range stmt.Else {
+		collectStatementIDs(child, fmt.Sprintf("%s.else[%d]", path, i), seen, diags)
+	}
+	for i, branch := range stmt.Branches {
+		for j, child := range branch.Body {
+			collectStatementIDs(child, fmt.Sprintf("%s.branches[%d].body[%d]", path, i, j), seen, diags)
+		}
+	}
+	for i, clause := range stmt.Catches {
+		for j, child := range clause.Body {
+			collectStatementIDs(child, fmt.Sprintf("%s.catches[%d].body[%d]", path, i, j), seen, diags)
+		}
+	}
+	for i, child := range stmt.Finally {
+		collectStatementIDs(child, fmt.Sprintf("%s.finally[%d]", path, i), seen, diags)
+	}
 }
 
 func validateStatement(stmt ast.Statement, workflow ast.Workflow, blocks map[string]block.Definition, path string) []diagnostic.Diagnostic {

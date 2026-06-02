@@ -200,6 +200,39 @@ func inspectorForStatement(stmt ast.Statement, path string) []uinode.InspectorFi
 	if stmt.ItemVar != "" {
 		fields = append(fields, uinode.InspectorField{Path: path + ".itemVar", Label: "Item Variable", Control: "text", Value: stmt.ItemVar, Readonly: true})
 	}
+	fields = append(fields, expressionMapInspectorFields(path+".inputs", "Input", stmt.Inputs)...)
+	fields = append(fields, expressionMapInspectorFields(path+".outputs", "Output", stmt.Outputs)...)
+	if stmt.Value != nil {
+		fields = append(fields, uinode.InspectorField{Path: path + ".value", Label: "Value", Control: "expression", Value: *stmt.Value})
+	}
+	if stmt.Condition != nil {
+		fields = append(fields, uinode.InspectorField{Path: path + ".condition", Label: "Condition", Control: "expression", Value: *stmt.Condition})
+	}
+	if stmt.Iterable != nil {
+		fields = append(fields, uinode.InspectorField{Path: path + ".iterable", Label: "Iterable", Control: "expression", Value: *stmt.Iterable})
+	}
+	fields = append(fields, expressionMapInspectorFields(path+".returns", "Return", stmt.Returns)...)
+	return fields
+}
+
+func expressionMapInspectorFields(path string, labelPrefix string, expressions map[string]ast.Expression) []uinode.InspectorField {
+	if len(expressions) == 0 {
+		return nil
+	}
+	names := make([]string, 0, len(expressions))
+	for name := range expressions {
+		names = append(names, name)
+	}
+	sort.Strings(names)
+	fields := make([]uinode.InspectorField, 0, len(names))
+	for _, name := range names {
+		fields = append(fields, uinode.InspectorField{
+			Path:    path + "." + name,
+			Label:   labelPrefix + " " + name,
+			Control: "expression",
+			Value:   expressions[name],
+		})
+	}
 	return fields
 }
 

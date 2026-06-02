@@ -1,6 +1,6 @@
 {
   "schemaVersion": "1.0.0",
-  "workflowId": "sample_workflow",
+  "workflowId": "calculator",
   "root": {
     "id": "root",
     "kind": "sequence",
@@ -8,9 +8,9 @@
     "path": "$.body",
     "children": [
       {
-        "id": "start_log",
+        "id": "calculate",
         "kind": "callBlock",
-        "label": "core.log",
+        "label": "math.calculate",
         "path": "$.body.statements[0]",
         "layout": {
           "direction": "top-down",
@@ -55,7 +55,7 @@
             "path": "$.body.statements[0].id",
             "label": "ID",
             "control": "text",
-            "value": "start_log",
+            "value": "calculate",
             "readonly": true
           },
           {
@@ -69,684 +69,52 @@
             "path": "$.body.statements[0].block",
             "label": "Block",
             "control": "text",
-            "value": "core.log",
+            "value": "math.calculate",
             "readonly": true
-          }
-        ]
-      },
-      {
-        "id": "if_log",
-        "kind": "if",
-        "label": "If Log",
-        "path": "$.body.statements[1]",
-        "branches": [
-          {
-            "id": "if_log.then",
-            "label": "Then",
-            "kind": "then",
-            "children": [
-              {
-                "id": "then_log",
-                "kind": "callBlock",
-                "label": "core.log",
-                "path": "$.body.statements[1].then[0]",
-                "layout": {
-                  "direction": "top-down",
-                  "width": 280,
-                  "height": 92
-                },
-                "editable": true,
-                "capabilities": {
-                  "toggleCollapsed": {
-                    "enabled": true,
-                    "label": "Collapse"
-                  },
-                  "updateField": {
-                    "enabled": true,
-                    "label": "Edit Metadata"
-                  },
-                  "insertNode": {
-                    "enabled": false,
-                    "label": "Insert Step",
-                    "reason": "Node kind does not accept child statements"
-                  },
-                  "deleteNode": {
-                    "enabled": true,
-                    "label": "Delete"
-                  },
-                  "moveStatement": {
-                    "enabled": true,
-                    "label": "Move"
-                  },
-                  "duplicateNode": {
-                    "enabled": true,
-                    "label": "Duplicate"
-                  },
-                  "replaceSubtree": {
-                    "enabled": true,
-                    "label": "Replace",
-                    "targetPath": "$.body.statements[1].then[0]"
-                  }
-                },
-                "inspector": [
-                  {
-                    "path": "$.body.statements[1].then[0].id",
-                    "label": "ID",
-                    "control": "text",
-                    "value": "then_log",
-                    "readonly": true
-                  },
-                  {
-                    "path": "$.body.statements[1].then[0].kind",
-                    "label": "Kind",
-                    "control": "text",
-                    "value": "callBlock",
-                    "readonly": true
-                  },
-                  {
-                    "path": "$.body.statements[1].then[0].block",
-                    "label": "Block",
-                    "control": "text",
-                    "value": "core.log",
-                    "readonly": true
-                  }
-                ]
-              }
-            ]
           },
           {
-            "id": "if_log.else",
-            "label": "Else",
-            "kind": "else",
-            "children": []
-          }
-        ],
-        "layout": {
-          "direction": "branches",
-          "width": 280,
-          "height": 92
-        },
-        "editable": true,
-        "capabilities": {
-          "toggleCollapsed": {
-            "enabled": true,
-            "label": "Collapse"
-          },
-          "updateField": {
-            "enabled": true,
-            "label": "Edit Metadata"
-          },
-          "insertNode": {
-            "enabled": true,
-            "label": "Insert Step",
-            "targetPath": "$.body.statements[1].then",
-            "metadata": {
-              "targetPaths": [
-                "$.body.statements[1].then",
-                "$.body.statements[1].else"
-              ]
+            "path": "$.body.statements[0].inputs.left",
+            "label": "Input left",
+            "control": "expression",
+            "value": {
+              "kind": "ref",
+              "ref": "input.left"
             }
           },
-          "deleteNode": {
-            "enabled": true,
-            "label": "Delete"
-          },
-          "moveStatement": {
-            "enabled": true,
-            "label": "Move"
-          },
-          "duplicateNode": {
-            "enabled": true,
-            "label": "Duplicate"
-          },
-          "replaceSubtree": {
-            "enabled": true,
-            "label": "Replace",
-            "targetPath": "$.body.statements[1]"
-          }
-        },
-        "inspector": [
           {
-            "path": "$.body.statements[1].id",
-            "label": "ID",
-            "control": "text",
-            "value": "if_log",
-            "readonly": true
-          },
-          {
-            "path": "$.body.statements[1].kind",
-            "label": "Kind",
-            "control": "text",
-            "value": "if",
-            "readonly": true
-          }
-        ]
-      },
-      {
-        "id": "foreach_items",
-        "kind": "loop",
-        "label": "Foreach Loop",
-        "path": "$.body.statements[2]",
-        "children": [
-          {
-            "id": "assign_last_item",
-            "kind": "assign",
-            "label": "Set last_item",
-            "path": "$.body.statements[2].statements[0]",
-            "layout": {
-              "direction": "top-down",
-              "width": 280,
-              "height": 92
-            },
-            "editable": true,
-            "capabilities": {
-              "toggleCollapsed": {
-                "enabled": true,
-                "label": "Collapse"
-              },
-              "updateField": {
-                "enabled": true,
-                "label": "Edit Metadata"
-              },
-              "insertNode": {
-                "enabled": false,
-                "label": "Insert Step",
-                "reason": "Node kind does not accept child statements"
-              },
-              "deleteNode": {
-                "enabled": true,
-                "label": "Delete"
-              },
-              "moveStatement": {
-                "enabled": true,
-                "label": "Move"
-              },
-              "duplicateNode": {
-                "enabled": true,
-                "label": "Duplicate"
-              },
-              "replaceSubtree": {
-                "enabled": true,
-                "label": "Replace",
-                "targetPath": "$.body.statements[2].statements[0]"
-              }
-            },
-            "inspector": [
-              {
-                "path": "$.body.statements[2].statements[0].id",
-                "label": "ID",
-                "control": "text",
-                "value": "assign_last_item",
-                "readonly": true
-              },
-              {
-                "path": "$.body.statements[2].statements[0].kind",
-                "label": "Kind",
-                "control": "text",
-                "value": "assign",
-                "readonly": true
-              },
-              {
-                "path": "$.body.statements[2].statements[0].target",
-                "label": "Target",
-                "control": "text",
-                "value": "last_item",
-                "readonly": true
-              }
-            ]
-          }
-        ],
-        "layout": {
-          "direction": "top-down",
-          "width": 280,
-          "height": 92
-        },
-        "editable": true,
-        "capabilities": {
-          "toggleCollapsed": {
-            "enabled": true,
-            "label": "Collapse"
-          },
-          "updateField": {
-            "enabled": true,
-            "label": "Edit Metadata"
-          },
-          "insertNode": {
-            "enabled": true,
-            "label": "Insert Step",
-            "targetPath": "$.body.statements[2].statements"
-          },
-          "deleteNode": {
-            "enabled": true,
-            "label": "Delete"
-          },
-          "moveStatement": {
-            "enabled": true,
-            "label": "Move"
-          },
-          "duplicateNode": {
-            "enabled": true,
-            "label": "Duplicate"
-          },
-          "replaceSubtree": {
-            "enabled": true,
-            "label": "Replace",
-            "targetPath": "$.body.statements[2]"
-          }
-        },
-        "inspector": [
-          {
-            "path": "$.body.statements[2].id",
-            "label": "ID",
-            "control": "text",
-            "value": "foreach_items",
-            "readonly": true
-          },
-          {
-            "path": "$.body.statements[2].kind",
-            "label": "Kind",
-            "control": "text",
-            "value": "loop",
-            "readonly": true
-          },
-          {
-            "path": "$.body.statements[2].loopKind",
-            "label": "Loop Kind",
-            "control": "text",
-            "value": "foreach",
-            "readonly": true
-          },
-          {
-            "path": "$.body.statements[2].itemVar",
-            "label": "Item Variable",
-            "control": "text",
-            "value": "item",
-            "readonly": true
-          }
-        ],
-        "metadata": {
-          "itemVar": "item",
-          "loopKind": "foreach"
-        }
-      },
-      {
-        "id": "parallel_system_info",
-        "kind": "parallel",
-        "label": "Parallel System Info",
-        "path": "$.body.statements[3]",
-        "branches": [
-          {
-            "id": "os_branch",
-            "label": "Os Branch",
-            "kind": "parallel",
-            "children": [
-              {
-                "id": "get_os_info",
-                "kind": "callBlock",
-                "label": "system.get_os_info",
-                "path": "$.body.statements[3].branches[0].body[0]",
-                "layout": {
-                  "direction": "top-down",
-                  "width": 280,
-                  "height": 92
-                },
-                "editable": true,
-                "capabilities": {
-                  "toggleCollapsed": {
-                    "enabled": true,
-                    "label": "Collapse"
-                  },
-                  "updateField": {
-                    "enabled": true,
-                    "label": "Edit Metadata"
-                  },
-                  "insertNode": {
-                    "enabled": false,
-                    "label": "Insert Step",
-                    "reason": "Node kind does not accept child statements"
-                  },
-                  "deleteNode": {
-                    "enabled": true,
-                    "label": "Delete"
-                  },
-                  "moveStatement": {
-                    "enabled": true,
-                    "label": "Move"
-                  },
-                  "duplicateNode": {
-                    "enabled": true,
-                    "label": "Duplicate"
-                  },
-                  "replaceSubtree": {
-                    "enabled": true,
-                    "label": "Replace",
-                    "targetPath": "$.body.statements[3].branches[0].body[0]"
-                  }
-                },
-                "inspector": [
-                  {
-                    "path": "$.body.statements[3].branches[0].body[0].id",
-                    "label": "ID",
-                    "control": "text",
-                    "value": "get_os_info",
-                    "readonly": true
-                  },
-                  {
-                    "path": "$.body.statements[3].branches[0].body[0].kind",
-                    "label": "Kind",
-                    "control": "text",
-                    "value": "callBlock",
-                    "readonly": true
-                  },
-                  {
-                    "path": "$.body.statements[3].branches[0].body[0].block",
-                    "label": "Block",
-                    "control": "text",
-                    "value": "system.get_os_info",
-                    "readonly": true
-                  }
-                ]
-              }
-            ]
-          },
-          {
-            "id": "log_branch",
-            "label": "Log Branch",
-            "kind": "parallel",
-            "children": [
-              {
-                "id": "parallel_log",
-                "kind": "callBlock",
-                "label": "core.log",
-                "path": "$.body.statements[3].branches[1].body[0]",
-                "layout": {
-                  "direction": "top-down",
-                  "width": 280,
-                  "height": 92,
-                  "lane": 1
-                },
-                "editable": true,
-                "capabilities": {
-                  "toggleCollapsed": {
-                    "enabled": true,
-                    "label": "Collapse"
-                  },
-                  "updateField": {
-                    "enabled": true,
-                    "label": "Edit Metadata"
-                  },
-                  "insertNode": {
-                    "enabled": false,
-                    "label": "Insert Step",
-                    "reason": "Node kind does not accept child statements"
-                  },
-                  "deleteNode": {
-                    "enabled": true,
-                    "label": "Delete"
-                  },
-                  "moveStatement": {
-                    "enabled": true,
-                    "label": "Move"
-                  },
-                  "duplicateNode": {
-                    "enabled": true,
-                    "label": "Duplicate"
-                  },
-                  "replaceSubtree": {
-                    "enabled": true,
-                    "label": "Replace",
-                    "targetPath": "$.body.statements[3].branches[1].body[0]"
-                  }
-                },
-                "inspector": [
-                  {
-                    "path": "$.body.statements[3].branches[1].body[0].id",
-                    "label": "ID",
-                    "control": "text",
-                    "value": "parallel_log",
-                    "readonly": true
-                  },
-                  {
-                    "path": "$.body.statements[3].branches[1].body[0].kind",
-                    "label": "Kind",
-                    "control": "text",
-                    "value": "callBlock",
-                    "readonly": true
-                  },
-                  {
-                    "path": "$.body.statements[3].branches[1].body[0].block",
-                    "label": "Block",
-                    "control": "text",
-                    "value": "core.log",
-                    "readonly": true
-                  }
-                ]
-              }
-            ]
-          }
-        ],
-        "layout": {
-          "direction": "lanes",
-          "width": 280,
-          "height": 92
-        },
-        "editable": true,
-        "capabilities": {
-          "toggleCollapsed": {
-            "enabled": true,
-            "label": "Collapse"
-          },
-          "updateField": {
-            "enabled": true,
-            "label": "Edit Metadata"
-          },
-          "insertNode": {
-            "enabled": true,
-            "label": "Insert Step",
-            "targetPath": "$.body.statements[3].branches"
-          },
-          "deleteNode": {
-            "enabled": true,
-            "label": "Delete"
-          },
-          "moveStatement": {
-            "enabled": true,
-            "label": "Move"
-          },
-          "duplicateNode": {
-            "enabled": true,
-            "label": "Duplicate"
-          },
-          "replaceSubtree": {
-            "enabled": true,
-            "label": "Replace",
-            "targetPath": "$.body.statements[3]"
-          }
-        },
-        "inspector": [
-          {
-            "path": "$.body.statements[3].id",
-            "label": "ID",
-            "control": "text",
-            "value": "parallel_system_info",
-            "readonly": true
-          },
-          {
-            "path": "$.body.statements[3].kind",
-            "label": "Kind",
-            "control": "text",
-            "value": "parallel",
-            "readonly": true
-          }
-        ],
-        "metadata": {
-          "join": {
-            "onError": "failFast",
-            "strategy": "all",
-            "timeoutMs": 0
-          }
-        }
-      },
-      {
-        "id": "try_finally",
-        "kind": "try",
-        "label": "Try Finally",
-        "path": "$.body.statements[4]",
-        "branches": [
-          {
-            "id": "try_finally.try",
-            "label": "Try",
-            "kind": "try",
-            "children": []
-          },
-          {
-            "id": "try_finally.catch[0]",
-            "label": "Catch *",
-            "kind": "catch",
-            "children": []
-          },
-          {
-            "id": "try_finally.finally",
-            "label": "Finally",
-            "kind": "finally",
-            "children": [
-              {
-                "id": "assign_finally",
-                "kind": "assign",
-                "label": "Set finally_ran",
-                "path": "$.body.statements[4].finally[0]",
-                "layout": {
-                  "direction": "top-down",
-                  "width": 280,
-                  "height": 92,
-                  "lane": 2
-                },
-                "editable": true,
-                "capabilities": {
-                  "toggleCollapsed": {
-                    "enabled": true,
-                    "label": "Collapse"
-                  },
-                  "updateField": {
-                    "enabled": true,
-                    "label": "Edit Metadata"
-                  },
-                  "insertNode": {
-                    "enabled": false,
-                    "label": "Insert Step",
-                    "reason": "Node kind does not accept child statements"
-                  },
-                  "deleteNode": {
-                    "enabled": true,
-                    "label": "Delete"
-                  },
-                  "moveStatement": {
-                    "enabled": true,
-                    "label": "Move"
-                  },
-                  "duplicateNode": {
-                    "enabled": true,
-                    "label": "Duplicate"
-                  },
-                  "replaceSubtree": {
-                    "enabled": true,
-                    "label": "Replace",
-                    "targetPath": "$.body.statements[4].finally[0]"
-                  }
-                },
-                "inspector": [
-                  {
-                    "path": "$.body.statements[4].finally[0].id",
-                    "label": "ID",
-                    "control": "text",
-                    "value": "assign_finally",
-                    "readonly": true
-                  },
-                  {
-                    "path": "$.body.statements[4].finally[0].kind",
-                    "label": "Kind",
-                    "control": "text",
-                    "value": "assign",
-                    "readonly": true
-                  },
-                  {
-                    "path": "$.body.statements[4].finally[0].target",
-                    "label": "Target",
-                    "control": "text",
-                    "value": "finally_ran",
-                    "readonly": true
-                  }
-                ]
-              }
-            ]
-          }
-        ],
-        "layout": {
-          "direction": "branches",
-          "width": 280,
-          "height": 92
-        },
-        "editable": true,
-        "capabilities": {
-          "toggleCollapsed": {
-            "enabled": true,
-            "label": "Collapse"
-          },
-          "updateField": {
-            "enabled": true,
-            "label": "Edit Metadata"
-          },
-          "insertNode": {
-            "enabled": true,
-            "label": "Insert Step",
-            "targetPath": "$.body.statements[4].statements",
-            "metadata": {
-              "targetPaths": [
-                "$.body.statements[4].statements",
-                "$.body.statements[4].finally"
-              ]
+            "path": "$.body.statements[0].inputs.operator",
+            "label": "Input operator",
+            "control": "expression",
+            "value": {
+              "kind": "ref",
+              "ref": "input.operator"
             }
           },
-          "deleteNode": {
-            "enabled": true,
-            "label": "Delete"
-          },
-          "moveStatement": {
-            "enabled": true,
-            "label": "Move"
-          },
-          "duplicateNode": {
-            "enabled": true,
-            "label": "Duplicate"
-          },
-          "replaceSubtree": {
-            "enabled": true,
-            "label": "Replace",
-            "targetPath": "$.body.statements[4]"
-          }
-        },
-        "inspector": [
           {
-            "path": "$.body.statements[4].id",
-            "label": "ID",
-            "control": "text",
-            "value": "try_finally",
-            "readonly": true
+            "path": "$.body.statements[0].inputs.right",
+            "label": "Input right",
+            "control": "expression",
+            "value": {
+              "kind": "ref",
+              "ref": "input.right"
+            }
           },
           {
-            "path": "$.body.statements[4].kind",
-            "label": "Kind",
-            "control": "text",
-            "value": "try",
-            "readonly": true
+            "path": "$.body.statements[0].outputs.result",
+            "label": "Output result",
+            "control": "expression",
+            "value": {
+              "kind": "ref",
+              "ref": "var.result"
+            }
           }
         ]
       },
       {
-        "id": "return_outputs",
+        "id": "return_result",
         "kind": "return",
         "label": "Return",
-        "path": "$.body.statements[5]",
+        "path": "$.body.statements[1]",
         "layout": {
           "direction": "top-down",
           "width": 280,
@@ -782,29 +150,37 @@
           "replaceSubtree": {
             "enabled": true,
             "label": "Replace",
-            "targetPath": "$.body.statements[5]"
+            "targetPath": "$.body.statements[1]"
           }
         },
         "inspector": [
           {
-            "path": "$.body.statements[5].id",
+            "path": "$.body.statements[1].id",
             "label": "ID",
             "control": "text",
-            "value": "return_outputs",
+            "value": "return_result",
             "readonly": true
           },
           {
-            "path": "$.body.statements[5].kind",
+            "path": "$.body.statements[1].kind",
             "label": "Kind",
             "control": "text",
             "value": "return",
             "readonly": true
+          },
+          {
+            "path": "$.body.statements[1].returns.result",
+            "label": "Return result",
+            "control": "expression",
+            "value": {
+              "kind": "ref",
+              "ref": "var.result"
+            }
           }
         ],
         "metadata": {
           "returns": [
-            "finally_ran",
-            "last_item"
+            "result"
           ]
         }
       }
@@ -868,6 +244,6 @@
     ]
   },
   "metadata": {
-    "workflowName": "Sample Workflow"
+    "workflowName": "Calculator"
   }
 }

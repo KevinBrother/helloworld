@@ -3,8 +3,8 @@ package compiler
 import (
 	"testing"
 
-	"rpa-agent-workflow/contracts/block"
 	"rpa-agent-workflow/compiler/go/diagnostic"
+	"rpa-agent-workflow/contracts/block"
 )
 
 func TestRejectsUnknownBlock(t *testing.T) {
@@ -27,9 +27,9 @@ func TestAcceptsKnownBlock(t *testing.T) {
 func TestRejectsMissingRequiredBlockInput(t *testing.T) {
 	blocks := map[string]block.Definition{
 		"core.log": {
-			ID: "core.log",
+			ID:      "core.log",
 			Runtime: block.RuntimeBinding{Target: "python", Mode: "sync"},
-			Inputs: []block.Port{{Name: "message", Type: block.Type{Name: "string"}}},
+			Inputs:  []block.Port{{Name: "message", Type: block.Type{Name: "string"}}},
 		},
 	}
 	_, diags := ValidateWorkflow([]byte(`{"schemaVersion":"1.0.0","workflow":{"id":"wf"},"body":{"id":"s1","kind":"callBlock","block":"core.log"}}`), blocks)
@@ -39,9 +39,9 @@ func TestRejectsMissingRequiredBlockInput(t *testing.T) {
 func TestRejectsTypeMismatchForLiteralInput(t *testing.T) {
 	blocks := map[string]block.Definition{
 		"core.log": {
-			ID: "core.log",
+			ID:      "core.log",
 			Runtime: block.RuntimeBinding{Target: "python", Mode: "sync"},
-			Inputs: []block.Port{{Name: "message", Type: block.Type{Name: "string"}}},
+			Inputs:  []block.Port{{Name: "message", Type: block.Type{Name: "string"}}},
 		},
 	}
 	_, diags := ValidateWorkflow([]byte(`{"schemaVersion":"1.0.0","workflow":{"id":"wf"},"body":{"id":"s1","kind":"callBlock","block":"core.log","inputs":{"message":{"kind":"literal","value":42}}}}`), blocks)
@@ -51,7 +51,7 @@ func TestRejectsTypeMismatchForLiteralInput(t *testing.T) {
 func TestRejectsUnsupportedRuntimeTarget(t *testing.T) {
 	blocks := map[string]block.Definition{
 		"core.log": {
-			ID: "core.log",
+			ID:      "core.log",
 			Runtime: block.RuntimeBinding{Target: "node", Mode: "sync"},
 		},
 	}
@@ -62,9 +62,9 @@ func TestRejectsUnsupportedRuntimeTarget(t *testing.T) {
 func TestRejectsUnknownBlockInput(t *testing.T) {
 	blocks := map[string]block.Definition{
 		"core.log": {
-			ID: "core.log",
+			ID:      "core.log",
 			Runtime: block.RuntimeBinding{Target: "python", Mode: "sync"},
-			Inputs: []block.Port{{Name: "message", Type: block.Type{Name: "string"}}},
+			Inputs:  []block.Port{{Name: "message", Type: block.Type{Name: "string"}}},
 		},
 	}
 	_, diags := ValidateWorkflow([]byte(`{"schemaVersion":"1.0.0","workflow":{"id":"wf"},"body":{"id":"s1","kind":"callBlock","block":"core.log","inputs":{"message":{"kind":"literal","value":"ok"},"extra":{"kind":"literal","value":"bad"}}}}`), blocks)
@@ -74,9 +74,9 @@ func TestRejectsUnknownBlockInput(t *testing.T) {
 func TestAcceptsIfLoopTryAssignReturnAndWorkflowCall(t *testing.T) {
 	blocks := map[string]block.Definition{
 		"core.log": {
-			ID: "core.log",
+			ID:      "core.log",
 			Runtime: block.RuntimeBinding{Target: "python", Mode: "sync"},
-			Inputs: []block.Port{{Name: "message", Type: block.Type{Name: "string"}}},
+			Inputs:  []block.Port{{Name: "message", Type: block.Type{Name: "string"}}},
 		},
 	}
 	doc := []byte(`{
@@ -119,6 +119,23 @@ func TestRejectsParallelSharedWrite(t *testing.T) {
 	}`)
 	_, diags := ValidateWorkflow(doc, nil)
 	assertDiagnostic(t, diags, "PARALLEL_WRITE_CONFLICT")
+}
+
+func TestRejectsDuplicateStatementIDInWorkflowBody(t *testing.T) {
+	doc := []byte(`{
+		"schemaVersion":"1.0.0",
+		"workflow":{"id":"wf"},
+		"body":{
+			"id":"root",
+			"kind":"sequence",
+			"statements":[
+				{"id":"same","kind":"return","returns":{}},
+				{"id":"same","kind":"return","returns":{}}
+			]
+		}
+	}`)
+	_, diags := ValidateWorkflow(doc, nil)
+	assertDiagnostic(t, diags, "DUPLICATE_STATEMENT_ID")
 }
 
 func assertDiagnostic(t *testing.T, diags []diagnostic.Diagnostic, code string) {
