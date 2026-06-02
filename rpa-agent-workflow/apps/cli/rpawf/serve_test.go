@@ -162,6 +162,23 @@ func TestEditorServerRunReturnsCurrentWorkflowResult(t *testing.T) {
 	}
 }
 
+func TestEditorServerMethodErrorsReturnJSONDiagnostics(t *testing.T) {
+	server := newEditorServer(testRunnableWorkflow(), nil)
+
+	response := httptest.NewRecorder()
+	request := httptest.NewRequest(http.MethodGet, "/api/run", nil)
+	server.ServeHTTP(response, request)
+
+	if response.Code != http.StatusMethodNotAllowed {
+		t.Fatalf("status = %d, want %d: %s", response.Code, http.StatusMethodNotAllowed, response.Body.String())
+	}
+	var result testRunResponse
+	decodeResponse(t, response, &result)
+	if len(result.Diagnostics) != 1 || result.Diagnostics[0].Code != "METHOD_NOT_ALLOWED" {
+		t.Fatalf("diagnostics = %#v, want METHOD_NOT_ALLOWED", result.Diagnostics)
+	}
+}
+
 func testEditorWorkflow() ast.Workflow {
 	return ast.Workflow{
 		SchemaVersion: "1.0.0",

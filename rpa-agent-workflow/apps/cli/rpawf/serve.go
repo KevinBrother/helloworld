@@ -65,7 +65,7 @@ func newEditorServerWithPath(workflow ast.Workflow, blocks map[string]block.Defi
 
 func (s *editorServer) handleWorkflow(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodGet {
-		http.Error(w, "method not allowed", http.StatusMethodNotAllowed)
+		respondDiagnostics(w, http.StatusMethodNotAllowed, methodNotAllowedDiagnostic(r.Method))
 		return
 	}
 
@@ -82,7 +82,7 @@ func (s *editorServer) handleWorkflow(w http.ResponseWriter, r *http.Request) {
 
 func (s *editorServer) handleRun(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodPost {
-		http.Error(w, "method not allowed", http.StatusMethodNotAllowed)
+		respondRunDiagnostics(w, http.StatusMethodNotAllowed, methodNotAllowedDiagnostic(r.Method))
 		return
 	}
 
@@ -135,7 +135,7 @@ func (s *editorServer) handleRun(w http.ResponseWriter, r *http.Request) {
 
 func (s *editorServer) handleEdit(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodPost {
-		http.Error(w, "method not allowed", http.StatusMethodNotAllowed)
+		respondDiagnostics(w, http.StatusMethodNotAllowed, methodNotAllowedDiagnostic(r.Method))
 		return
 	}
 
@@ -256,6 +256,15 @@ func editDiagnostic(code string, message string, path string) *diagnostic.Diagno
 		Severity: diagnostic.SeverityError,
 		Message:  message,
 		Path:     path,
+	}
+}
+
+func methodNotAllowedDiagnostic(method string) diagnostic.Diagnostic {
+	return diagnostic.Diagnostic{
+		Code:     "METHOD_NOT_ALLOWED",
+		Severity: diagnostic.SeverityError,
+		Message:  fmt.Sprintf("method %s is not allowed", method),
+		Path:     "$",
 	}
 }
 

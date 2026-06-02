@@ -67,6 +67,10 @@ button {
   backdrop-filter: blur(14px);
 }
 
+.product-title {
+  min-width: 220px;
+}
+
 .eyebrow {
   color: var(--accent);
   font-size: 0.74rem;
@@ -78,6 +82,44 @@ button {
   margin: 0.2rem 0 0;
   font-size: 1.2rem;
   font-weight: 500;
+}
+
+.execution-summary {
+  flex: 1;
+  min-width: 320px;
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 0.65rem;
+}
+
+.summary-item {
+  border: 1px solid rgba(216, 225, 221, 0.9);
+  border-radius: 6px;
+  background: rgba(255, 255, 255, 0.72);
+  padding: 0.55rem 0.65rem;
+  min-width: 0;
+}
+
+.summary-item span {
+  display: block;
+  color: var(--muted);
+  font-size: 0.68rem;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+}
+
+.summary-item strong {
+  display: block;
+  margin-top: 0.15rem;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-family: "IBM Plex Mono", monospace;
+  font-size: 0.86rem;
+}
+
+.result-summary strong {
+  color: var(--accent-strong);
 }
 
 .topbar-actions {
@@ -123,6 +165,7 @@ button {
 
 .statusbar {
   display: flex;
+  flex-wrap: wrap;
   gap: 0.6rem;
   padding: 0.8rem 1.25rem;
   background: rgba(245, 247, 244, 0.7);
@@ -167,6 +210,44 @@ button {
   padding: 1rem 1rem 0.75rem;
   text-transform: uppercase;
   letter-spacing: 0.12em;
+  font-size: 0.72rem;
+}
+
+.workbench-tabs {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 0.35rem;
+  padding: 0 1rem 0.85rem;
+}
+
+.workbench-tab {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.35rem;
+  min-height: 34px;
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  background: rgba(255, 255, 255, 0.72);
+  color: var(--muted);
+  text-transform: capitalize;
+}
+
+.workbench-tab.active {
+  border-color: rgba(76, 155, 148, 0.36);
+  background: rgba(76, 155, 148, 0.1);
+  color: var(--accent-strong);
+}
+
+.workbench-tab span {
+  display: inline-grid;
+  place-items: center;
+  min-width: 1.25rem;
+  height: 1.25rem;
+  border-radius: 999px;
+  background: rgba(194, 142, 92, 0.18);
+  color: var(--warn);
+  font-family: "IBM Plex Mono", monospace;
   font-size: 0.72rem;
 }
 
@@ -461,6 +542,33 @@ button {
   padding: 0 1rem 1rem;
 }
 
+.save-banner {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  border: 1px solid rgba(76, 155, 148, 0.2);
+  border-radius: 6px;
+  background: rgba(76, 155, 148, 0.08);
+  padding: 0.7rem 0.8rem;
+}
+
+.save-banner.failed {
+  border-color: rgba(194, 142, 92, 0.35);
+  background: rgba(194, 142, 92, 0.08);
+}
+
+.save-banner span {
+  color: var(--muted);
+  font-size: 0.72rem;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+}
+
+.save-banner strong {
+  color: var(--accent-strong);
+}
+
 .inspector-block {
   border: 1px solid rgba(216, 225, 221, 0.9);
   border-radius: 6px;
@@ -536,6 +644,40 @@ select {
   margin-top: 0.55rem;
 }
 
+.quick-editor {
+  display: grid;
+  gap: 0.55rem;
+  margin-top: 0.55rem;
+}
+
+.quick-editor-main {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 0.5rem;
+}
+
+.quick-editor-main .ghost-button {
+  min-width: 72px;
+  justify-content: center;
+  padding-inline: 0.75rem;
+}
+
+.current-expression {
+  color: var(--muted);
+  font-size: 0.78rem;
+}
+
+.advanced-expression {
+  border-top: 1px solid rgba(216, 225, 221, 0.72);
+  padding-top: 0.55rem;
+}
+
+.advanced-expression summary {
+  cursor: pointer;
+  color: var(--accent-strong);
+  font-size: 0.78rem;
+}
+
 .expression-toolbar {
   display: grid;
   grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
@@ -584,6 +726,25 @@ select {
 .diagnostic-row span {
   margin-top: 0.25rem;
   color: var(--text);
+}
+
+.diagnostic-row small {
+  display: block;
+  margin-top: 0.25rem;
+  color: var(--muted);
+  font-family: "IBM Plex Mono", monospace;
+  word-break: break-word;
+}
+
+.run-control {
+  grid-template-columns: minmax(0, 1fr);
+}
+
+.run-control strong {
+  display: block;
+  margin-top: 0.25rem;
+  color: var(--accent-strong);
+  font-family: "IBM Plex Mono", monospace;
 }
 
 .run-result pre {
@@ -661,6 +822,15 @@ select {
 }
 
 @media (max-width: 1200px) {
+  .topbar {
+    align-items: stretch;
+    flex-wrap: wrap;
+  }
+
+  .execution-summary {
+    min-width: 100%;
+  }
+
   .workspace {
     grid-template-columns: 240px minmax(0, 1fr);
   }

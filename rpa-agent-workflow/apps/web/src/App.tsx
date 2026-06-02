@@ -8,7 +8,6 @@ import {
   RotateCcw,
   SquarePen,
   SplitSquareHorizontal,
-  ClipboardList,
   Play,
 } from "lucide-react";
 import {
@@ -54,6 +53,8 @@ type Measure = {
   height: number;
 };
 type LiteralInputType = "string" | "number" | "boolean";
+type SaveState = "sample" | "saved" | "saving" | "failed";
+type WorkbenchTab = "properties" | "run" | "diagnostics";
 
 const nodeTypes = {
   workflow: memo(WorkflowFlowNode),
@@ -83,9 +84,10 @@ function App() {
   const [operationLog, setOperationLog] = useState<EditOperation[]>([]);
   const [runResult, setRunResult] = useState<RunResult | null>(null);
   const [runPending, setRunPending] = useState(false);
+  const [saveState, setSaveState] = useState<SaveState>("sample");
+  const [activeWorkbenchTab, setActiveWorkbenchTab] = useState<WorkbenchTab>("properties");
   const [viewMode, setViewMode] = useState<ViewMode>("canvas");
   const [status, setStatus] = useState("Sample loaded");
-  const [metadataDraft, setMetadataDraft] = useState("");
 
   const selectedNode = useMemo(
     () => findNode(uiDocument.root, selectedNodeId) ?? uiDocument.root,
@@ -93,23 +95,16 @@ function App() {
   );
 
   useEffect(() => {
-    setMetadataDraft(readEditableValue(selectedNode));
-  }, [selectedNode]);
-
-  useEffect(() => {
     let cancelled = false;
     async function loadWorkflow() {
       try {
-        const response = await fetch("/api/workflow");
-        if (!response.ok) {
-          throw new Error(`workflow service returned ${response.status}`);
-        }
-        const state = (await response.json()) as EditorStateResponse;
+        const state = await requestJSON<EditorStateResponse>("/api/workflow");
         if (cancelled) {
           return;
         }
         applyServerState(state);
         setServerAvailable(true);
+        setSaveState("saved");
         setStatus("Workflow service connected");
       } catch (error) {
         if (cancelled) {
@@ -141,28 +136,30 @@ function App() {
 
   const submitOperation = async (operation: EditOperation) => {
     if (!serverAvailable) {
-      emitOperation(operation, "Workflow service unavailable; operation recorded locally");
+      setStatus("Workflow service unavailable; edit not saved");
       return false;
     }
 
+    setSaveState("saving");
     try {
-      const response = await fetch("/api/edit", {
+      const state = await requestJSON<EditorStateResponse>("/api/edit", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(operation),
       });
-      const state = (await response.json()) as EditorStateResponse;
-      if (!response.ok) {
-        setDiagnostics(state.diagnostics ?? []);
-        setStatus(firstDiagnosticMessage(state.diagnostics) ?? `Edit rejected with status ${response.status}`);
-        return false;
-      }
       applyServerState(state);
+      setSaveState("saved");
+      setServerAvailable(true);
       emitOperation(state.operation ?? operation);
       return true;
     } catch (error) {
-      setServerAvailable(false);
-      setStatus(`Workflow service unavailable (${formatError(error)})`);
+      const apiError = normalizeAPIError(error);
+      setSaveState("failed");
+      setDiagnostics(apiError.diagnostics);
+      if (apiError.network) {
+        setServerAvailable(false);
+      }
+      setStatus(apiError.message);
       return false;
     }
   };
@@ -185,27 +182,6 @@ function App() {
     setUIDocument((current) => updateNode(current, selectedNode.id, (node) => ({ ...node, collapsed: nextCollapsed })));
   };
 
-  const handleApplyMetadata = () => {
-    const path = "metadata.ui.note";
-    const operation: EditOperation = {
-      schemaVersion: "1.0.0",
-      operationId: makeOperationId("update"),
-      type: "updateField",
-      targetNodeId: selectedNode.id,
-      path,
-      payload: { value: metadataDraft },
-      actor: DEFAULT_ACTOR,
-    };
-    if (serverAvailable) {
-      void submitOperation(operation);
-      return;
-    }
-    emitOperation(operation);
-    setUIDocument((current) =>
-      updateNode(current, selectedNode.id, (node) => updateNodeMetadata(node, "ui.note", metadataDraft)),
-    );
-  };
-
   const handleApplyExpression = (field: InspectorField, value: unknown) => {
     void submitOperation({
       schemaVersion: "1.0.0",
@@ -226,25 +202,24 @@ function App() {
     setRunPending(true);
     setDiagnostics([]);
     try {
-      const response = await fetch("/api/run", {
+      const payload = await requestJSON<RunResponse>("/api/run", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: "{}",
       });
-      const payload = (await response.json()) as RunResponse;
-      if (!response.ok) {
-        setRunResult(null);
-        setDiagnostics(payload.diagnostics ?? []);
-        setStatus(firstDiagnosticMessage(payload.diagnostics) ?? `Run failed with status ${response.status}`);
-        return;
-      }
       setRunResult(payload.result ?? null);
       setDiagnostics(payload.diagnostics ?? []);
+      setActiveWorkbenchTab("run");
       setStatus("Run completed");
     } catch (error) {
+      const apiError = normalizeAPIError(error);
       setRunResult(null);
-      setServerAvailable(false);
-      setStatus(`Workflow service unavailable (${formatError(error)})`);
+      setDiagnostics(apiError.diagnostics);
+      setActiveWorkbenchTab(apiError.diagnostics.length > 0 ? "diagnostics" : "run");
+      if (apiError.network) {
+        setServerAvailable(false);
+      }
+      setStatus(apiError.message);
     } finally {
       setRunPending(false);
     }
@@ -257,8 +232,10 @@ function App() {
     setASTDocument(null);
     setDiagnostics([]);
     setServerAvailable(false);
+    setSaveState("sample");
     setSelectedNodeId(next.root.id);
     setOperationLog([]);
+    setRunResult(null);
     setStatus(`Loaded ${file.name}`);
   };
 
@@ -276,11 +253,29 @@ function App() {
   return (
     <div className="app-shell">
       <header className="topbar">
-        <div>
+        <div className="product-title">
           <div className="eyebrow">Structured Workflow Editor</div>
           <h1>{uiDocument.workflowId}</h1>
         </div>
+        <div className="execution-summary">
+          <div className="summary-item">
+            <span>Connection</span>
+            <strong>{serverAvailable ? "Connected" : "Offline"}</strong>
+          </div>
+          <div className="summary-item">
+            <span>Save</span>
+            <strong>{saveLabel(saveState)}</strong>
+          </div>
+          <div className="summary-item result-summary">
+            <span>Last run</span>
+            <strong>{runResultSummary(runResult)}</strong>
+          </div>
+        </div>
         <div className="topbar-actions">
+          <button className="icon-button run-button" onClick={handleRunWorkflow} disabled={!serverAvailable || runPending}>
+            <Play size={16} />
+            {runPending ? "Running" : "Run"}
+          </button>
           <button
             className="icon-button"
             onClick={() => {
@@ -289,6 +284,7 @@ function App() {
               setASTDocument(null);
               setDiagnostics([]);
               setServerAvailable(false);
+              setSaveState("sample");
               setSelectedNodeId(next.root.id);
               setOperationLog([]);
               setRunResult(null);
@@ -316,17 +312,13 @@ function App() {
             <Download size={16} />
             Export ops
           </button>
-          <button className="icon-button run-button" onClick={handleRunWorkflow} disabled={!serverAvailable || runPending}>
-            <Play size={16} />
-            {runPending ? "Running" : "Run"}
-          </button>
         </div>
       </header>
 
       <section className="statusbar">
         <div className="status-pill">{status}</div>
-        <div className="status-pill">{serverAvailable ? "server connected" : "sample mode"}</div>
-        <div className="status-pill">{operationLog.length} operations</div>
+        <div className={saveState === "failed" ? "status-pill warn" : "status-pill"}>{saveLabel(saveState)}</div>
+        <div className="status-pill">{operationLog.length} saved edits</div>
         <div className="status-pill">{selectedNode.kind}</div>
         {diagnostics.length > 0 ? <div className="status-pill warn">{diagnostics.length} diagnostics</div> : null}
       </section>
@@ -372,19 +364,33 @@ function App() {
         <aside className="panel inspector-panel">
           <div className="panel-title">
             <SquarePen size={16} />
-            Inspector
+            Workbench
+          </div>
+          <div className="workbench-tabs">
+            {(["properties", "run", "diagnostics"] as WorkbenchTab[]).map((tab) => (
+              <button
+                key={tab}
+                className={tab === activeWorkbenchTab ? "workbench-tab active" : "workbench-tab"}
+                onClick={() => setActiveWorkbenchTab(tab)}
+              >
+                {tab}
+                {tab === "diagnostics" && diagnostics.length > 0 ? <span>{diagnostics.length}</span> : null}
+              </button>
+            ))}
           </div>
           <InspectorPane
             node={selectedNode}
-            draftValue={metadataDraft}
-            onDraftValueChange={setMetadataDraft}
             onToggleCollapsed={handleToggleCollapsed}
-            onApplyMetadata={handleApplyMetadata}
             onApplyExpression={handleApplyExpression}
             onSelect={setSelectedNodeId}
             diagnostics={diagnostics}
             astDocument={astDocument}
             runResult={runResult}
+            activeTab={activeWorkbenchTab}
+            saveState={saveState}
+            onRun={handleRunWorkflow}
+            runPending={runPending}
+            serverAvailable={serverAvailable}
           />
         </aside>
       </main>
@@ -546,30 +552,64 @@ function WorkflowFlowEdge(props: EdgeProps<WorkflowFlowEdge>) {
 
 function InspectorPane({
   node,
-  draftValue,
-  onDraftValueChange,
   onToggleCollapsed,
-  onApplyMetadata,
   onApplyExpression,
   onSelect,
   diagnostics,
   astDocument,
   runResult,
+  activeTab,
+  saveState,
+  onRun,
+  runPending,
+  serverAvailable,
 }: {
   node: UINode;
-  draftValue: string;
-  onDraftValueChange: (value: string) => void;
   onToggleCollapsed: () => void;
-  onApplyMetadata: () => void;
   onApplyExpression: (field: InspectorField, value: unknown) => void;
   onSelect: (id: string) => void;
   diagnostics: Diagnostic[];
   astDocument: unknown;
   runResult: RunResult | null;
+  activeTab: WorkbenchTab;
+  saveState: SaveState;
+  onRun: () => void;
+  runPending: boolean;
+  serverAvailable: boolean;
 }) {
   const fields = node.inspector ?? [];
+  if (activeTab === "run") {
+    return (
+      <div className="inspector">
+        <div className="inspector-block run-control">
+          <div>
+            <div className="inspector-title">Execution</div>
+            <strong>{runResultSummary(runResult)}</strong>
+          </div>
+          <button className="ghost-button run-button" onClick={onRun} disabled={!serverAvailable || runPending}>
+            <Play size={16} />
+            {runPending ? "Running" : "Run current workflow"}
+          </button>
+        </div>
+        {runResult ? <RunResultPanel result={runResult} /> : <div className="empty-state">Run the current saved AST to see returns, variables, and events.</div>}
+      </div>
+    );
+  }
+
+  if (activeTab === "diagnostics") {
+    return (
+      <div className="inspector">
+        <DiagnosticsPanel diagnostics={diagnostics} />
+      </div>
+    );
+  }
+
   return (
     <div className="inspector">
+      <div className={saveState === "failed" ? "save-banner failed" : "save-banner"}>
+        <span>AST file</span>
+        <strong>{saveLabel(saveState)}</strong>
+      </div>
       <div className="inspector-block">
         <div className="inspector-title">Node</div>
         <div className="kv-grid">
@@ -595,10 +635,6 @@ function InspectorPane({
             <SplitSquareHorizontal size={16} />
             Toggle collapsed
           </button>
-          <button className="ghost-button" onClick={onApplyMetadata}>
-            <ClipboardList size={16} />
-            Emit updateField
-          </button>
           <button className="ghost-button" onClick={() => onSelect(node.id)}>
             <FileJson size={16} />
             Focus node
@@ -607,12 +643,7 @@ function InspectorPane({
       </div>
 
       <div className="inspector-block">
-        <div className="inspector-title">Metadata note</div>
-        <textarea value={draftValue} onChange={(event) => onDraftValueChange(event.target.value)} rows={4} />
-      </div>
-
-      <div className="inspector-block">
-        <div className="inspector-title">Inspector fields</div>
+        <div className="inspector-title">Properties</div>
         <div className="field-list">
           {fields.map((field) => (
             <InspectorFieldRow key={field.path} field={field} onApplyExpression={onApplyExpression} />
@@ -620,23 +651,27 @@ function InspectorPane({
         </div>
       </div>
 
-      {diagnostics.length > 0 ? (
-        <div className="inspector-block">
-          <div className="inspector-title">Diagnostics</div>
-          <div className="diagnostic-list">
-            {diagnostics.map((diag, index) => (
-              <div className="diagnostic-row" key={`${diag.code ?? "diagnostic"}-${index}`}>
-                <strong>{diag.code ?? diag.severity ?? "diagnostic"}</strong>
-                <span>{diag.message ?? "No message"}</span>
-              </div>
-            ))}
-          </div>
-        </div>
-      ) : null}
-
-      {runResult ? <RunResultPanel result={runResult} /> : null}
-
       {astDocument ? null : <div className="empty-state">No AST document loaded from the workflow service.</div>}
+    </div>
+  );
+}
+
+function DiagnosticsPanel({ diagnostics }: { diagnostics: Diagnostic[] }) {
+  if (diagnostics.length === 0) {
+    return <div className="empty-state">No diagnostics reported.</div>;
+  }
+  return (
+    <div className="inspector-block">
+      <div className="inspector-title">Diagnostics</div>
+      <div className="diagnostic-list">
+        {diagnostics.map((diag, index) => (
+          <div className="diagnostic-row" key={`${diag.code ?? "diagnostic"}-${index}`}>
+            <strong>{diag.code ?? diag.severity ?? "diagnostic"}</strong>
+            <span>{diag.message ?? "No message"}</span>
+            {diag.path ? <small>{diag.path}</small> : null}
+          </div>
+        ))}
+      </div>
     </div>
   );
 }
@@ -672,14 +707,87 @@ function InspectorFieldRow({
   onApplyExpression: (field: InspectorField, value: unknown) => void;
 }) {
   const editable = field.control === "expression" && !field.readonly;
+  const quickKind = quickInputKind(field);
   return (
     <div className="field-row">
       <div className="field-label">{field.label ?? field.path}</div>
-      {editable ? (
+      {editable && quickKind ? (
+        <QuickExpressionEditor
+          field={field}
+          kind={quickKind}
+          value={field.value}
+          onApply={(value) => onApplyExpression(field, value)}
+        />
+      ) : editable ? (
         <ExpressionEditor value={field.value} onApply={(value) => onApplyExpression(field, value)} />
       ) : (
         <div className="field-value">{renderFieldValue(field.value)}</div>
       )}
+    </div>
+  );
+}
+
+function QuickExpressionEditor({
+  field,
+  kind,
+  value,
+  onApply,
+}: {
+  field: InspectorField;
+  kind: "number" | "operator";
+  value: unknown;
+  onApply: (value: unknown) => void;
+}) {
+  const initial = normalizeExpression(value);
+  const [numberDraft, setNumberDraft] = useState(literalNumberDraft(initial));
+  const [operatorDraft, setOperatorDraft] = useState(literalOperatorDraft(initial));
+
+  useEffect(() => {
+    const next = normalizeExpression(value);
+    setNumberDraft(literalNumberDraft(next));
+    setOperatorDraft(literalOperatorDraft(next));
+  }, [value]);
+
+  const saveQuickValue = () => {
+    if (kind === "number") {
+      const numeric = Number(numberDraft);
+      if (!Number.isFinite(numeric)) {
+        return;
+      }
+      onApply({ kind: "literal", value: numeric });
+      return;
+    }
+    onApply({ kind: "literal", value: operatorDraft });
+  };
+
+  return (
+    <div className="quick-editor">
+      <div className="quick-editor-main">
+        {kind === "number" ? (
+          <input
+            type="number"
+            inputMode="decimal"
+            placeholder={expressionHint(initial)}
+            value={numberDraft}
+            onChange={(event) => setNumberDraft(event.target.value)}
+          />
+        ) : (
+          <select value={operatorDraft} onChange={(event) => setOperatorDraft(event.target.value)}>
+            <option value="+">+</option>
+            <option value="-">-</option>
+            <option value="*">*</option>
+            <option value="/">/</option>
+          </select>
+        )}
+        <button className="ghost-button" onClick={saveQuickValue} disabled={kind === "number" && numberDraft.trim() === ""}>
+          Save
+        </button>
+      </div>
+      <div className="field-value current-expression">{renderExpressionSummary(initial)}</div>
+      <details className="advanced-expression">
+        <summary>Advanced expression</summary>
+        <ExpressionEditor value={field.value} onApply={onApply} />
+      </details>
     </div>
   );
 }
@@ -1052,6 +1160,16 @@ function renderFieldValue(value: unknown) {
   return JSON.stringify(value);
 }
 
+function quickInputKind(field: InspectorField): "number" | "operator" | null {
+  if (field.path.endsWith(".inputs.left") || field.path.endsWith(".inputs.right")) {
+    return "number";
+  }
+  if (field.path.endsWith(".inputs.operator")) {
+    return "operator";
+  }
+  return null;
+}
+
 function normalizeExpression(value: unknown): Record<string, unknown> {
   if (value && typeof value === "object" && !Array.isArray(value)) {
     const expression = value as Record<string, unknown>;
@@ -1060,6 +1178,34 @@ function normalizeExpression(value: unknown): Record<string, unknown> {
     }
   }
   return { kind: "literal", value: "" };
+}
+
+function literalNumberDraft(expression: Record<string, unknown>) {
+  return expression.kind === "literal" && typeof expression.value === "number" ? String(expression.value) : "";
+}
+
+function literalOperatorDraft(expression: Record<string, unknown>) {
+  if (expression.kind === "literal" && typeof expression.value === "string" && ["+", "-", "*", "/"].includes(expression.value)) {
+    return expression.value;
+  }
+  return "+";
+}
+
+function expressionHint(expression: Record<string, unknown>) {
+  if (expression.kind === "ref" && typeof expression.ref === "string") {
+    return expression.ref;
+  }
+  return "value";
+}
+
+function renderExpressionSummary(expression: Record<string, unknown>) {
+  if (expression.kind === "literal") {
+    return `Saved literal: ${String(expression.value ?? "")}`;
+  }
+  if (expression.kind === "ref") {
+    return `Currently reads ${String(expression.ref ?? "")}`;
+  }
+  return `Expression: ${String(expression.kind ?? "unknown")}`;
 }
 
 function literalInputType(expression: Record<string, unknown>): LiteralInputType {
@@ -1130,6 +1276,88 @@ function firstDiagnosticMessage(diags: Diagnostic[] | undefined) {
 
 function formatError(error: unknown) {
   return error instanceof Error ? error.message : String(error);
+}
+
+function saveLabel(state: SaveState) {
+  switch (state) {
+    case "saved":
+      return "Saved";
+    case "saving":
+      return "Saving";
+    case "failed":
+      return "Save failed";
+    case "sample":
+      return "Sample";
+  }
+}
+
+function runResultSummary(result: RunResult | null) {
+  if (!result) {
+    return "Not run";
+  }
+  const returns = result.returns ?? {};
+  if ("result" in returns) {
+    return `result = ${String(returns.result)}`;
+  }
+  const firstKey = Object.keys(returns)[0];
+  if (firstKey) {
+    return `${firstKey} = ${String(returns[firstKey])}`;
+  }
+  return "Completed";
+}
+
+class APIError extends Error {
+  diagnostics: Diagnostic[];
+  network: boolean;
+
+  constructor(message: string, options?: { diagnostics?: Diagnostic[]; network?: boolean }) {
+    super(message);
+    this.name = "APIError";
+    this.diagnostics = options?.diagnostics ?? [];
+    this.network = options?.network ?? false;
+  }
+}
+
+async function requestJSON<T>(url: string, init?: RequestInit): Promise<T> {
+  let response: Response;
+  try {
+    response = await fetch(url, init);
+  } catch (error) {
+    throw new APIError(`Workflow service unavailable (${formatError(error)})`, { network: true });
+  }
+
+  const raw = await response.text();
+  let parsed: unknown = {};
+  if (raw.trim()) {
+    try {
+      parsed = JSON.parse(raw) as unknown;
+    } catch {
+      throw new APIError(`Workflow service returned non-JSON response: ${raw.slice(0, 120)}`);
+    }
+  }
+
+  const diagnostics = diagnosticsFromPayload(parsed);
+  if (!response.ok) {
+    throw new APIError(firstDiagnosticMessage(diagnostics) || `Request failed with status ${response.status}`, {
+      diagnostics,
+    });
+  }
+  return parsed as T;
+}
+
+function diagnosticsFromPayload(payload: unknown): Diagnostic[] {
+  if (!payload || typeof payload !== "object" || Array.isArray(payload)) {
+    return [];
+  }
+  const diagnostics = (payload as { diagnostics?: unknown }).diagnostics;
+  return Array.isArray(diagnostics) ? (diagnostics as Diagnostic[]) : [];
+}
+
+function normalizeAPIError(error: unknown) {
+  if (error instanceof APIError) {
+    return error;
+  }
+  return new APIError(formatError(error));
 }
 
 export default App;
