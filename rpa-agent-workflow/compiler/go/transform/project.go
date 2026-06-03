@@ -13,6 +13,9 @@ const uiNodeSchemaVersion = "1.0.0"
 
 func ProjectWorkflow(workflow ast.Workflow) uinode.Document {
 	root := projectStatement(workflow.Body, "$.body", 0)
+	root.Label = "Start"
+	root.Inspector = append(root.Inspector, workflowPortInspectorFields("$.inputs", "Input", workflow.Inputs)...)
+	root.Inspector = append(root.Inspector, workflowPortInspectorFields("$.outputs", "Output", workflow.Outputs)...)
 	return uinode.Document{
 		SchemaVersion: uiNodeSchemaVersion,
 		WorkflowID:    workflow.Workflow.ID,
@@ -21,6 +24,20 @@ func ProjectWorkflow(workflow ast.Workflow) uinode.Document {
 			"workflowName": workflow.Workflow.Name,
 		},
 	}
+}
+
+func workflowPortInspectorFields(path string, labelPrefix string, ports []ast.Port) []uinode.InspectorField {
+	fields := make([]uinode.InspectorField, 0, len(ports))
+	for _, port := range ports {
+		fields = append(fields, uinode.InspectorField{
+			Path:     path + "." + port.Name,
+			Label:    labelPrefix + " " + port.Name,
+			Control:  "port",
+			Value:    port,
+			Readonly: true,
+		})
+	}
+	return fields
 }
 
 func projectStatement(stmt ast.Statement, path string, lane int) uinode.Node {

@@ -15,9 +15,12 @@ type Options struct {
 }
 
 type Result struct {
-	Returns   map[string]any `json:"returns"`
-	Variables map[string]any `json:"variables"`
-	Events    []Event        `json:"events,omitempty"`
+	Inputs      map[string]any            `json:"inputs,omitempty"`
+	Returns     map[string]any            `json:"returns"`
+	Variables   map[string]any            `json:"variables,omitempty"`
+	State       map[string]any            `json:"state,omitempty"`
+	NodeOutputs map[string]map[string]any `json:"nodeOutputs,omitempty"`
+	Events      []Event                   `json:"events,omitempty"`
 }
 
 type Event struct {
@@ -45,6 +48,8 @@ type StatementSnapshot struct {
 	BranchID      string
 	Frames        []FrameSnapshot
 	Variables     map[string]any
+	State         map[string]any
+	NodeOutputs   map[string]map[string]any
 }
 
 type FrameSnapshot struct {

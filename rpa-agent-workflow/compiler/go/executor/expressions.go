@@ -60,6 +60,29 @@ func (s *state) evalExpression(expr *ast.Expression) (any, error) {
 }
 
 func (s *state) resolveRef(ref string) (any, error) {
+	if strings.HasPrefix(ref, "state.") {
+		name := strings.TrimPrefix(ref, "state.")
+		value, ok := s.globalState[name]
+		if !ok {
+			return nil, s.evalErrorf("unknown state ref %q", ref)
+		}
+		return value, nil
+	}
+	if strings.HasPrefix(ref, "node.") {
+		parts := strings.SplitN(strings.TrimPrefix(ref, "node."), ".", 2)
+		if len(parts) != 2 || parts[0] == "" || parts[1] == "" {
+			return nil, s.evalErrorf("invalid node ref %q", ref)
+		}
+		outputs, ok := s.nodeOutputs[parts[0]]
+		if !ok {
+			return nil, s.evalErrorf("unknown node ref %q", ref)
+		}
+		value, ok := outputs[parts[1]]
+		if !ok {
+			return nil, s.evalErrorf("unknown node output ref %q", ref)
+		}
+		return value, nil
+	}
 	if strings.HasPrefix(ref, "var.") {
 		name := strings.TrimPrefix(ref, "var.")
 		value, ok := s.variables[name]

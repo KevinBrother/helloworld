@@ -22,6 +22,14 @@ func ValidateWorkflow(data []byte, blocks map[string]block.Definition) (*ast.Wor
 	}
 
 	var diags []diagnostic.Diagnostic
+	if len(workflow.Variables) > 0 {
+		diags = append(diags, diagnosticError("ORDINARY_VARIABLES_UNSUPPORTED", "ordinary workflow variables are unsupported; use input.*, node.*, loop.*, or state.*", "$.variables"))
+	}
+	for name, declaration := range workflow.State {
+		if declaration.InitialValue != nil {
+			diags = append(diags, validateExpression(declaration.InitialValue, workflow, blocks, "$.state."+name+".initialValue")...)
+		}
+	}
 	diags = append(diags, validateUniqueStatementIDs(workflow.Body, "$.body")...)
 	for i, sub := range workflow.Workflows {
 		diags = append(diags, validateUniqueStatementIDs(sub.Body, fmt.Sprintf("$.workflows[%d].body", i))...)
@@ -88,11 +96,13 @@ func validateStatement(stmt ast.Statement, workflow ast.Workflow, blocks map[str
 			}
 		}
 	case "callBlock":
-		diags = append(diags, validateCallBlock(stmt, blocks, path)...)
+		diags = append(diags, validateCallBlock(stmt, workflow, blocks, path)...)
 	case "assign":
 		diags = append(diags, validateExpression(stmt.Value, workflow, blocks, path+".value")...)
-		if !hasVariable(workflow, stmt.Target) {
-			diags = append(diags, diagnosticError("UNKNOWN_VARIABLE", fmt.Sprintf("unknown variable %q", stmt.Target), path+".target"))
+		if !strings.HasPrefix(stmt.Target, "state.") {
+			diags = append(diags, diagnosticError("ASSIGN_TARGET_MUST_BE_STATE", fmt.Sprintf("assign target %q must be state.*", stmt.Target), path+".target"))
+		} else if !hasState(workflow, strings.TrimPrefix(stmt.Target, "state.")) {
+			diags = append(diags, diagnosticError("UNKNOWN_STATE", fmt.Sprintf("unknown state %q", stmt.Target), path+".target"))
 		}
 	case "if":
 		diags = append(diags, validateExpression(stmt.Condition, workflow, blocks, path+".condition")...)
@@ -158,7 +168,7 @@ func validateParallel(stmt ast.Statement, workflow ast.Workflow, path string) []
 	return diags
 }
 
-func validateCallBlock(stmt ast.Statement, blocks map[string]block.Definition, path string) []diagnostic.Diagnostic {
+func validateCallBlock(stmt ast.Statement, workflow ast.Workflow, blocks map[string]block.Definition, path string) []diagnostic.Diagnostic {
 	blk, ok := blocks[stmt.Block]
 	if !ok {
 		return []diagnostic.Diagnostic{diagnosticError("UNKNOWN_BLOCK", fmt.Sprintf("unknown block %q", stmt.Block), path+".block")}
@@ -181,7 +191,7 @@ func validateCallBlock(stmt ast.Statement, blocks map[string]block.Definition, p
 			continue
 		}
 		child := expr
-		diags = append(diags, validateExpression(&child, ast.Workflow{}, blocks, path+".inputs."+port.Name)...)
+		diags = append(diags, validateExpression(&child, workflow, blocks, path+".inputs."+port.Name)...)
 		if lit, ok := literalType(&child); ok && !typeMatches(lit, port.Type.Name) {
 			diags = append(diags, diagnosticError("TYPE_MISMATCH", fmt.Sprintf("expected %s", port.Type.Name), path+".inputs."+port.Name))
 		}
@@ -202,8 +212,11 @@ func validateExpression(expr *ast.Expression, workflow ast.Workflow, blocks map[
 	case "literal":
 		return nil
 	case "ref":
-		if strings.HasPrefix(expr.Ref, "var.") && !hasVariable(workflow, strings.TrimPrefix(expr.Ref, "var.")) {
-			return []diagnostic.Diagnostic{diagnosticError("UNKNOWN_VARIABLE", fmt.Sprintf("unknown variable %q", expr.Ref), path)}
+		if strings.HasPrefix(expr.Ref, "var.") {
+			return []diagnostic.Diagnostic{diagnosticError("UNSUPPORTED_VARIABLE_REF", fmt.Sprintf("ordinary variable ref %q is unsupported", expr.Ref), path)}
+		}
+		if strings.HasPrefix(expr.Ref, "state.") && !hasState(workflow, strings.TrimPrefix(expr.Ref, "state.")) {
+			return []diagnostic.Diagnostic{diagnosticError("UNKNOWN_STATE", fmt.Sprintf("unknown state %q", expr.Ref), path)}
 		}
 		return nil
 	case "binary":
@@ -217,7 +230,7 @@ func validateExpression(expr *ast.Expression, workflow ast.Workflow, blocks map[
 			diags = append(diags, validateExpression(&item, workflow, blocks, fmt.Sprintf("%s.items[%d]", path, i))...)
 		}
 		return diags
-	case "object":
+	case "object", "branch":
 		var diags []diagnostic.Diagnostic
 		for key, item := range expr.Fields {
 			child := item
@@ -256,6 +269,11 @@ func hasVariable(workflow ast.Workflow, name string) bool {
 		}
 	}
 	return false
+}
+
+func hasState(workflow ast.Workflow, name string) bool {
+	_, ok := workflow.State[name]
+	return ok
 }
 
 func hasSubWorkflow(workflow ast.Workflow, id string) bool {

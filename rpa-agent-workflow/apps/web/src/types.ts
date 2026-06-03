@@ -100,8 +100,11 @@ export type EditorStateResponse = {
 };
 
 export type RunResult = {
+  inputs?: Record<string, unknown>;
   returns?: Record<string, unknown>;
   variables?: Record<string, unknown>;
+  state?: Record<string, unknown>;
+  nodeOutputs?: Record<string, Record<string, unknown>>;
   events?: Array<{
     name?: string;
     workflowId?: string;

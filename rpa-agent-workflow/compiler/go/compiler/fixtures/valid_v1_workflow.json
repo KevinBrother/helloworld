@@ -3,15 +3,13 @@
   "workflow": {
     "id": "valid_v1_workflow"
   },
-  "variables": [
-    {
-      "name": "x",
+  "state": {
+    "x": {
       "type": {
         "name": "string"
-      },
-      "mutable": true
+      }
     }
-  ],
+  },
   "workflows": [
     {
       "id": "child",
@@ -29,7 +27,7 @@
       {
         "id": "assign",
         "kind": "assign",
-        "target": "x",
+        "target": "state.x",
         "value": {
           "kind": "literal",
           "value": "ok"
@@ -47,7 +45,7 @@
         "returns": {
           "x": {
             "kind": "ref",
-            "ref": "var.x"
+            "ref": "state.x"
           }
         }
       }

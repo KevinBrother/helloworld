@@ -128,6 +128,7 @@ func (s *state) runCallWorkflow(ctx context.Context, stmt ast.Statement) error {
 }
 
 func (s *state) bindCallWorkflowOutputs(stmt ast.Statement, values map[string]any) error {
+	s.storeNodeOutputs(stmt.ID, values)
 	if len(stmt.Outputs) == 0 {
 		return nil
 	}

@@ -586,6 +586,125 @@ func TestRunWorkflowInvokesHostAndBindsOutputs(t *testing.T) {
 	}
 }
 
+func TestRunWorkflowStoresBlockOutputsAsNodeReferences(t *testing.T) {
+	host := &fakeHost{
+		result: BlockResult{
+			Outputs: map[string]any{
+				"result": float64(42),
+			},
+		},
+	}
+
+	workflow := ast.Workflow{
+		SchemaVersion: "1.0.0",
+		Workflow:      ast.Metadata{ID: "node-output-ref"},
+		Body: ast.Statement{
+			ID:   "root",
+			Kind: "sequence",
+			Statements: []ast.Statement{
+				{
+					ID:    "calculate",
+					Kind:  "callBlock",
+					Block: "math.calculate",
+				},
+				{
+					ID:   "return-result",
+					Kind: "return",
+					Returns: map[string]ast.Expression{
+						"result": {Kind: "ref", Ref: "node.calculate.result"},
+					},
+				},
+			},
+		},
+	}
+
+	result, err := RunWorkflow(context.Background(), workflow, Options{
+		Blocks: map[string]block.Definition{
+			"math.calculate": {
+				ID:        "math.calculate",
+				Namespace: "math",
+				Name:      "calculate",
+			},
+		},
+		Host: host,
+	})
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if got := result.Returns["result"]; got != float64(42) {
+		t.Fatalf("result = %#v, want 42", got)
+	}
+}
+
+func TestRunWorkflowIfMergesBranchOutputsAsNodeReference(t *testing.T) {
+	host := &fakeHost{
+		result: BlockResult{Outputs: map[string]any{"result": float64(12)}},
+	}
+
+	workflow := ast.Workflow{
+		SchemaVersion: "1.0.0",
+		Workflow:      ast.Metadata{ID: "if-output-ref"},
+		Body: ast.Statement{
+			ID:   "root",
+			Kind: "sequence",
+			Statements: []ast.Statement{
+				{
+					ID:        "branch",
+					Kind:      "if",
+					Condition: &ast.Expression{Kind: "literal", Value: true},
+					Then: []ast.Statement{
+						{
+							ID:    "calculate_then",
+							Kind:  "callBlock",
+							Block: "math.calculate",
+						},
+					},
+					Else: []ast.Statement{
+						{
+							ID:    "calculate_else",
+							Kind:  "callBlock",
+							Block: "math.calculate",
+						},
+					},
+					Outputs: map[string]ast.Expression{
+						"result": {
+							Kind: "branch",
+							Fields: map[string]ast.Expression{
+								"then": {Kind: "ref", Ref: "node.calculate_then.result"},
+								"else": {Kind: "ref", Ref: "node.calculate_else.result"},
+							},
+						},
+					},
+				},
+				{
+					ID:   "return-result",
+					Kind: "return",
+					Returns: map[string]ast.Expression{
+						"result": {Kind: "ref", Ref: "node.branch.result"},
+					},
+				},
+			},
+		},
+	}
+
+	result, err := RunWorkflow(context.Background(), workflow, Options{
+		Blocks: map[string]block.Definition{
+			"math.calculate": {
+				ID:        "math.calculate",
+				Namespace: "math",
+				Name:      "calculate",
+			},
+		},
+		Host: host,
+	})
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if got := result.Returns["result"]; got != float64(12) {
+		t.Fatalf("result = %#v, want 12", got)
+	}
+}
+
 func TestRunWorkflowReturnsStructuredErrorWhenHostOutputIsMissing(t *testing.T) {
 	host := &fakeHost{
 		result: BlockResult{

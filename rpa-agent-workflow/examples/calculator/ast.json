@@ -32,41 +32,85 @@
       }
     }
   ],
-  "variables": [
-    {
-      "name": "result",
-      "type": {
-        "name": "number"
-      },
-      "mutable": true
-    }
-  ],
   "body": {
     "id": "root",
     "kind": "sequence",
     "statements": [
       {
-        "id": "calculate",
-        "kind": "callBlock",
-        "block": "math.calculate",
-        "inputs": {
+        "id": "branch_by_threshold",
+        "kind": "if",
+        "outputs": {
+          "result": {
+            "kind": "branch",
+            "fields": {
+              "else": {
+                "kind": "ref",
+                "ref": "node.calculate_small_value.result"
+              },
+              "then": {
+                "kind": "ref",
+                "ref": "node.calculate_large_value.result"
+              }
+            }
+          }
+        },
+        "condition": {
+          "kind": "binary",
+          "op": "\u003e",
           "left": {
             "kind": "ref",
             "ref": "input.left"
           },
-          "operator": {
-            "kind": "ref",
-            "ref": "input.operator"
-          },
           "right": {
-            "kind": "ref",
-            "ref": "input.right"
+            "kind": "literal",
+            "value": 10
           }
         },
-        "outputs": {
-          "result": {
-            "kind": "ref",
-            "ref": "var.result"
+        "then": [
+          {
+            "id": "calculate_large_value",
+            "kind": "callBlock",
+            "block": "math.calculate",
+            "inputs": {
+              "left": {
+                "kind": "ref",
+                "ref": "input.left"
+              },
+              "operator": {
+                "kind": "ref",
+                "ref": "input.operator"
+              },
+              "right": {
+                "kind": "ref",
+                "ref": "input.right"
+              }
+            }
+          }
+        ],
+        "else": [
+          {
+            "id": "calculate_small_value",
+            "kind": "callBlock",
+            "block": "math.calculate",
+            "inputs": {
+              "left": {
+                "kind": "ref",
+                "ref": "input.left"
+              },
+              "operator": {
+                "kind": "ref",
+                "ref": "input.operator"
+              },
+              "right": {
+                "kind": "ref",
+                "ref": "input.right"
+              }
+            }
+          }
+        ],
+        "metadata": {
+          "ui": {
+            "collapsed": false
           }
         }
       },
@@ -76,7 +120,7 @@
         "returns": {
           "result": {
             "kind": "ref",
-            "ref": "var.result"
+            "ref": "node.branch_by_threshold.result"
           }
         }
       }

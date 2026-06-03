@@ -24,15 +24,17 @@ type frame struct {
 }
 
 type state struct {
-	workflow  ast.Workflow
-	frames    []frame
-	variables map[string]any
-	blocks    map[string]block.Definition
-	host      Host
-	recorder  Recorder
-	debugHook DebugHook
-	branchID  string
-	events    []Event
+	workflow    ast.Workflow
+	frames      []frame
+	variables   map[string]any
+	globalState map[string]any
+	nodeOutputs map[string]map[string]any
+	blocks      map[string]block.Definition
+	host        Host
+	recorder    Recorder
+	debugHook   DebugHook
+	branchID    string
+	events      []Event
 }
 
 func newState(workflow ast.Workflow, opts Options) *state {
@@ -52,12 +54,14 @@ func newState(workflow ast.Workflow, opts Options) *state {
 	}
 
 	st := &state{
-		workflow:  workflow,
-		variables: map[string]any{},
-		blocks:    blocks,
-		host:      host,
-		recorder:  recorder,
-		debugHook: opts.DebugHook,
+		workflow:    workflow,
+		variables:   map[string]any{},
+		globalState: map[string]any{},
+		nodeOutputs: map[string]map[string]any{},
+		blocks:      blocks,
+		host:        host,
+		recorder:    recorder,
+		debugHook:   opts.DebugHook,
 	}
 	st.pushFrame(workflow.Workflow.ID)
 	for name, value := range opts.Inputs {
@@ -88,15 +92,28 @@ func (s *state) cloneForParallel(branchID string) *state {
 	}
 
 	return &state{
-		workflow:  s.workflow,
-		frames:    frames,
-		variables: cloneAnyMap(s.variables),
-		blocks:    s.blocks,
-		host:      s.host,
-		recorder:  nopRecorder{},
-		debugHook: s.debugHook,
-		branchID:  branchID,
+		workflow:    s.workflow,
+		frames:      frames,
+		variables:   cloneAnyMap(s.variables),
+		globalState: cloneAnyMap(s.globalState),
+		nodeOutputs: cloneNodeOutputs(s.nodeOutputs),
+		blocks:      s.blocks,
+		host:        s.host,
+		recorder:    nopRecorder{},
+		debugHook:   s.debugHook,
+		branchID:    branchID,
 	}
+}
+
+func cloneNodeOutputs(src map[string]map[string]any) map[string]map[string]any {
+	if src == nil {
+		return nil
+	}
+	dst := make(map[string]map[string]any, len(src))
+	for key, outputs := range src {
+		dst[key] = cloneAnyMap(outputs)
+	}
+	return dst
 }
 
 func cloneAnyMap(src map[string]any) map[string]any {
@@ -200,6 +217,8 @@ func (s *state) statementSnapshot(stmt ast.Statement) StatementSnapshot {
 		BranchID:      s.branchID,
 		Frames:        frames,
 		Variables:     cloneAnyMap(s.variables),
+		State:         cloneAnyMap(s.globalState),
+		NodeOutputs:   cloneNodeOutputs(s.nodeOutputs),
 	}
 }
 
@@ -266,6 +285,33 @@ func (s *state) setVariable(name string, value any) {
 	})
 }
 
+func (s *state) setState(name string, value any) {
+	s.globalState[name] = value
+	s.emit(Event{
+		Name:       "state.write",
+		WorkflowID: s.currentWorkflowID(),
+		Payload: map[string]any{
+			"name":  name,
+			"value": value,
+		},
+	})
+}
+
+func (s *state) storeNodeOutputs(statementID string, outputs map[string]any) {
+	if statementID == "" {
+		return
+	}
+	s.nodeOutputs[statementID] = cloneAnyMap(outputs)
+	s.emit(Event{
+		Name:        "node.outputs.write",
+		WorkflowID:  s.currentWorkflowID(),
+		StatementID: statementID,
+		Payload: map[string]any{
+			"outputs": outputs,
+		},
+	})
+}
+
 func (s *state) bindStatementOutputs(stmt ast.Statement, values map[string]any, missingPhase string, source string) error {
 	for outputName, destination := range stmt.Outputs {
 		if destination.Kind != "ref" {
@@ -298,6 +344,11 @@ func (s *state) bindStatementOutputs(stmt ast.Statement, values map[string]any, 
 				StatementKind: stmt.Kind,
 				Cause:         fmt.Errorf("missing %s output %q", source, outputName),
 			}
+		}
+
+		if strings.HasPrefix(ref, "state.") {
+			s.setState(strings.TrimPrefix(ref, "state."), value)
+			continue
 		}
 
 		if strings.HasPrefix(ref, "var.") {

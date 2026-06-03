@@ -90,6 +90,7 @@ func (s *state) runCallBlock(ctx context.Context, stmt ast.Statement) error {
 		},
 	})
 
+	s.storeNodeOutputs(stmt.ID, result.Outputs)
 	return s.bindBlockOutputs(stmt, result)
 }
 

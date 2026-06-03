@@ -408,6 +408,40 @@ func TestRunWorkflowExecutesSequenceAssignIfAndReturn(t *testing.T) {
 	}
 }
 
+func TestRunWorkflowAssignWritesStateReference(t *testing.T) {
+	workflow := ast.Workflow{
+		SchemaVersion: "1.0.0",
+		Workflow:      ast.Metadata{ID: "state-writes"},
+		Body: ast.Statement{
+			ID:   "root",
+			Kind: "sequence",
+			Statements: []ast.Statement{
+				{
+					ID:     "assign-total",
+					Kind:   "assign",
+					Target: "state.total_count",
+					Value:  &ast.Expression{Kind: "literal", Value: float64(3)},
+				},
+				{
+					ID:   "return-total",
+					Kind: "return",
+					Returns: map[string]ast.Expression{
+						"total_count": {Kind: "ref", Ref: "state.total_count"},
+					},
+				},
+			},
+		},
+	}
+
+	result, err := RunWorkflow(context.Background(), workflow, Options{})
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if got := result.Returns["total_count"]; got != float64(3) {
+		t.Fatalf("total_count = %#v, want 3", got)
+	}
+}
+
 func TestRunWorkflowEmitsStatementEndOnError(t *testing.T) {
 	workflow := ast.Workflow{
 		SchemaVersion: "1.0.0",

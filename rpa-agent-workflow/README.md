@@ -78,7 +78,7 @@ go run ./apps/cli/rpawf project-ui examples/sample-workflow/ast.json > output/ui
 
 ## Calculator Workflow
 
-`examples/calculator/ast.json` 是计算器工作流。它声明运行时输入 `left`、`operator`、`right`，调用 SDK 里的 `math.calculate` block，把输出写入 `var.result`，最后返回 `result`。
+`examples/calculator/ast.json` 是计算器工作流。它声明运行时输入 `left`、`operator`、`right`，根据 `input.left > 10` 选择分支调用 SDK 里的 `math.calculate` block。block 输出通过 Node Output Reference 暴露，最后返回 `node.branch_by_threshold.result`。
 
 `examples/calculator/input-*.json` 是这个 workflow 的运行时输入 payload，不属于 AST schema，也不属于 Block schema。
 

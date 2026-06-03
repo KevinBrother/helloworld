@@ -4,22 +4,18 @@
     "id": "sample_workflow",
     "name": "Sample Workflow"
   },
-  "variables": [
-    {
-      "name": "last_item",
+  "state": {
+    "last_item": {
       "type": {
         "name": "string"
-      },
-      "mutable": true
+      }
     },
-    {
-      "name": "finally_ran",
+    "finally_ran": {
       "type": {
         "name": "boolean"
-      },
-      "mutable": true
+      }
     }
-  ],
+  },
   "body": {
     "id": "root",
     "kind": "sequence",
@@ -79,7 +75,7 @@
           {
             "id": "assign_last_item",
             "kind": "assign",
-            "target": "last_item",
+            "target": "state.last_item",
             "value": {
               "kind": "ref",
               "ref": "item"
@@ -137,7 +133,7 @@
           {
             "id": "assign_finally",
             "kind": "assign",
-            "target": "finally_ran",
+            "target": "state.finally_ran",
             "value": {
               "kind": "literal",
               "value": true
@@ -151,11 +147,11 @@
         "returns": {
           "last_item": {
             "kind": "ref",
-            "ref": "var.last_item"
+            "ref": "state.last_item"
           },
           "finally_ran": {
             "kind": "ref",
-            "ref": "var.finally_ran"
+            "ref": "state.finally_ran"
           }
         }
       }

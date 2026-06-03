@@ -591,7 +591,7 @@ function InspectorPane({
             {runPending ? "Running" : "Run current workflow"}
           </button>
         </div>
-        {runResult ? <RunResultPanel result={runResult} /> : <div className="empty-state">Run the current saved AST to see returns, variables, and events.</div>}
+        {runResult ? <RunResultPanel result={runResult} /> : <div className="empty-state">Run the current saved AST to see returns, state, node outputs, and events.</div>}
       </div>
     );
   }
@@ -683,12 +683,20 @@ function RunResultPanel({ result }: { result: RunResult }) {
       <div className="inspector-title">Run result</div>
       <div className="result-grid">
         <div>
+          <span>Inputs</span>
+          <pre>{JSON.stringify(result.inputs ?? {}, null, 2)}</pre>
+        </div>
+        <div>
           <span>Returns</span>
           <pre>{JSON.stringify(result.returns ?? {}, null, 2)}</pre>
         </div>
         <div>
-          <span>Variables</span>
-          <pre>{JSON.stringify(result.variables ?? {}, null, 2)}</pre>
+          <span>State</span>
+          <pre>{JSON.stringify(result.state ?? result.variables ?? {}, null, 2)}</pre>
+        </div>
+        <div>
+          <span>Node outputs</span>
+          <pre>{JSON.stringify(result.nodeOutputs ?? {}, null, 2)}</pre>
         </div>
       </div>
       <details className="event-details">

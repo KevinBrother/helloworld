@@ -82,13 +82,13 @@ func TestAcceptsIfLoopTryAssignReturnAndWorkflowCall(t *testing.T) {
 	doc := []byte(`{
 		"schemaVersion":"1.0.0",
 		"workflow":{"id":"wf"},
-		"variables":[{"name":"count","type":{"name":"integer"},"mutable":true}],
+		"state":{"count":{"type":{"name":"integer"}}},
 		"workflows":[{"id":"child","body":{"id":"child_return","kind":"return","returns":{}}}],
 		"body":{
 			"id":"root",
 			"kind":"sequence",
 			"statements":[
-				{"id":"assign_count","kind":"assign","target":"count","value":{"kind":"literal","value":1}},
+				{"id":"assign_count","kind":"assign","target":"state.count","value":{"kind":"literal","value":1}},
 				{"id":"if_count","kind":"if","condition":{"kind":"literal","value":true},"then":[{"id":"if_log","kind":"callBlock","block":"core.log","inputs":{"message":{"kind":"literal","value":"then"}}}],"else":[]},
 				{"id":"loop_once","kind":"loop","loopKind":"while","condition":{"kind":"literal","value":false},"statements":[]},
 				{"id":"try_stmt","kind":"try","statements":[],"catches":[{"pattern":"*","body":[]}],"finally":[]},
@@ -136,6 +136,73 @@ func TestRejectsDuplicateStatementIDInWorkflowBody(t *testing.T) {
 	}`)
 	_, diags := ValidateWorkflow(doc, nil)
 	assertDiagnostic(t, diags, "DUPLICATE_STATEMENT_ID")
+}
+
+func TestRejectsOrdinaryVariables(t *testing.T) {
+	doc := []byte(`{
+		"schemaVersion":"1.0.0",
+		"workflow":{"id":"wf"},
+		"variables":[{"name":"result","type":{"name":"number"}}],
+		"body":{"id":"root","kind":"return","returns":{}}
+	}`)
+	_, diags := ValidateWorkflow(doc, nil)
+	assertDiagnostic(t, diags, "ORDINARY_VARIABLES_UNSUPPORTED")
+}
+
+func TestRejectsVarReferences(t *testing.T) {
+	doc := []byte(`{
+		"schemaVersion":"1.0.0",
+		"workflow":{"id":"wf"},
+		"body":{"id":"root","kind":"return","returns":{"result":{"kind":"ref","ref":"var.result"}}}
+	}`)
+	_, diags := ValidateWorkflow(doc, nil)
+	assertDiagnostic(t, diags, "UNSUPPORTED_VARIABLE_REF")
+}
+
+func TestRejectsAssignTargetOutsideState(t *testing.T) {
+	doc := []byte(`{
+		"schemaVersion":"1.0.0",
+		"workflow":{"id":"wf"},
+		"body":{
+			"id":"root",
+			"kind":"sequence",
+			"statements":[
+				{"id":"assign_result","kind":"assign","target":"result","value":{"kind":"literal","value":1}}
+			]
+		}
+	}`)
+	_, diags := ValidateWorkflow(doc, nil)
+	assertDiagnostic(t, diags, "ASSIGN_TARGET_MUST_BE_STATE")
+}
+
+func TestRejectsUnknownStateReference(t *testing.T) {
+	doc := []byte(`{
+		"schemaVersion":"1.0.0",
+		"workflow":{"id":"wf"},
+		"body":{"id":"root","kind":"return","returns":{"result":{"kind":"ref","ref":"state.missing"}}}
+	}`)
+	_, diags := ValidateWorkflow(doc, nil)
+	assertDiagnostic(t, diags, "UNKNOWN_STATE")
+}
+
+func TestAcceptsDeclaredStateAssignAndReturn(t *testing.T) {
+	doc := []byte(`{
+		"schemaVersion":"1.0.0",
+		"workflow":{"id":"wf"},
+		"state":{"count":{"type":{"name":"number"},"initialValue":{"kind":"literal","value":0}}},
+		"body":{
+			"id":"root",
+			"kind":"sequence",
+			"statements":[
+				{"id":"assign_count","kind":"assign","target":"state.count","value":{"kind":"literal","value":1}},
+				{"id":"return_count","kind":"return","returns":{"count":{"kind":"ref","ref":"state.count"}}}
+			]
+		}
+	}`)
+	_, diags := ValidateWorkflow(doc, nil)
+	if len(diags) != 0 {
+		t.Fatalf("unexpected diagnostics: %#v", diags)
+	}
 }
 
 func assertDiagnostic(t *testing.T, diags []diagnostic.Diagnostic, code string) {

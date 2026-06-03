@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"reflect"
+	"strings"
 
 	"rpa-agent-workflow/contracts/ast"
 )
@@ -37,9 +38,12 @@ func RunWorkflow(ctx context.Context, workflow ast.Workflow, opts Options) (Resu
 				WorkflowID: workflow.Workflow.ID,
 			})
 			return Result{
-				Returns:   signal.values,
-				Variables: st.variables,
-				Events:    st.events,
+				Inputs:      cloneAnyMap(opts.Inputs),
+				Returns:     signal.values,
+				Variables:   st.variables,
+				State:       st.globalState,
+				NodeOutputs: st.nodeOutputs,
+				Events:      st.events,
 			}, nil
 		}
 		st.emit(Event{
@@ -54,10 +58,45 @@ func RunWorkflow(ctx context.Context, workflow ast.Workflow, opts Options) (Resu
 		WorkflowID: workflow.Workflow.ID,
 	})
 	return Result{
-		Returns:   map[string]any{},
-		Variables: st.variables,
-		Events:    st.events,
+		Inputs:      cloneAnyMap(opts.Inputs),
+		Returns:     map[string]any{},
+		Variables:   st.variables,
+		State:       st.globalState,
+		NodeOutputs: st.nodeOutputs,
+		Events:      st.events,
 	}, nil
+}
+
+func (s *state) mergeBranchOutputs(stmt ast.Statement, branchName string) error {
+	if len(stmt.Outputs) == 0 {
+		return nil
+	}
+
+	outputs := make(map[string]any, len(stmt.Outputs))
+	for name, expr := range stmt.Outputs {
+		selected := expr
+		if expr.Kind == "branch" {
+			branchExpr, ok := expr.Fields[branchName]
+			if !ok {
+				return &RuntimeError{
+					Phase:         PhaseExecute,
+					WorkflowID:    s.currentWorkflowID(),
+					StatementID:   stmt.ID,
+					StatementKind: stmt.Kind,
+					Cause:         fmt.Errorf("missing %s output expression for %q", branchName, name),
+				}
+			}
+			selected = branchExpr
+		}
+
+		value, err := s.evalExpression(&selected)
+		if err != nil {
+			return err
+		}
+		outputs[name] = value
+	}
+	s.storeNodeOutputs(stmt.ID, outputs)
+	return nil
 }
 
 func (s *state) runStatement(ctx context.Context, stmt ast.Statement) error {
@@ -105,6 +144,10 @@ func (s *state) runStatementBody(ctx context.Context, stmt ast.Statement) error 
 		if err != nil {
 			return err
 		}
+		if strings.HasPrefix(stmt.Target, "state.") {
+			s.setState(strings.TrimPrefix(stmt.Target, "state."), value)
+			return nil
+		}
 		s.setVariable(stmt.Target, value)
 		return nil
 	case "if":
@@ -113,12 +156,17 @@ func (s *state) runStatementBody(ctx context.Context, stmt ast.Statement) error 
 			return err
 		}
 		var branch []ast.Statement
+		branchName := "else"
 		if isTruthy(condition) {
 			branch = stmt.Then
+			branchName = "then"
 		} else {
 			branch = stmt.Else
 		}
-		return s.runStatements(ctx, branch)
+		if err := s.runStatements(ctx, branch); err != nil {
+			return err
+		}
+		return s.mergeBranchOutputs(stmt, branchName)
 	case "parallel":
 		return s.runParallel(ctx, stmt)
 	case "loop":

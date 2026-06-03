@@ -43,7 +43,7 @@ func TestDebugCommandRunsAScriptedSession(t *testing.T) {
 	for _, want := range []string{
 		"stopped: entry",
 		"breakpoint set: assign",
-		"breakpoint set: assign line 30",
+		"breakpoint set: assign line 28",
 		"stopped: breakpoint",
 		"statement: assign assign",
 		"statement: call_child callWorkflow",

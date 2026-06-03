@@ -19,6 +19,7 @@
     "inputs": { "type": "array", "items": { "$ref": "#/$defs/port" } },
     "outputs": { "type": "array", "items": { "$ref": "#/$defs/port" } },
     "variables": { "type": "array", "items": { "$ref": "#/$defs/variable" } },
+    "state": { "type": "object", "additionalProperties": { "$ref": "#/$defs/state" } },
     "workflows": { "type": "array", "items": { "$ref": "#/$defs/subWorkflow" } },
     "body": { "$ref": "#/$defs/statement" },
     "policies": { "$ref": "#/$defs/policies" },
@@ -53,6 +54,15 @@
         "type": { "$ref": "#/$defs/type" },
         "scope": { "type": "string" },
         "mutable": { "type": "boolean" }
+      },
+      "additionalProperties": true
+    },
+    "state": {
+      "type": "object",
+      "required": ["type"],
+      "properties": {
+        "type": { "$ref": "#/$defs/type" },
+        "initialValue": { "$ref": "#/$defs/expression" }
       },
       "additionalProperties": true
     },
@@ -154,6 +164,7 @@
         "inputs": { "type": "array", "items": { "$ref": "#/$defs/port" } },
         "outputs": { "type": "array", "items": { "$ref": "#/$defs/port" } },
         "variables": { "type": "array", "items": { "$ref": "#/$defs/variable" } },
+        "state": { "type": "object", "additionalProperties": { "$ref": "#/$defs/state" } },
         "body": { "$ref": "#/$defs/statement" },
         "policies": { "$ref": "#/$defs/policies" },
         "metadata": { "type": "object" }

@@ -85,6 +85,35 @@ func TestProjectSampleWorkflow(t *testing.T) {
 	}
 }
 
+func TestProjectWorkflowRootShowsStartInputsAndOutputs(t *testing.T) {
+	workflow := ast.Workflow{
+		SchemaVersion: "1.0.0",
+		Workflow:      ast.Metadata{ID: "calculator"},
+		Inputs: []ast.Port{
+			{Name: "left", Type: ast.Type{Name: "number"}},
+			{Name: "operator", Type: ast.Type{Name: "string"}},
+		},
+		Outputs: []ast.Port{
+			{Name: "result", Type: ast.Type{Name: "number"}},
+		},
+		Body: ast.Statement{ID: "root", Kind: "sequence"},
+	}
+
+	doc := ProjectWorkflow(workflow)
+	if doc.Root.Label != "Start" {
+		t.Fatalf("root label = %q, want Start", doc.Root.Label)
+	}
+	if !hasInspectorField(doc.Root.Inspector, "$.inputs.left", "port") {
+		t.Fatalf("root inspector missing input left: %#v", doc.Root.Inspector)
+	}
+	if !hasInspectorField(doc.Root.Inspector, "$.inputs.operator", "port") {
+		t.Fatalf("root inspector missing input operator: %#v", doc.Root.Inspector)
+	}
+	if !hasInspectorField(doc.Root.Inspector, "$.outputs.result", "port") {
+		t.Fatalf("root inspector missing output result: %#v", doc.Root.Inspector)
+	}
+}
+
 func findProjectedNode(root uinode.Node, id string) *uinode.Node {
 	if root.ID == id {
 		return &root

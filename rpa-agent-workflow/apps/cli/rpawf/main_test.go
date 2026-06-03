@@ -2,6 +2,7 @@ package main
 
 import (
 	"encoding/json"
+	"os"
 	"os/exec"
 	"strings"
 	"testing"
@@ -72,6 +73,8 @@ func TestExecRunsCalculatorWorkflowWithInputJSON(t *testing.T) {
 		t.Skip("uv is unavailable")
 	}
 
+	assertCalculatorASTUsesNodeOutputReference(t)
+
 	tests := []struct {
 		name  string
 		input string
@@ -108,6 +111,73 @@ func TestExecRunsCalculatorWorkflowWithInputJSON(t *testing.T) {
 				t.Fatalf("result = %#v, want %v", got, tc.want)
 			}
 		})
+	}
+}
+
+func assertCalculatorASTUsesNodeOutputReference(t *testing.T) {
+	t.Helper()
+
+	raw, err := os.ReadFile("../../../examples/calculator/ast.json")
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	var workflow struct {
+		Variables []any `json:"variables"`
+		Body      struct {
+			Statements []struct {
+				ID      string         `json:"id"`
+				Kind    string         `json:"kind"`
+				Outputs map[string]any `json:"outputs"`
+				Returns map[string]struct {
+					Kind string `json:"kind"`
+					Ref  string `json:"ref"`
+				} `json:"returns"`
+				Condition struct {
+					Kind string `json:"kind"`
+					Op   string `json:"op"`
+					Left struct {
+						Kind string `json:"kind"`
+						Ref  string `json:"ref"`
+					} `json:"left"`
+					Right struct {
+						Kind  string `json:"kind"`
+						Value any    `json:"value"`
+					} `json:"right"`
+				} `json:"condition"`
+			} `json:"statements"`
+		} `json:"body"`
+	}
+	if err := json.Unmarshal(raw, &workflow); err != nil {
+		t.Fatalf("calculator ast json is invalid: %v", err)
+	}
+
+	if len(workflow.Variables) != 0 {
+		t.Fatalf("calculator ast should not declare ordinary variables: %#v", workflow.Variables)
+	}
+	if len(workflow.Body.Statements) < 2 {
+		t.Fatalf("calculator ast should include if and return statements, got %d", len(workflow.Body.Statements))
+	}
+	first := workflow.Body.Statements[0]
+	if first.Kind != "if" {
+		t.Fatalf("first calculator statement = %s, want if", first.Kind)
+	}
+	if first.Condition.Kind != "binary" || first.Condition.Op != ">" {
+		t.Fatalf("if condition = %s %s, want binary >", first.Condition.Kind, first.Condition.Op)
+	}
+	if first.Condition.Left.Kind != "ref" || first.Condition.Left.Ref != "input.left" {
+		t.Fatalf("if left operand = %#v, want ref input.left", first.Condition.Left)
+	}
+	if first.Condition.Right.Kind != "literal" || first.Condition.Right.Value != float64(10) {
+		t.Fatalf("if right operand = %#v, want literal 10", first.Condition.Right)
+	}
+	if first.Outputs["result"] == nil {
+		t.Fatal("if statement should expose merged result output")
+	}
+	second := workflow.Body.Statements[1]
+	resultReturn := second.Returns["result"]
+	if second.Kind != "return" || resultReturn.Kind != "ref" || resultReturn.Ref != "node.branch_by_threshold.result" {
+		t.Fatalf("return statement = %#v, want result ref node.branch_by_threshold.result", second)
 	}
 }
 
