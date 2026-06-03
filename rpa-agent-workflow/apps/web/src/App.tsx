@@ -1,4 +1,4 @@
-import { memo, useEffect, useMemo, useState } from "react";
+import { memo, useEffect, useMemo, useRef, useState, type KeyboardEvent } from "react";
 import {
   Download,
   FileJson,
@@ -53,6 +53,12 @@ type Measure = {
   height: number;
 };
 type LiteralInputType = "string" | "number" | "boolean";
+type ExpressionKind = "literal" | "ref" | "json";
+type ExpressionDraft = {
+  kind: ExpressionKind;
+  value?: unknown;
+  ref?: string;
+} & Record<string, unknown>;
 type SaveState = "sample" | "saved" | "saving" | "failed";
 type WorkbenchTab = "properties" | "run" | "diagnostics";
 
@@ -88,37 +94,14 @@ function App() {
   const [activeWorkbenchTab, setActiveWorkbenchTab] = useState<WorkbenchTab>("properties");
   const [viewMode, setViewMode] = useState<ViewMode>("canvas");
   const [status, setStatus] = useState("Sample loaded");
+  const [serviceError, setServiceError] = useState("Checking workflow service");
+  const [serviceRetrying, setServiceRetrying] = useState(true);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   const selectedNode = useMemo(
     () => findNode(uiDocument.root, selectedNodeId) ?? uiDocument.root,
     [uiDocument, selectedNodeId],
   );
-
-  useEffect(() => {
-    let cancelled = false;
-    async function loadWorkflow() {
-      try {
-        const state = await requestJSON<EditorStateResponse>("/api/workflow");
-        if (cancelled) {
-          return;
-        }
-        applyServerState(state);
-        setServerAvailable(true);
-        setSaveState("saved");
-        setStatus("Workflow service connected");
-      } catch (error) {
-        if (cancelled) {
-          return;
-        }
-        setServerAvailable(false);
-        setStatus(`Using sample projection (${formatError(error)})`);
-      }
-    }
-    void loadWorkflow();
-    return () => {
-      cancelled = true;
-    };
-  }, []);
 
   const outline = useMemo(() => flattenNodes(uiDocument.root), [uiDocument]);
 
@@ -132,6 +115,48 @@ function App() {
     setUIDocument(state.ui);
     setDiagnostics(state.diagnostics ?? []);
     setSelectedNodeId((current) => (findNode(state.ui.root, current) ? current : state.ui.root.id));
+  };
+
+  const loadWorkflowService = async (options?: { cancelled?: () => boolean; retry?: boolean }) => {
+    if (options?.retry) {
+      setServiceRetrying(true);
+      setStatus("Checking workflow service");
+    }
+    try {
+      const state = await requestJSON<EditorStateResponse>("/api/workflow");
+      if (options?.cancelled?.()) {
+        return;
+      }
+      applyServerState(state);
+      setServerAvailable(true);
+      setSaveState("saved");
+      setServiceError("");
+      setStatus("Workflow service connected");
+    } catch (error) {
+      if (options?.cancelled?.()) {
+        return;
+      }
+      const message = formatError(error);
+      setServerAvailable(false);
+      setServiceError(message);
+      setStatus(`Using sample projection (${message})`);
+    } finally {
+      if (!options?.cancelled?.()) {
+        setServiceRetrying(false);
+      }
+    }
+  };
+
+  useEffect(() => {
+    let cancelled = false;
+    void loadWorkflowService({ cancelled: () => cancelled });
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  const handleRetryWorkflowService = () => {
+    void loadWorkflowService({ retry: true });
   };
 
   const submitOperation = async (operation: EditOperation) => {
@@ -158,6 +183,7 @@ function App() {
       setDiagnostics(apiError.diagnostics);
       if (apiError.network) {
         setServerAvailable(false);
+        setServiceError(apiError.message);
       }
       setStatus(apiError.message);
       return false;
@@ -218,6 +244,7 @@ function App() {
       setActiveWorkbenchTab(apiError.diagnostics.length > 0 ? "diagnostics" : "run");
       if (apiError.network) {
         setServerAvailable(false);
+        setServiceError(apiError.message);
       }
       setStatus(apiError.message);
     } finally {
@@ -232,6 +259,7 @@ function App() {
     setASTDocument(null);
     setDiagnostics([]);
     setServerAvailable(false);
+    setServiceError("");
     setSaveState("sample");
     setSelectedNodeId(next.root.id);
     setOperationLog([]);
@@ -284,6 +312,7 @@ function App() {
               setASTDocument(null);
               setDiagnostics([]);
               setServerAvailable(false);
+              setServiceError("");
               setSaveState("sample");
               setSelectedNodeId(next.root.id);
               setOperationLog([]);
@@ -294,20 +323,25 @@ function App() {
             <RotateCcw size={16} />
             Reset
           </button>
-          <label className="icon-button file-button">
+          <button className="icon-button file-button" type="button" onClick={() => fileInputRef.current?.click()}>
             <FileUp size={16} />
             Load JSON
-            <input
-              type="file"
-              accept="application/json"
-              onChange={(event) => {
-                const file = event.target.files?.[0];
-                if (file) {
-                  void handleFileLoad(file);
-                }
-              }}
-            />
-          </label>
+          </button>
+          <input
+            ref={fileInputRef}
+            className="visually-hidden-file"
+            type="file"
+            accept="application/json"
+            aria-label="Load workflow JSON"
+            aria-hidden="true"
+            tabIndex={-1}
+            onChange={(event) => {
+              const file = event.target.files?.[0];
+              if (file) {
+                void handleFileLoad(file);
+              }
+            }}
+          />
           <button className="icon-button" onClick={handleDownloadOperations} disabled={operationLog.length === 0}>
             <Download size={16} />
             Export ops
@@ -322,6 +356,18 @@ function App() {
         <div className="status-pill">{selectedNode.kind}</div>
         {diagnostics.length > 0 ? <div className="status-pill warn">{diagnostics.length} diagnostics</div> : null}
       </section>
+
+      {!serverAvailable && serviceError ? (
+        <section className="service-banner" aria-live="polite">
+          <div>
+            <strong>{serviceRetrying ? "Checking workflow service" : "Workflow service offline"}</strong>
+            <span>{serviceError}</span>
+          </div>
+          <button className="ghost-button" type="button" onClick={handleRetryWorkflowService} disabled={serviceRetrying}>
+            {serviceRetrying ? "Checking" : "Retry connection"}
+          </button>
+        </section>
+      ) : null}
 
       <main className="workspace">
         <aside className="panel outline-panel">
@@ -436,6 +482,19 @@ function WorkflowCanvas({
   onSelect: (id: string) => void;
 }) {
   const graph = useMemo(() => buildFlowGraph(node, selectedId), [node, selectedId]);
+  const handleCanvasKeyDown = (event: KeyboardEvent<HTMLDivElement>) => {
+    if (event.key !== "Enter" && event.key !== " ") {
+      return;
+    }
+    const target = event.target instanceof Element ? event.target.closest(".react-flow__node") : null;
+    const nodeId = target?.getAttribute("data-id");
+    const flowNode = nodeId ? graph.nodes.find((current) => current.id === nodeId) : undefined;
+    if (!flowNode || flowNode.data.ghost) {
+      return;
+    }
+    event.preventDefault();
+    onSelect(flowNode.data.uiNode.id);
+  };
   return (
     <div className="flow-pane">
       <ReactFlow
@@ -445,8 +504,8 @@ function WorkflowCanvas({
         edgeTypes={edgeTypes}
         nodesDraggable={false}
         nodesConnectable={false}
-        edgesFocusable={false}
-        nodesFocusable={false}
+        edgesFocusable
+        nodesFocusable
         edgesReconnectable={false}
         elementsSelectable
         deleteKeyCode={null}
@@ -459,14 +518,15 @@ function WorkflowCanvas({
             onSelect(flowNode.data.uiNode.id);
           }
         }}
+        onKeyDown={handleCanvasKeyDown}
       >
-        <Background color="#c9d8d5" gap={22} size={1} />
+        <Background color="var(--canvas-dot)" gap={22} size={1} />
         <Controls showInteractive={false} />
         <MiniMap
           pannable
           zoomable
-          nodeColor={(miniNode) => (miniNode.id === selectedId ? "#4c9b94" : "#bfd3ce")}
-          maskColor="rgba(245, 247, 244, 0.62)"
+          nodeColor={(miniNode) => (miniNode.id === selectedId ? "var(--accent)" : "var(--minimap-node)")}
+          maskColor="var(--minimap-mask)"
         />
       </ReactFlow>
     </div>
@@ -484,7 +544,7 @@ function NodeCard({
 }) {
   const selected = node.id === selectedId;
   return (
-    <article className={selected ? "node-card selected" : "node-card"} onClick={() => onSelect?.(node.id)}>
+    <article className={selected ? "node-card selected" : "node-card"}>
       <div className="node-head">
         <div>
           <div className="node-label">{node.label ?? node.id}</div>
@@ -859,7 +919,7 @@ function ExpressionEditor({ value, onApply }: { value: unknown; onApply: (value:
   return (
     <div className="expression-editor">
       <div className="expression-toolbar">
-        <select value={kind} onChange={(event) => setKind(event.target.value)}>
+        <select value={kind} onChange={(event) => setKind(event.target.value as ExpressionKind)}>
           <option value="literal">literal</option>
           <option value="ref">ref</option>
           <option value="json">json</option>
@@ -1121,10 +1181,10 @@ function makeEdge(source: string, target: string, label?: string): WorkflowFlowE
       type: MarkerType.ArrowClosed,
       width: 16,
       height: 16,
-      color: "#4c9b94",
+      color: "var(--accent)",
     },
     style: {
-      stroke: "#4c9b94",
+      stroke: "var(--accent)",
       strokeWidth: 1.8,
     },
   };
@@ -1205,11 +1265,15 @@ function quickInputKind(field: InspectorField): "number" | "operator" | null {
   return null;
 }
 
-function normalizeExpression(value: unknown): Record<string, unknown> {
+function normalizeExpression(value: unknown): ExpressionDraft {
   if (value && typeof value === "object" && !Array.isArray(value)) {
     const expression = value as Record<string, unknown>;
-    if (typeof expression.kind === "string") {
-      return expression;
+    if (expression.kind === "literal" || expression.kind === "ref" || expression.kind === "json") {
+      return {
+        ...expression,
+        kind: expression.kind,
+        ref: typeof expression.ref === "string" ? expression.ref : undefined,
+      };
     }
   }
   return { kind: "literal", value: "" };

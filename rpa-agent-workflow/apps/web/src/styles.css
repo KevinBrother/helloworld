@@ -1,16 +1,25 @@
 :root {
   color-scheme: light;
-  --bg: #f5f7f4;
-  --panel: rgba(255, 255, 255, 0.88);
-  --panel-2: rgba(249, 251, 250, 0.96);
-  --line: #d8e1dd;
-  --text: #1f2c2a;
-  --muted: #637470;
-  --accent: #4c9b94;
-  --accent-soft: rgba(76, 155, 148, 0.1);
-  --accent-strong: #2f6f7a;
-  --warn: #c28e5c;
-  --shadow: rgba(31, 44, 42, 0.08);
+  --bg: oklch(97% 0.01 180);
+  --panel: oklch(99% 0.006 180 / 0.94);
+  --panel-2: oklch(98% 0.008 180 / 0.98);
+  --line: oklch(88% 0.018 180);
+  --text: oklch(24% 0.025 180);
+  --muted: oklch(42% 0.025 180);
+  --accent: oklch(48% 0.092 190);
+  --accent-text: oklch(35% 0.085 190);
+  --accent-soft: oklch(92% 0.035 190);
+  --accent-wash: oklch(94% 0.026 190 / 0.78);
+  --warn: oklch(58% 0.11 68);
+  --warn-text: oklch(39% 0.095 58);
+  --warn-soft: oklch(93% 0.035 64 / 0.82);
+  --danger: oklch(42% 0.12 28);
+  --code-text: oklch(34% 0.022 180);
+  --shadow: oklch(24% 0.025 180 / 0.08);
+  --canvas-dot: oklch(83% 0.025 185);
+  --minimap-node: oklch(80% 0.04 185);
+  --minimap-mask: oklch(97% 0.01 180 / 0.66);
+  --focus-ring: oklch(54% 0.14 190);
 }
 
 * {
@@ -26,8 +35,8 @@ body,
 body {
   margin: 0;
   background:
-    radial-gradient(circle at top left, rgba(76, 155, 148, 0.12), transparent 28%),
-    radial-gradient(circle at bottom right, rgba(194, 142, 92, 0.08), transparent 22%),
+    radial-gradient(circle at top left, oklch(75% 0.08 190 / 0.16), transparent 28%),
+    radial-gradient(circle at bottom right, oklch(72% 0.09 68 / 0.1), transparent 22%),
     var(--bg);
   color: var(--text);
   font-family: "IBM Plex Sans", system-ui, sans-serif;
@@ -45,10 +54,20 @@ button {
   cursor: pointer;
 }
 
+button:focus-visible,
+input:focus-visible,
+select:focus-visible,
+textarea:focus-visible,
+summary:focus-visible,
+.react-flow__node:focus-visible {
+  outline: 2px solid var(--focus-ring);
+  outline-offset: 2px;
+}
+
 .app-shell {
   min-height: 100vh;
   display: grid;
-  grid-template-rows: auto auto 1fr;
+  grid-template-rows: auto auto auto 1fr;
 }
 
 .topbar,
@@ -63,8 +82,7 @@ button {
   justify-content: space-between;
   gap: 1rem;
   padding: 1rem 1.25rem;
-  background: rgba(255, 255, 255, 0.75);
-  backdrop-filter: blur(14px);
+  background: oklch(99% 0.006 180 / 0.86);
 }
 
 .product-title {
@@ -72,7 +90,7 @@ button {
 }
 
 .eyebrow {
-  color: var(--accent);
+  color: var(--accent-text);
   font-size: 0.74rem;
   text-transform: uppercase;
   letter-spacing: 0.14em;
@@ -119,7 +137,7 @@ button {
 }
 
 .result-summary strong {
-  color: var(--accent-strong);
+  color: var(--accent-text);
 }
 
 .topbar-actions {
@@ -139,6 +157,13 @@ button {
   color: var(--text);
   padding: 0.7rem 0.9rem;
   border-radius: 6px;
+  min-height: 44px;
+  min-width: 44px;
+  transition:
+    border-color 160ms ease-out,
+    background-color 160ms ease-out,
+    color 160ms ease-out,
+    box-shadow 160ms ease-out;
 }
 
 .icon-button:hover,
@@ -154,13 +179,22 @@ button {
 }
 
 .run-button {
-  border-color: rgba(76, 155, 148, 0.36);
-  background: rgba(76, 155, 148, 0.12);
-  color: var(--accent-strong);
+  border-color: oklch(72% 0.07 190);
+  background: var(--accent-wash);
+  color: var(--accent-text);
 }
 
-.file-button input {
-  display: none;
+.visually-hidden-file {
+  position: absolute;
+  inline-size: 1px;
+  block-size: 1px;
+  margin: -1px;
+  padding: 0;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  clip-path: inset(50%);
+  border: 0;
+  white-space: nowrap;
 }
 
 .statusbar {
@@ -180,8 +214,36 @@ button {
 }
 
 .status-pill.warn {
-  border-color: rgba(194, 142, 92, 0.35);
-  color: var(--warn);
+  border-color: oklch(72% 0.08 68);
+  color: var(--warn-text);
+  background: var(--warn-soft);
+}
+
+.service-banner {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  min-height: 75px;
+  padding: 0.85rem 1.25rem;
+  border-bottom: 1px solid oklch(72% 0.08 68);
+  background: var(--warn-soft);
+  color: var(--warn-text);
+}
+
+.service-banner div {
+  display: grid;
+  gap: 0.2rem;
+  min-width: 0;
+}
+
+.service-banner strong,
+.service-banner span {
+  overflow-wrap: anywhere;
+}
+
+.service-banner span {
+  font-size: 0.88rem;
 }
 
 .workspace {
@@ -194,7 +256,6 @@ button {
 .panel {
   min-height: 0;
   background: var(--panel);
-  backdrop-filter: blur(16px);
 }
 
 .outline-panel,
@@ -225,7 +286,7 @@ button {
   align-items: center;
   justify-content: center;
   gap: 0.35rem;
-  min-height: 34px;
+  min-height: 44px;
   border: 1px solid var(--line);
   border-radius: 6px;
   background: rgba(255, 255, 255, 0.72);
@@ -234,9 +295,9 @@ button {
 }
 
 .workbench-tab.active {
-  border-color: rgba(76, 155, 148, 0.36);
-  background: rgba(76, 155, 148, 0.1);
-  color: var(--accent-strong);
+  border-color: oklch(72% 0.07 190);
+  background: var(--accent-wash);
+  color: var(--accent-text);
 }
 
 .workbench-tab span {
@@ -245,8 +306,8 @@ button {
   min-width: 1.25rem;
   height: 1.25rem;
   border-radius: 999px;
-  background: rgba(194, 142, 92, 0.18);
-  color: var(--warn);
+  background: var(--warn-soft);
+  color: var(--warn-text);
   font-family: "IBM Plex Mono", monospace;
   font-size: 0.72rem;
 }
@@ -271,6 +332,7 @@ button {
   width: 100%;
   text-align: left;
   padding: 0.65rem 0.75rem;
+  min-height: 44px;
   border-radius: 6px;
   background: transparent;
   color: var(--text);
@@ -278,11 +340,11 @@ button {
 
 .outline-item.selected {
   background: var(--accent-soft);
-  outline: 1px solid rgba(76, 155, 148, 0.18);
+  outline: 1px solid oklch(72% 0.07 190);
 }
 
 .outline-kind {
-  color: var(--accent);
+  color: var(--accent-text);
   font-size: 0.73rem;
   min-width: 5.5rem;
   font-family: "IBM Plex Mono", monospace;
@@ -322,8 +384,8 @@ button {
 }
 
 .mode-button.active {
-  background: rgba(76, 155, 148, 0.12);
-  color: var(--accent-strong);
+  background: var(--accent-wash);
+  color: var(--accent-text);
 }
 
 .flow-pane {
@@ -368,8 +430,20 @@ button {
 
 .flow-pane .react-flow__controls-button {
   border-bottom: 1px solid var(--line);
-  background: rgba(255, 255, 255, 0.92);
+  background: var(--panel);
   color: var(--text);
+  min-width: 44px;
+  min-height: 44px;
+}
+
+.flow-pane .react-flow__node:focus-visible {
+  outline: none;
+}
+
+.flow-pane .react-flow__node:focus-visible .node-card,
+.flow-pane .react-flow__node.selected .node-card {
+  border-color: var(--focus-ring);
+  box-shadow: 0 0 0 3px oklch(78% 0.08 190 / 0.42), 0 10px 24px var(--shadow);
 }
 
 .flow-pane .react-flow__minimap {
@@ -398,7 +472,7 @@ button {
   min-height: 74px;
   display: grid;
   place-items: center;
-  border: 1px dashed rgba(76, 155, 148, 0.34);
+  border: 1px dashed oklch(72% 0.07 190);
   border-radius: 6px;
   background: rgba(255, 255, 255, 0.72);
   color: var(--muted);
@@ -410,10 +484,10 @@ button {
 .edge-label {
   position: absolute;
   padding: 0.28rem 0.48rem;
-  border: 1px solid rgba(76, 155, 148, 0.22);
+  border: 1px solid oklch(80% 0.05 190);
   border-radius: 999px;
   background: rgba(255, 255, 255, 0.88);
-  color: var(--accent-strong);
+  color: var(--accent-text);
   font-size: 0.68rem;
   text-transform: uppercase;
   letter-spacing: 0.08em;
@@ -448,7 +522,7 @@ button {
 }
 
 .branch-label {
-  color: var(--accent-strong);
+  color: var(--accent-text);
   text-transform: uppercase;
   letter-spacing: 0.12em;
   font-size: 0.7rem;
@@ -469,7 +543,7 @@ button {
 .flow-link span {
   width: 2px;
   border-radius: 999px;
-  background: linear-gradient(180deg, rgba(76, 155, 148, 0.15), rgba(76, 155, 148, 0.72));
+  background: linear-gradient(180deg, oklch(78% 0.08 190 / 0.2), var(--accent));
 }
 
 .node-card {
@@ -480,12 +554,11 @@ button {
   box-shadow: 0 10px 24px var(--shadow);
   display: grid;
   gap: 0.75rem;
-  cursor: pointer;
 }
 
 .node-card.selected {
-  border-color: rgba(76, 155, 148, 0.45);
-  box-shadow: 0 0 0 1px rgba(76, 155, 148, 0.12), 0 10px 24px var(--shadow);
+  border-color: oklch(67% 0.08 190);
+  box-shadow: 0 0 0 1px oklch(78% 0.06 190 / 0.45), 0 10px 24px var(--shadow);
 }
 
 .node-head {
@@ -527,13 +600,15 @@ button {
 }
 
 .badge.accent {
-  border-color: rgba(76, 155, 148, 0.28);
-  color: var(--accent);
+  border-color: oklch(72% 0.07 190);
+  color: var(--accent-text);
+  background: var(--accent-wash);
 }
 
 .badge.warn {
-  border-color: rgba(194, 142, 92, 0.35);
-  color: var(--accent-strong);
+  border-color: oklch(72% 0.08 68);
+  color: var(--warn-text);
+  background: var(--warn-soft);
 }
 
 .inspector {
@@ -547,15 +622,15 @@ button {
   align-items: center;
   justify-content: space-between;
   gap: 0.75rem;
-  border: 1px solid rgba(76, 155, 148, 0.2);
+  border: 1px solid oklch(76% 0.07 190);
   border-radius: 6px;
-  background: rgba(76, 155, 148, 0.08);
+  background: var(--accent-wash);
   padding: 0.7rem 0.8rem;
 }
 
 .save-banner.failed {
-  border-color: rgba(194, 142, 92, 0.35);
-  background: rgba(194, 142, 92, 0.08);
+  border-color: oklch(72% 0.08 68);
+  background: var(--warn-soft);
 }
 
 .save-banner span {
@@ -566,7 +641,7 @@ button {
 }
 
 .save-banner strong {
-  color: var(--accent-strong);
+  color: var(--accent-text);
 }
 
 .inspector-block {
@@ -669,7 +744,7 @@ select {
 
 .advanced-expression summary {
   cursor: pointer;
-  color: var(--accent-strong);
+  color: var(--accent-text);
   font-size: 0.78rem;
 }
 
@@ -684,15 +759,16 @@ select {
 }
 
 .quick-editor-status.dirty {
-  color: var(--warn);
+  color: var(--warn-text);
 }
 
 .text-button {
   border: 0;
   background: transparent;
-  color: var(--accent-strong);
+  color: var(--accent-text);
   padding: 0;
   font-size: 0.78rem;
+  min-height: 32px;
 }
 
 .text-button:hover {
@@ -717,7 +793,7 @@ select {
 }
 
 .edit-error {
-  color: #9b4a3f;
+  color: var(--danger);
   font-size: 0.78rem;
 }
 
@@ -727,10 +803,10 @@ select {
 }
 
 .diagnostic-row {
-  border: 1px solid rgba(194, 142, 92, 0.25);
+  border: 1px solid oklch(72% 0.08 68);
   border-radius: 6px;
   padding: 0.65rem;
-  background: rgba(194, 142, 92, 0.08);
+  background: var(--warn-soft);
 }
 
 .diagnostic-row strong,
@@ -739,7 +815,7 @@ select {
 }
 
 .diagnostic-row strong {
-  color: var(--warn);
+  color: var(--warn-text);
   font-family: "IBM Plex Mono", monospace;
   font-size: 0.75rem;
 }
@@ -764,7 +840,7 @@ select {
 .run-control strong {
   display: block;
   margin-top: 0.25rem;
-  color: var(--accent-strong);
+  color: var(--accent-text);
   font-family: "IBM Plex Mono", monospace;
 }
 
@@ -775,7 +851,7 @@ select {
   border: 1px solid rgba(216, 225, 221, 0.9);
   border-radius: 6px;
   background: rgba(249, 251, 250, 0.92);
-  color: #465854;
+  color: var(--code-text);
   padding: 0.65rem;
   font-size: 0.78rem;
   white-space: pre-wrap;
@@ -796,7 +872,7 @@ select {
 
 .event-details summary {
   cursor: pointer;
-  color: var(--accent-strong);
+  color: var(--accent-text);
   font-family: "IBM Plex Mono", monospace;
   font-size: 0.78rem;
 }
@@ -826,7 +902,7 @@ select {
   white-space: pre-wrap;
   word-break: break-word;
   font-size: 0.8rem;
-  color: #465854;
+  color: var(--code-text);
 }
 
 .empty-state {
@@ -838,7 +914,27 @@ select {
 
 @media (prefers-color-scheme: dark) {
   :root {
-    color-scheme: light;
+    color-scheme: dark;
+    --bg: oklch(18% 0.018 185);
+    --panel: oklch(23% 0.02 185 / 0.94);
+    --panel-2: oklch(27% 0.022 185 / 0.98);
+    --line: oklch(35% 0.025 185);
+    --text: oklch(92% 0.01 180);
+    --muted: oklch(72% 0.018 180);
+    --accent: oklch(72% 0.095 188);
+    --accent-text: oklch(84% 0.08 188);
+    --accent-soft: oklch(31% 0.055 190);
+    --accent-wash: oklch(30% 0.045 190 / 0.72);
+    --warn: oklch(72% 0.11 70);
+    --warn-text: oklch(84% 0.085 70);
+    --warn-soft: oklch(31% 0.055 70 / 0.72);
+    --danger: oklch(78% 0.12 28);
+    --code-text: oklch(82% 0.014 180);
+    --shadow: oklch(8% 0.02 185 / 0.26);
+    --canvas-dot: oklch(45% 0.025 185);
+    --minimap-node: oklch(43% 0.04 185);
+    --minimap-mask: oklch(18% 0.018 185 / 0.66);
+    --focus-ring: oklch(78% 0.12 188);
   }
 }
 
@@ -863,12 +959,61 @@ select {
 
 @media (max-width: 900px) {
   .topbar,
-  .statusbar {
+  .statusbar,
+  .service-banner {
     flex-direction: column;
     align-items: stretch;
   }
 
   .workspace {
     grid-template-columns: 1fr;
+  }
+
+  .panel-header {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .mode-switch {
+    margin: 0 1rem 0.85rem;
+  }
+
+  .mode-button {
+    justify-content: center;
+    flex: 1;
+  }
+
+  .canvas-scroll {
+    padding: 0.75rem;
+  }
+
+  .flow-pane {
+    min-width: 640px;
+    min-height: 540px;
+    height: 68vh;
+  }
+}
+
+@media (max-width: 560px) {
+  .topbar-actions {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .icon-button,
+  .ghost-button,
+  .mode-button {
+    justify-content: center;
+  }
+
+  .execution-summary,
+  .workbench-tabs,
+  .expression-toolbar,
+  .quick-editor-main {
+    grid-template-columns: 1fr;
+  }
+
+  .flow-pane {
+    min-width: 560px;
   }
 }
