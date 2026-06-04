@@ -72,6 +72,10 @@ summary:focus-visible,
   outline-offset: 2px;
 }
 
+* {
+  scrollbar-color: var(--line-strong) transparent;
+}
+
 code,
 pre {
   font-family: "IBM Plex Mono", ui-monospace, monospace;
@@ -202,6 +206,10 @@ pre {
   border: 1px solid var(--line);
   background: var(--surface);
   padding: 0.6rem 0.78rem;
+  transition:
+    background-color 140ms ease,
+    border-color 140ms ease,
+    color 140ms ease;
 }
 
 .secondary-button:hover,
@@ -1388,6 +1396,17 @@ textarea {
     --minimap-node: oklch(48% 0.035 178);
     --minimap-mask: oklch(17% 0.012 220 / 0.7);
     --focus-ring: oklch(76% 0.12 178);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    scroll-behavior: auto !important;
+    transition-duration: 0.01ms !important;
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
   }
 }
 

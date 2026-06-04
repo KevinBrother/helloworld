@@ -84,6 +84,15 @@ const checks = [
       cssSource.includes("grid-template-columns: minmax(0, 1fr);"),
   },
   {
+    name: "visual system is operational, viewport-stable, and reduced-motion aware",
+    pass:
+      cssSource.includes(".workbench-shell") &&
+      cssSource.includes("height: 100vh") &&
+      cssSource.includes("overflow: hidden") &&
+      cssSource.includes("@media (prefers-reduced-motion: reduce)") &&
+      !cssSource.includes("radial-gradient"),
+  },
+  {
     name: "file upload is exposed as a focusable control",
     pass: !appSource.includes('<label className="icon-button file-button">') && !cssSource.includes(".file-button input {\n  display: none;"),
   },
