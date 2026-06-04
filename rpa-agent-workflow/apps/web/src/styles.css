@@ -817,6 +817,60 @@ pre {
   font-size: 0.76rem;
 }
 
+.binding-status {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 1.45rem;
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  padding: 0.1rem 0.46rem;
+  font-family: "IBM Plex Mono", ui-monospace, monospace;
+  font-size: 0.68rem;
+  white-space: nowrap;
+}
+
+.binding-status.ref {
+  border-color: color-mix(in oklab, var(--accent) 42%, var(--line));
+  background: var(--accent-soft);
+  color: var(--accent-text);
+}
+
+.binding-status.literal {
+  border-color: color-mix(in oklab, var(--ok) 34%, var(--line));
+  background: var(--ok-soft);
+  color: var(--ok);
+}
+
+.binding-status.complex {
+  border-color: color-mix(in oklab, var(--warn) 34%, var(--line));
+  background: var(--warn-soft);
+  color: var(--warn);
+}
+
+.binding-status.readonly {
+  color: var(--muted);
+}
+
+.field-contract-summary {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.35rem;
+}
+
+.field-contract-summary code,
+.field-contract-summary span {
+  display: inline-flex;
+  align-items: center;
+  min-height: 1.55rem;
+  border-radius: 999px;
+  background: var(--surface);
+  color: var(--muted);
+  padding: 0.12rem 0.42rem;
+  font-family: "IBM Plex Mono", ui-monospace, monospace;
+  font-size: 0.7rem;
+}
+
 .binding-editor,
 .expression-editor,
 .capability-list {
@@ -1013,8 +1067,15 @@ textarea {
 
 .property-row {
   display: grid;
-  gap: 0.22rem;
+  gap: 0.26rem;
   padding: 0.55rem;
+}
+
+.property-row strong {
+  overflow-wrap: anywhere;
+  font-family: "IBM Plex Mono", ui-monospace, monospace;
+  font-size: 0.82rem;
+  font-weight: 500;
 }
 
 .capability-row {

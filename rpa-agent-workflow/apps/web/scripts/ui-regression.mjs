@@ -37,6 +37,18 @@ const checks = [
       appSource.includes("Capabilities"),
   },
   {
+    name: "inspector shows binding status and field contract summaries",
+    pass:
+      appSource.includes("BindingStatusBadge") &&
+      appSource.includes("FieldContractSummary") &&
+      appSource.includes("contractFieldRows") &&
+      appSource.includes("formatContractValue"),
+  },
+  {
+    name: "inspector exposes disabled capability reasons explicitly",
+    pass: appSource.includes("CapabilityStatus") && appSource.includes("capability.reason ??"),
+  },
+  {
     name: "trace dock exposes operations, run events, and raw state",
     pass: appSource.includes("Edit Operations") && appSource.includes("Run Events") && appSource.includes("Raw State"),
   },

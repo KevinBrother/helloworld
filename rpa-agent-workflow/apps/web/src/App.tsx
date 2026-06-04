@@ -798,6 +798,7 @@ function NodeInspector({
   const fields = node.inspector ?? [];
   const inputFields = fields.filter((field) => field.control === "expression");
   const propertyFields = fields.filter((field) => field.control !== "expression");
+  const contractRows = contractFieldRows(propertyFields);
   const outputs = normalizeBindingTokens(node.metadata?.outputs);
   const diagnosticsForNode = diagnostics.filter((diagnostic) => diagnostic.path && node.path && diagnostic.path.includes(node.path));
 
@@ -832,7 +833,7 @@ function NodeInspector({
           <InspectorSection title="Input Bindings" detail={`${inputFields.length} editable`}>
             {inputFields.length === 0 ? <EmptyState>No bindable inputs for this node.</EmptyState> : null}
             {inputFields.map((field) => (
-              <InspectorFieldRow key={field.path} field={field} onApplyExpression={onApplyExpression} />
+              <InspectorFieldRow key={field.path} field={field} onApplyExpression={onApplyExpression} mode="binding" />
             ))}
           </InspectorSection>
 
@@ -859,12 +860,13 @@ function NodeInspector({
                 ["Warnings", String(node.validationSummary?.warnings ?? 0)],
               ]}
             />
-            {propertyFields.length > 0 ? (
+            {contractRows.length > 0 ? (
               <div className="property-list">
-                {propertyFields.map((field) => (
-                  <div className="property-row" key={field.path}>
-                    <span>{field.label ?? field.path}</span>
-                    <code>{renderFieldValue(field.value)}</code>
+                {contractRows.map((row) => (
+                  <div className="property-row" key={row.path}>
+                    <span>{row.label}</span>
+                    <strong>{row.value}</strong>
+                    <code>{row.path}</code>
                   </div>
                 ))}
               </div>
@@ -907,22 +909,45 @@ function InspectorSection({ title, detail, children }: { title: string; detail: 
 function InspectorFieldRow({
   field,
   onApplyExpression,
+  mode = "property",
 }: {
   field: InspectorField;
   onApplyExpression: (field: InspectorField, value: unknown) => void;
+  mode?: "binding" | "property";
 }) {
   const editable = field.control === "expression" && !field.readonly;
   return (
     <div className="field-row">
       <div className="field-label">
         <span>{field.label ?? field.path}</span>
-        <code>{shortPath(field.path)}</code>
+        {mode === "binding" ? <BindingStatusBadge value={field.value} readonly={field.readonly} /> : null}
       </div>
+      <FieldContractSummary field={field} />
       {editable ? (
         <BindingExpressionEditor field={field} onApply={(value) => onApplyExpression(field, value)} />
       ) : (
-        <code className="field-value">{renderFieldValue(field.value)}</code>
+        <code className="field-value">{formatContractValue(field.value)}</code>
       )}
+    </div>
+  );
+}
+
+function BindingStatusBadge({ value, readonly }: { value: unknown; readonly?: boolean }) {
+  const expression = value && typeof value === "object" && !Array.isArray(value) ? (value as Record<string, unknown>) : null;
+  const kind = typeof expression?.kind === "string" ? expression.kind : "value";
+  const tone = readonly ? "readonly" : kind === "ref" ? "ref" : kind === "literal" ? "literal" : "complex";
+  const label = readonly ? "readonly" : kind === "ref" ? "reference" : kind === "literal" ? "literal" : "expression";
+  return <span className={`binding-status ${tone}`}>{label}</span>;
+}
+
+function FieldContractSummary({ field }: { field: InspectorField }) {
+  const tokens = normalizeBindingTokens(field.metadata?.availableTokens);
+  return (
+    <div className="field-contract-summary">
+      <code>{shortPath(field.path)}</code>
+      <span>{field.control ?? "value"}</span>
+      <span>{field.readonly ? "readonly" : "editable"}</span>
+      {tokens.length > 0 ? <span>{tokens.length} legal refs</span> : null}
     </div>
   );
 }
@@ -1054,11 +1079,23 @@ function CapabilityList({ node, onToggleCollapsed }: { node: UINode; onToggleCol
       </button>
       {entries.length === 0 ? <EmptyState>No capabilities exposed by this projection.</EmptyState> : null}
       {entries.map(([name, capability]) => (
-        <div className={capability.enabled ? "capability-row enabled" : "capability-row disabled"} key={name}>
-          <span>{capability.label ?? name}</span>
-          <strong>{capability.enabled ? "enabled" : capability.reason ?? "disabled"}</strong>
-        </div>
+        <CapabilityStatus key={name} name={name} capability={capability} />
       ))}
+    </div>
+  );
+}
+
+function CapabilityStatus({
+  name,
+  capability,
+}: {
+  name: string;
+  capability: NonNullable<UINode["capabilities"]>[keyof NonNullable<UINode["capabilities"]>];
+}) {
+  return (
+    <div className={capability.enabled ? "capability-row enabled" : "capability-row disabled"}>
+      <span>{capability.label ?? name}</span>
+      <strong>{capability.enabled ? "enabled" : capability.reason ?? "disabled because projection disallows this action"}</strong>
     </div>
   );
 }
@@ -1626,6 +1663,18 @@ function compactExpression(value: unknown): string {
 }
 
 function renderFieldValue(value: unknown) {
+  return formatContractValue(value);
+}
+
+function contractFieldRows(fields: InspectorField[]) {
+  return fields.map((field) => ({
+    path: field.path,
+    label: field.label ?? shortPath(field.path),
+    value: formatContractValue(field.value),
+  }));
+}
+
+function formatContractValue(value: unknown) {
   if (typeof value === "string") {
     return value;
   }
