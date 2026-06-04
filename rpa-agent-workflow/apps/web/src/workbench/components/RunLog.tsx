@@ -14,6 +14,7 @@ const DEFAULT_LOG_HEIGHT = 132;
 
 export function RunLog({ lines, open, result, onOpenChange }: RunLogProps) {
   const [bodyHeight, setBodyHeight] = useState(DEFAULT_LOG_HEIGHT);
+  const bodyRef = useRef<HTMLDivElement>(null);
   const dragStartRef = useRef<{ y: number; height: number } | null>(null);
 
   useEffect(() => {
@@ -41,6 +42,12 @@ export function RunLog({ lines, open, result, onOpenChange }: RunLogProps) {
     };
   }, []);
 
+  useEffect(() => {
+    const body = bodyRef.current;
+    if (!open || !body) return;
+    body.scrollTop = body.scrollHeight;
+  }, [bodyHeight, lines, open]);
+
   return (
     <section className={open ? "run-log open" : "run-log"}>
       {open ? (
@@ -62,7 +69,7 @@ export function RunLog({ lines, open, result, onOpenChange }: RunLogProps) {
         {open ? <ChevronDown size={18} /> : <ChevronUp size={18} />}
       </button>
       {open ? (
-        <div className="run-log-body" style={{ height: bodyHeight }}>
+        <div className="run-log-body" ref={bodyRef} style={{ height: bodyHeight }}>
           {lines.map((line, index) => (
             <code key={`${line}-${index}`}>{line}</code>
           ))}

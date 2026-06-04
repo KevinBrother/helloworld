@@ -829,8 +829,9 @@ select.value-control {
   display: grid;
   align-content: start;
   gap: 0.22rem;
-  overflow: auto;
+  overflow-y: auto;
   padding: 0.58rem 1rem 0.75rem;
+  scrollbar-gutter: stable;
 }
 
 .run-log-body code {
