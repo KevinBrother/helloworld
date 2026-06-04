@@ -75,7 +75,7 @@ func (s *editorServer) handleWorkflow(w http.ResponseWriter, r *http.Request) {
 
 	respondJSON(w, http.StatusOK, editorStateResponse{
 		AST:         workflow,
-		UI:          transform.ProjectWorkflow(workflow),
+		UI:          transform.ProjectWorkflowWithBlocks(workflow, s.blocks),
 		Diagnostics: s.validateWorkflow(workflow),
 	})
 }
@@ -182,7 +182,7 @@ func (s *editorServer) handleEdit(w http.ResponseWriter, r *http.Request) {
 
 	respondJSON(w, http.StatusOK, editorStateResponse{
 		AST:         updated,
-		UI:          transform.ProjectWorkflow(updated),
+		UI:          transform.ProjectWorkflowWithBlocks(updated, s.blocks),
 		Diagnostics: nil,
 		Operation:   &op,
 	})

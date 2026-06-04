@@ -7,6 +7,7 @@ import (
 	"testing"
 
 	"rpa-agent-workflow/contracts/ast"
+	"rpa-agent-workflow/contracts/block"
 	uinode "rpa-agent-workflow/contracts/ui-node"
 )
 
@@ -114,6 +115,93 @@ func TestProjectWorkflowRootShowsStartInputsAndOutputs(t *testing.T) {
 	}
 }
 
+func TestProjectWorkflowProjectsScopedBindingTokensAndNodeOutputs(t *testing.T) {
+	workflow := ast.Workflow{
+		SchemaVersion: "1.0.0",
+		Workflow:      ast.Metadata{ID: "token_scope"},
+		Inputs: []ast.Port{
+			{Name: "left", Type: ast.Type{Name: "number"}},
+			{Name: "right", Type: ast.Type{Name: "number"}},
+		},
+		State: map[string]ast.State{
+			"success_count": {Type: ast.Type{Name: "number"}},
+		},
+		Outputs: []ast.Port{{Name: "result", Type: ast.Type{Name: "number"}}},
+		Body: ast.Statement{
+			ID:   "root",
+			Kind: "sequence",
+			Statements: []ast.Statement{
+				{
+					ID:    "first",
+					Kind:  "callBlock",
+					Block: "math.calculate",
+					Inputs: map[string]ast.Expression{
+						"left":  {Kind: "ref", Ref: "input.left"},
+						"right": {Kind: "ref", Ref: "input.right"},
+					},
+				},
+				{
+					ID:    "second",
+					Kind:  "callBlock",
+					Block: "math.calculate",
+					Inputs: map[string]ast.Expression{
+						"left":  {Kind: "ref", Ref: "node.first.result"},
+						"right": {Kind: "literal", Value: 10},
+					},
+				},
+			},
+		},
+	}
+	blocks := map[string]block.Definition{
+		"math.calculate": {
+			ID:          "math.calculate",
+			Description: "Calculate two numbers",
+			Outputs: []block.Port{
+				{Name: "result", Type: block.Type{Name: "number"}},
+			},
+		},
+	}
+
+	doc := ProjectWorkflowWithBlocks(workflow, blocks)
+	first := findProjectedNode(doc.Root, "first")
+	if first == nil {
+		t.Fatal("missing projected first node")
+	}
+	second := findProjectedNode(doc.Root, "second")
+	if second == nil {
+		t.Fatal("missing projected second node")
+	}
+
+	firstLeft := findInspectorField(first.Inspector, "$.body.statements[0].inputs.left")
+	if firstLeft == nil {
+		t.Fatalf("first input field missing: %#v", first.Inspector)
+	}
+	if !fieldHasAvailableToken(*firstLeft, "input.left") {
+		t.Fatalf("first input should expose workflow input token: %#v", firstLeft.Metadata)
+	}
+	if fieldHasAvailableToken(*firstLeft, "node.second.result") {
+		t.Fatalf("first input must not expose downstream output token: %#v", firstLeft.Metadata)
+	}
+
+	secondLeft := findInspectorField(second.Inspector, "$.body.statements[1].inputs.left")
+	if secondLeft == nil {
+		t.Fatalf("second input field missing: %#v", second.Inspector)
+	}
+	if !fieldHasAvailableToken(*secondLeft, "node.first.result") {
+		t.Fatalf("second input should expose upstream output token: %#v", secondLeft.Metadata)
+	}
+	if !fieldHasAvailableToken(*secondLeft, "state.success_count") {
+		t.Fatalf("second input should expose global state token: %#v", secondLeft.Metadata)
+	}
+
+	if !nodeHasOutputRef(*first, "node.first.result") {
+		t.Fatalf("first node should expose result output: %#v", first.Metadata)
+	}
+	if first.Metadata["description"] != "Calculate two numbers" {
+		t.Fatalf("first node should include block description: %#v", first.Metadata)
+	}
+}
+
 func findProjectedNode(root uinode.Node, id string) *uinode.Node {
 	if root.ID == id {
 		return &root
@@ -136,6 +224,41 @@ func findProjectedNode(root uinode.Node, id string) *uinode.Node {
 func hasInspectorField(fields []uinode.InspectorField, path string, control string) bool {
 	for _, field := range fields {
 		if field.Path == path && field.Control == control {
+			return true
+		}
+	}
+	return false
+}
+
+func findInspectorField(fields []uinode.InspectorField, path string) *uinode.InspectorField {
+	for i := range fields {
+		if fields[i].Path == path {
+			return &fields[i]
+		}
+	}
+	return nil
+}
+
+func fieldHasAvailableToken(field uinode.InspectorField, ref string) bool {
+	tokens, ok := field.Metadata["availableTokens"].([]map[string]any)
+	if !ok {
+		return false
+	}
+	for _, token := range tokens {
+		if token["ref"] == ref {
+			return true
+		}
+	}
+	return false
+}
+
+func nodeHasOutputRef(node uinode.Node, ref string) bool {
+	outputs, ok := node.Metadata["outputs"].([]map[string]any)
+	if !ok {
+		return false
+	}
+	for _, output := range outputs {
+		if output["ref"] == ref {
 			return true
 		}
 	}

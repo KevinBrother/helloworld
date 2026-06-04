@@ -59,6 +59,13 @@ type ExpressionDraft = {
   value?: unknown;
   ref?: string;
 } & Record<string, unknown>;
+type BindingToken = {
+  group: string;
+  ref: string;
+  label: string;
+  type?: string;
+  detail?: string;
+};
 type SaveState = "sample" | "saved" | "saving" | "failed";
 type WorkbenchTab = "properties" | "run" | "diagnostics";
 
@@ -638,6 +645,12 @@ function InspectorPane({
   serverAvailable: boolean;
 }) {
   const fields = node.inspector ?? [];
+  const expressionFields = fields.filter((field) => field.control === "expression");
+  const propertyFields = fields.filter((field) => field.control !== "expression");
+  const exposedOutputs = normalizeBindingTokens(node.metadata?.outputs);
+  const nodeTitle = stringMetadata(node.metadata, "title") || node.label || node.id;
+  const nodeDescription = stringMetadata(node.metadata, "description") || "No component description";
+  const onError = stringMetadata(node.metadata, "onError") || "default";
   if (activeTab === "run") {
     return (
       <div className="inspector">
@@ -671,7 +684,11 @@ function InspectorPane({
         <strong>{saveLabel(saveState)}</strong>
       </div>
       <div className="inspector-block">
-        <div className="inspector-title">Node</div>
+        <div className="inspector-title">Basic info</div>
+        <div className="node-summary">
+          <strong>{nodeTitle}</strong>
+          <span>{nodeDescription}</span>
+        </div>
         <div className="kv-grid">
           <div>
             <span>ID</span>
@@ -684,6 +701,10 @@ function InspectorPane({
           <div>
             <span>Path</span>
             <strong>{node.path ?? "root"}</strong>
+          </div>
+          <div>
+            <span>onError</span>
+            <strong>{onError}</strong>
           </div>
         </div>
       </div>
@@ -703,9 +724,38 @@ function InspectorPane({
       </div>
 
       <div className="inspector-block">
+        <div className="inspector-title">Inputs Dynamic Binding</div>
+        <div className="field-list">
+          {expressionFields.length === 0 ? <div className="inline-empty">No bindable inputs</div> : null}
+          {expressionFields.map((field) => (
+            <InspectorFieldRow key={field.path} field={field} onApplyExpression={onApplyExpression} />
+          ))}
+        </div>
+      </div>
+
+      <div className="inspector-block">
+        <div className="inspector-title">Outputs Expose</div>
+        {exposedOutputs.length === 0 ? (
+          <div className="inline-empty">No exposed outputs</div>
+        ) : (
+          <div className="output-list">
+            {exposedOutputs.map((output) => (
+              <div className="output-row" key={output.ref}>
+                <div>
+                  <strong>{output.label}</strong>
+                  {output.type ? <span>{output.type}</span> : null}
+                </div>
+                <code>{output.ref}</code>
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
+
+      <div className="inspector-block">
         <div className="inspector-title">Properties</div>
         <div className="field-list">
-          {fields.map((field) => (
+          {propertyFields.map((field) => (
             <InspectorFieldRow key={field.path} field={field} onApplyExpression={onApplyExpression} />
           ))}
         </div>
@@ -775,22 +825,64 @@ function InspectorFieldRow({
   onApplyExpression: (field: InspectorField, value: unknown) => void;
 }) {
   const editable = field.control === "expression" && !field.readonly;
-  const quickKind = quickInputKind(field);
   return (
     <div className="field-row">
       <div className="field-label">{field.label ?? field.path}</div>
-      {editable && quickKind ? (
-        <QuickExpressionEditor
-          field={field}
-          kind={quickKind}
-          value={field.value}
-          onApply={(value) => onApplyExpression(field, value)}
-        />
-      ) : editable ? (
-        <ExpressionEditor value={field.value} onApply={(value) => onApplyExpression(field, value)} />
+      {editable ? (
+        <BindingExpressionEditor field={field} onApply={(value) => onApplyExpression(field, value)} />
       ) : (
         <div className="field-value">{renderFieldValue(field.value)}</div>
       )}
+    </div>
+  );
+}
+
+function BindingExpressionEditor({
+  field,
+  onApply,
+}: {
+  field: InspectorField;
+  onApply: (value: unknown) => void;
+}) {
+  const [open, setOpen] = useState(false);
+  const tokens = normalizeBindingTokens(field.metadata?.availableTokens);
+  const grouped = groupBindingTokens(tokens);
+
+  const applyToken = (token: BindingToken) => {
+    onApply({ kind: "ref", ref: token.ref });
+    setOpen(false);
+  };
+
+  return (
+    <div className="binding-editor">
+      <button className="binding-input" type="button" onClick={() => setOpen((current) => !current)}>
+        <span>{expressionDisplay(field.value)}</span>
+      </button>
+      {open ? (
+        <div className="token-picker" role="dialog" aria-label="Token Picker">
+          {tokens.length === 0 ? <div className="token-empty">No legal references in scope</div> : null}
+          {grouped.map((group) => (
+            <section className="token-group" key={group.name}>
+              <div className="token-group-title">{group.name}</div>
+              <div className="token-options">
+                {group.tokens.map((token) => (
+                  <button className="token-option" type="button" key={token.ref} onClick={() => applyToken(token)}>
+                    <span>{token.label}</span>
+                    <code>{token.ref}</code>
+                    <small>
+                      {[token.type, token.detail].filter(Boolean).join(" · ") || "reference"}
+                    </small>
+                  </button>
+                ))}
+              </div>
+            </section>
+          ))}
+        </div>
+      ) : null}
+      <details className="advanced-expression">
+        <summary>Edit literal / advanced expression</summary>
+        <ExpressionEditor value={field.value} onApply={onApply} />
+      </details>
     </div>
   );
 }
@@ -1255,6 +1347,84 @@ function renderFieldValue(value: unknown) {
   return JSON.stringify(value);
 }
 
+function stringMetadata(metadata: Record<string, unknown> | undefined, key: string) {
+  const value = metadata?.[key];
+  return typeof value === "string" ? value : "";
+}
+
+function normalizeBindingTokens(value: unknown): BindingToken[] {
+  if (!Array.isArray(value)) {
+    return [];
+  }
+  return value.flatMap((item) => {
+    if (!item || typeof item !== "object" || Array.isArray(item)) {
+      return [];
+    }
+    const token = item as Record<string, unknown>;
+    const ref = typeof token.ref === "string" ? token.ref : "";
+    if (!ref) {
+      return [];
+    }
+    return [
+      {
+        group: typeof token.group === "string" && token.group ? token.group : "References",
+        ref,
+        label: typeof token.label === "string" && token.label ? token.label : ref,
+        type: typeof token.type === "string" && token.type ? token.type : undefined,
+        detail: typeof token.detail === "string" && token.detail ? token.detail : undefined,
+      },
+    ];
+  });
+}
+
+function groupBindingTokens(tokens: BindingToken[]) {
+  const order = ["Inputs", "Global State", "Upstream Outputs", "Context Loop", "References"];
+  const groups = new Map<string, BindingToken[]>();
+  for (const token of tokens) {
+    groups.set(token.group, [...(groups.get(token.group) ?? []), token]);
+  }
+  return [...groups.entries()]
+    .sort(([left], [right]) => {
+      const leftIndex = order.indexOf(left);
+      const rightIndex = order.indexOf(right);
+      return (leftIndex === -1 ? order.length : leftIndex) - (rightIndex === -1 ? order.length : rightIndex);
+    })
+    .map(([name, groupTokens]) => ({ name, tokens: groupTokens }));
+}
+
+function expressionDisplay(value: unknown) {
+  return compactExpression(value);
+}
+
+function compactExpression(value: unknown): string {
+  if (!value || typeof value !== "object" || Array.isArray(value)) {
+    return renderFieldValue(value);
+  }
+  const expression = value as Record<string, unknown>;
+  if (expression.kind === "ref" && typeof expression.ref === "string") {
+    return expression.ref;
+  }
+  if (expression.kind === "literal") {
+    if (typeof expression.value === "string") {
+      return `"${expression.value}"`;
+    }
+    if (typeof expression.value === "number" || typeof expression.value === "boolean") {
+      return String(expression.value);
+    }
+    return "literal";
+  }
+  if (expression.kind === "binary") {
+    const left = compactExpression(expression.left);
+    const op = typeof expression.op === "string" ? expression.op : "?";
+    const right = compactExpression(expression.right);
+    return `${left} ${op} ${right}`;
+  }
+  if (expression.kind === "branch") {
+    return "branch expression";
+  }
+  return typeof expression.kind === "string" ? `${expression.kind} expression` : "expression";
+}
+
 function quickInputKind(field: InspectorField): "number" | "operator" | null {
   if (field.path.endsWith(".inputs.left") || field.path.endsWith(".inputs.right")) {
     return "number";
@@ -1273,6 +1443,12 @@ function normalizeExpression(value: unknown): ExpressionDraft {
         ...expression,
         kind: expression.kind,
         ref: typeof expression.ref === "string" ? expression.ref : undefined,
+      };
+    }
+    if (typeof expression.kind === "string" && expression.kind.length > 0) {
+      return {
+        ...expression,
+        kind: "json",
       };
     }
   }

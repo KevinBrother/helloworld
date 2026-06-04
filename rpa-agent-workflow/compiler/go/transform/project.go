@@ -6,16 +6,26 @@ import (
 	"strings"
 
 	"rpa-agent-workflow/contracts/ast"
+	"rpa-agent-workflow/contracts/block"
 	uinode "rpa-agent-workflow/contracts/ui-node"
 )
 
 const uiNodeSchemaVersion = "1.0.0"
 
 func ProjectWorkflow(workflow ast.Workflow) uinode.Document {
+	return ProjectWorkflowWithBlocks(workflow, nil)
+}
+
+func ProjectWorkflowWithBlocks(workflow ast.Workflow, blocks map[string]block.Definition) uinode.Document {
+	ctx := projectionContext{
+		blocks: blocks,
+		tokens: workflowTokens(workflow),
+	}
 	root := projectStatement(workflow.Body, "$.body", 0)
 	root.Label = "Start"
 	root.Inspector = append(root.Inspector, workflowPortInspectorFields("$.inputs", "Input", workflow.Inputs)...)
 	root.Inspector = append(root.Inspector, workflowPortInspectorFields("$.outputs", "Output", workflow.Outputs)...)
+	root.Children = projectStatementsWithContext(workflow.Body.Statements, "$.body.statements", 0, ctx)
 	return uinode.Document{
 		SchemaVersion: uiNodeSchemaVersion,
 		WorkflowID:    workflow.Workflow.ID,
@@ -23,6 +33,37 @@ func ProjectWorkflow(workflow ast.Workflow) uinode.Document {
 		Metadata: map[string]any{
 			"workflowName": workflow.Workflow.Name,
 		},
+	}
+}
+
+type projectionContext struct {
+	blocks map[string]block.Definition
+	tokens []map[string]any
+}
+
+func workflowTokens(workflow ast.Workflow) []map[string]any {
+	tokens := make([]map[string]any, 0, len(workflow.Inputs)+len(workflow.State))
+	for _, input := range workflow.Inputs {
+		tokens = append(tokens, tokenMap("Inputs", "input."+input.Name, input.Name, input.Type.Name, "Workflow input"))
+	}
+	stateNames := make([]string, 0, len(workflow.State))
+	for name := range workflow.State {
+		stateNames = append(stateNames, name)
+	}
+	sort.Strings(stateNames)
+	for _, name := range stateNames {
+		tokens = append(tokens, tokenMap("Global State", "state."+name, name, workflow.State[name].Type.Name, "Global state"))
+	}
+	return tokens
+}
+
+func tokenMap(group string, ref string, label string, typ string, detail string) map[string]any {
+	return map[string]any{
+		"group":  group,
+		"ref":    ref,
+		"label":  label,
+		"type":   typ,
+		"detail": detail,
 	}
 }
 
@@ -41,6 +82,11 @@ func workflowPortInspectorFields(path string, labelPrefix string, ports []ast.Po
 }
 
 func projectStatement(stmt ast.Statement, path string, lane int) uinode.Node {
+	return projectStatementWithContext(stmt, path, lane, projectionContext{})
+}
+
+func projectStatementWithContext(stmt ast.Statement, path string, lane int, ctx projectionContext) uinode.Node {
+	outputs := outputTokensForStatement(stmt, ctx.blocks)
 	node := uinode.Node{
 		ID:           stmt.ID,
 		Kind:         stmt.Kind,
@@ -50,28 +96,29 @@ func projectStatement(stmt ast.Statement, path string, lane int) uinode.Node {
 		Collapsed:    metadataCollapsed(stmt.Metadata),
 		Editable:     true,
 		Capabilities: capabilitiesForStatement(stmt, path),
-		Inspector:    inspectorForStatement(stmt, path),
-		Metadata:     nodeMetadata(stmt),
+		Inspector:    inspectorForStatement(stmt, path, ctx.tokens),
+		Metadata:     nodeMetadataWithOutputs(stmt, outputs, ctx.blocks),
 	}
 
 	switch stmt.Kind {
 	case "sequence":
-		node.Children = projectStatements(stmt.Statements, path+".statements")
+		node.Children = projectStatementsWithContext(stmt.Statements, path+".statements", lane, ctx)
 	case "loop":
-		node.Children = projectStatements(stmt.Statements, path+".statements")
+		loopCtx := ctx.withTokens(loopTokens(stmt))
+		node.Children = projectStatementsWithContext(stmt.Statements, path+".statements", lane, loopCtx)
 	case "if":
 		node.Branches = []uinode.Branch{
 			{
 				ID:       stmt.ID + ".then",
 				Label:    "Then",
 				Kind:     "then",
-				Children: projectStatements(stmt.Then, path+".then"),
+				Children: projectStatementsWithContext(stmt.Then, path+".then", lane, ctx),
 			},
 			{
 				ID:       stmt.ID + ".else",
 				Label:    "Else",
 				Kind:     "else",
-				Children: projectStatements(stmt.Else, path+".else"),
+				Children: projectStatementsWithContext(stmt.Else, path+".else", lane, ctx),
 			},
 		}
 	case "parallel":
@@ -81,7 +128,7 @@ func projectStatement(stmt ast.Statement, path string, lane int) uinode.Node {
 				ID:       branch.ID,
 				Label:    branchLabel(branch.ID),
 				Kind:     "parallel",
-				Children: projectStatementsWithLane(branch.Body, fmt.Sprintf("%s.branches[%d].body", path, i), i),
+				Children: projectStatementsWithContext(branch.Body, fmt.Sprintf("%s.branches[%d].body", path, i), i, ctx),
 			})
 		}
 	case "try":
@@ -90,7 +137,7 @@ func projectStatement(stmt ast.Statement, path string, lane int) uinode.Node {
 				ID:       stmt.ID + ".try",
 				Label:    "Try",
 				Kind:     "try",
-				Children: projectStatements(stmt.Statements, path+".statements"),
+				Children: projectStatementsWithContext(stmt.Statements, path+".statements", lane, ctx),
 			},
 		}
 		for i, clause := range stmt.Catches {
@@ -102,18 +149,27 @@ func projectStatement(stmt ast.Statement, path string, lane int) uinode.Node {
 				ID:       fmt.Sprintf("%s.catch[%d]", stmt.ID, i),
 				Label:    label,
 				Kind:     "catch",
-				Children: projectStatementsWithLane(clause.Body, fmt.Sprintf("%s.catches[%d].body", path, i), i+1),
+				Children: projectStatementsWithContext(clause.Body, fmt.Sprintf("%s.catches[%d].body", path, i), i+1, ctx),
 			})
 		}
 		node.Branches = append(node.Branches, uinode.Branch{
 			ID:       stmt.ID + ".finally",
 			Label:    "Finally",
 			Kind:     "finally",
-			Children: projectStatementsWithLane(stmt.Finally, path+".finally", len(stmt.Catches)+1),
+			Children: projectStatementsWithContext(stmt.Finally, path+".finally", len(stmt.Catches)+1, ctx),
 		})
 	}
 
 	return node
+}
+
+func (ctx projectionContext) withTokens(tokens []map[string]any) projectionContext {
+	next := projectionContext{
+		blocks: ctx.blocks,
+		tokens: append([]map[string]any{}, ctx.tokens...),
+	}
+	next.tokens = append(next.tokens, tokens...)
+	return next
 }
 
 func projectStatements(stmts []ast.Statement, path string) []uinode.Node {
@@ -121,9 +177,15 @@ func projectStatements(stmts []ast.Statement, path string) []uinode.Node {
 }
 
 func projectStatementsWithLane(stmts []ast.Statement, path string, lane int) []uinode.Node {
+	return projectStatementsWithContext(stmts, path, lane, projectionContext{})
+}
+
+func projectStatementsWithContext(stmts []ast.Statement, path string, lane int, ctx projectionContext) []uinode.Node {
 	children := make([]uinode.Node, 0, len(stmts))
+	current := ctx
 	for i, child := range stmts {
-		children = append(children, projectStatement(child, fmt.Sprintf("%s[%d]", path, i), lane))
+		children = append(children, projectStatementWithContext(child, fmt.Sprintf("%s[%d]", path, i), lane, current))
+		current = current.withTokens(outputTokensForStatement(child, current.blocks))
 	}
 	return children
 }
@@ -197,7 +259,7 @@ func insertionMetadata(kind string, path string) map[string]any {
 	}
 }
 
-func inspectorForStatement(stmt ast.Statement, path string) []uinode.InspectorField {
+func inspectorForStatement(stmt ast.Statement, path string, tokens []map[string]any) []uinode.InspectorField {
 	fields := []uinode.InspectorField{
 		{Path: path + ".id", Label: "ID", Control: "text", Value: stmt.ID, Readonly: true},
 		{Path: path + ".kind", Label: "Kind", Control: "text", Value: stmt.Kind, Readonly: true},
@@ -217,22 +279,22 @@ func inspectorForStatement(stmt ast.Statement, path string) []uinode.InspectorFi
 	if stmt.ItemVar != "" {
 		fields = append(fields, uinode.InspectorField{Path: path + ".itemVar", Label: "Item Variable", Control: "text", Value: stmt.ItemVar, Readonly: true})
 	}
-	fields = append(fields, expressionMapInspectorFields(path+".inputs", "Input", stmt.Inputs)...)
-	fields = append(fields, expressionMapInspectorFields(path+".outputs", "Output", stmt.Outputs)...)
+	fields = append(fields, expressionMapInspectorFields(path+".inputs", "Input", stmt.Inputs, tokens)...)
+	fields = append(fields, expressionMapInspectorFields(path+".outputs", "Output", stmt.Outputs, tokens)...)
 	if stmt.Value != nil {
-		fields = append(fields, uinode.InspectorField{Path: path + ".value", Label: "Value", Control: "expression", Value: *stmt.Value})
+		fields = append(fields, expressionInspectorField(path+".value", "Value", *stmt.Value, tokens))
 	}
 	if stmt.Condition != nil {
-		fields = append(fields, uinode.InspectorField{Path: path + ".condition", Label: "Condition", Control: "expression", Value: *stmt.Condition})
+		fields = append(fields, expressionInspectorField(path+".condition", "Condition", *stmt.Condition, tokens))
 	}
 	if stmt.Iterable != nil {
-		fields = append(fields, uinode.InspectorField{Path: path + ".iterable", Label: "Iterable", Control: "expression", Value: *stmt.Iterable})
+		fields = append(fields, expressionInspectorField(path+".iterable", "Iterable", *stmt.Iterable, tokens))
 	}
-	fields = append(fields, expressionMapInspectorFields(path+".returns", "Return", stmt.Returns)...)
+	fields = append(fields, expressionMapInspectorFields(path+".returns", "Return", stmt.Returns, tokens)...)
 	return fields
 }
 
-func expressionMapInspectorFields(path string, labelPrefix string, expressions map[string]ast.Expression) []uinode.InspectorField {
+func expressionMapInspectorFields(path string, labelPrefix string, expressions map[string]ast.Expression, tokens []map[string]any) []uinode.InspectorField {
 	if len(expressions) == 0 {
 		return nil
 	}
@@ -243,14 +305,80 @@ func expressionMapInspectorFields(path string, labelPrefix string, expressions m
 	sort.Strings(names)
 	fields := make([]uinode.InspectorField, 0, len(names))
 	for _, name := range names {
-		fields = append(fields, uinode.InspectorField{
-			Path:    path + "." + name,
-			Label:   labelPrefix + " " + name,
-			Control: "expression",
-			Value:   expressions[name],
-		})
+		fields = append(fields, expressionInspectorField(path+"."+name, labelPrefix+" "+name, expressions[name], tokens))
 	}
 	return fields
+}
+
+func expressionInspectorField(path string, label string, value ast.Expression, tokens []map[string]any) uinode.InspectorField {
+	field := uinode.InspectorField{
+		Path:    path,
+		Label:   label,
+		Control: "expression",
+		Value:   value,
+	}
+	if len(tokens) > 0 {
+		field.Metadata = map[string]any{
+			"availableTokens": cloneTokens(tokens),
+		}
+	}
+	return field
+}
+
+func outputTokensForStatement(stmt ast.Statement, blocks map[string]block.Definition) []map[string]any {
+	switch stmt.Kind {
+	case "callBlock":
+		if blockDef, ok := blocks[stmt.Block]; ok && len(blockDef.Outputs) > 0 {
+			tokens := make([]map[string]any, 0, len(blockDef.Outputs))
+			for _, output := range blockDef.Outputs {
+				tokens = append(tokens, tokenMap(
+					"Upstream Outputs",
+					"node."+stmt.ID+"."+output.Name,
+					stmt.ID+"."+output.Name,
+					output.Type.Name,
+					labelForStatement(stmt),
+				))
+			}
+			return tokens
+		}
+		return outputTokensFromExpressionMap(stmt)
+	case "if", "callWorkflow", "parallel":
+		return outputTokensFromExpressionMap(stmt)
+	default:
+		return nil
+	}
+}
+
+func outputTokensFromExpressionMap(stmt ast.Statement) []map[string]any {
+	if len(stmt.Outputs) == 0 {
+		return nil
+	}
+	names := make([]string, 0, len(stmt.Outputs))
+	for name := range stmt.Outputs {
+		names = append(names, name)
+	}
+	sort.Strings(names)
+	tokens := make([]map[string]any, 0, len(names))
+	for _, name := range names {
+		tokens = append(tokens, tokenMap(
+			"Upstream Outputs",
+			"node."+stmt.ID+"."+name,
+			stmt.ID+"."+name,
+			"",
+			labelForStatement(stmt),
+		))
+	}
+	return tokens
+}
+
+func loopTokens(stmt ast.Statement) []map[string]any {
+	if stmt.ID == "" {
+		return nil
+	}
+	return []map[string]any{
+		tokenMap("Context Loop", "loop."+stmt.ID+".current_item", "current_item", "", labelForStatement(stmt)),
+		tokenMap("Context Loop", "loop."+stmt.ID+".index", "index", "number", labelForStatement(stmt)),
+	}
 }
 
 func labelForStatement(stmt ast.Statement) string {
@@ -324,6 +452,45 @@ func nodeMetadata(stmt ast.Statement) map[string]any {
 		return nil
 	}
 	return metadata
+}
+
+func nodeMetadataWithOutputs(stmt ast.Statement, outputs []map[string]any, blocks map[string]block.Definition) map[string]any {
+	metadata := nodeMetadata(stmt)
+	if metadata == nil {
+		metadata = make(map[string]any)
+	}
+	if len(outputs) > 0 {
+		metadata["outputs"] = cloneTokens(outputs)
+	}
+	if stmt.Block != "" {
+		title := labelForStatement(stmt)
+		if blockDef, ok := blocks[stmt.Block]; ok {
+			if blockDef.Display.Label != "" {
+				title = blockDef.Display.Label
+			}
+			if blockDef.Description != "" {
+				metadata["description"] = blockDef.Description
+			}
+		}
+		metadata["title"] = title
+		metadata["onError"] = "default"
+	}
+	if len(metadata) == 0 {
+		return nil
+	}
+	return metadata
+}
+
+func cloneTokens(tokens []map[string]any) []map[string]any {
+	clone := make([]map[string]any, 0, len(tokens))
+	for _, token := range tokens {
+		next := make(map[string]any, len(token))
+		for key, value := range token {
+			next[key] = value
+		}
+		clone = append(clone, next)
+	}
+	return clone
 }
 
 func metadataCollapsed(metadata map[string]any) bool {

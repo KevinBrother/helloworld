@@ -88,10 +88,11 @@
         "label": { "type": "string" },
         "control": {
           "type": "string",
-          "enum": ["text", "textarea", "number", "select", "switch", "expression", "json"]
+          "enum": ["text", "textarea", "number", "select", "switch", "expression", "json", "port"]
         },
         "value": {},
-        "readonly": { "type": "boolean" }
+        "readonly": { "type": "boolean" },
+        "metadata": { "type": "object" }
       },
       "additionalProperties": false
     },

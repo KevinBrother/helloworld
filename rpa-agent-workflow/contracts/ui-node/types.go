@@ -58,11 +58,12 @@ type Capability struct {
 }
 
 type InspectorField struct {
-	Path     string `json:"path"`
-	Label    string `json:"label,omitempty"`
-	Control  string `json:"control,omitempty"`
-	Value    any    `json:"value,omitempty"`
-	Readonly bool   `json:"readonly,omitempty"`
+	Path     string         `json:"path"`
+	Label    string         `json:"label,omitempty"`
+	Control  string         `json:"control,omitempty"`
+	Value    any            `json:"value,omitempty"`
+	Readonly bool           `json:"readonly,omitempty"`
+	Metadata map[string]any `json:"metadata,omitempty"`
 }
 
 type ValidationSummary struct {

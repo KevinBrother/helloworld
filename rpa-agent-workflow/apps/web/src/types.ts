@@ -61,6 +61,7 @@ export type InspectorField = {
   control?: string;
   value?: unknown;
   readonly?: boolean;
+  metadata?: Record<string, unknown>;
 };
 
 export type ValidationSummary = {
