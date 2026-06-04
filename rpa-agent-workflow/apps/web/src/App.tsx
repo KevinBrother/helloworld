@@ -1,33 +1,33 @@
-import { memo, useEffect, useMemo, useRef, useState, type KeyboardEvent } from "react";
+import { memo, useEffect, useMemo, useRef, useState } from "react";
 import {
+  AlertTriangle,
+  CheckCircle2,
+  ChevronDown,
   Download,
   FileJson,
   FileUp,
+  GitBranch,
   Layers3,
-  LayoutList,
-  RotateCcw,
-  SquarePen,
-  SplitSquareHorizontal,
+  ListTree,
   Play,
+  RefreshCw,
+  RotateCcw,
+  Search,
+  TerminalSquare,
 } from "lucide-react";
 import {
   Background,
-  BaseEdge,
   Controls,
-  EdgeLabelRenderer,
   Handle,
   MarkerType,
   MiniMap,
   Position,
   ReactFlow,
-  getBezierPath,
   type Edge,
-  type EdgeProps,
   type Node,
   type NodeProps,
 } from "@xyflow/react";
 import "@xyflow/react/dist/style.css";
-// import sampleDocument from "./sample-ui-node.json";
 import sampleDocument from "../../../output/calculator-ui-node.json";
 import type {
   Diagnostic,
@@ -40,25 +40,22 @@ import type {
   UINode,
 } from "./types";
 
-type ViewMode = "outline" | "canvas" | "operations";
-type WorkflowNodeData = {
-  uiNode: UINode;
-  ghost?: boolean;
-  branchLabel?: string;
-} & Record<string, unknown>;
-type WorkflowFlowNode = Node<WorkflowNodeData, "workflow">;
-type WorkflowFlowEdge = Edge<Record<string, unknown>, "workflow">;
-type Measure = {
-  width: number;
-  height: number;
-};
-type LiteralInputType = "string" | "number" | "boolean";
+type EditorMode = "connected" | "sample" | "loaded";
+type SaveState = "sample" | "saved" | "saving" | "failed";
+type NavigatorTab = "workflow" | "blocks" | "issues";
+type WorkspaceView = "canvas" | "outline" | "contract";
+type InspectorTab = "node" | "run" | "diagnostics";
+type TraceTab = "operations" | "events" | "raw";
+type MobileSurface = "navigator" | "workspace" | "inspector" | "trace";
 type ExpressionKind = "literal" | "ref" | "json";
-type ExpressionDraft = {
-  kind: ExpressionKind;
-  value?: unknown;
-  ref?: string;
-} & Record<string, unknown>;
+type LiteralInputType = "string" | "number" | "boolean";
+
+type FlatNode = {
+  node: UINode;
+  depth: number;
+  branch?: string;
+};
+
 type BindingToken = {
   group: string;
   ref: string;
@@ -66,21 +63,14 @@ type BindingToken = {
   type?: string;
   detail?: string;
 };
-type SaveState = "sample" | "saved" | "saving" | "failed";
-type WorkbenchTab = "properties" | "run" | "diagnostics";
 
-const nodeTypes = {
-  workflow: memo(WorkflowFlowNode),
-};
+type WorkflowNodeData = {
+  uiNode: UINode;
+  branch?: string;
+} & Record<string, unknown>;
 
-const edgeTypes = {
-  workflow: WorkflowFlowEdge,
-};
-
-const NODE_WIDTH = 286;
-const NODE_HEIGHT = 104;
-const GAP_Y = 118;
-const GAP_X = 88;
+type WorkflowFlowNode = Node<WorkflowNodeData, "workflow">;
+type WorkflowFlowEdge = Edge<Record<string, unknown>, "workflow">;
 
 const DEFAULT_ACTOR = {
   id: "local-user",
@@ -88,33 +78,48 @@ const DEFAULT_ACTOR = {
   kind: "human",
 };
 
+const nodeTypes = {
+  workflow: memo(WorkflowFlowNode),
+};
+
+const GAP_Y = 128;
+const GAP_X = 332;
+
 function App() {
   const [uiDocument, setUIDocument] = useState<UIDocument>(() => sampleDocument as UIDocument);
   const [astDocument, setASTDocument] = useState<unknown>(null);
   const [diagnostics, setDiagnostics] = useState<Diagnostic[]>([]);
   const [serverAvailable, setServerAvailable] = useState(false);
-  const [selectedNodeId, setSelectedNodeId] = useState<string>(() => sampleDocument.root.id);
+  const [editorMode, setEditorMode] = useState<EditorMode>("sample");
+  const [selectedNodeId, setSelectedNodeId] = useState(() => (sampleDocument as UIDocument).root.id);
   const [operationLog, setOperationLog] = useState<EditOperation[]>([]);
   const [runResult, setRunResult] = useState<RunResult | null>(null);
   const [runPending, setRunPending] = useState(false);
   const [saveState, setSaveState] = useState<SaveState>("sample");
-  const [activeWorkbenchTab, setActiveWorkbenchTab] = useState<WorkbenchTab>("properties");
-  const [viewMode, setViewMode] = useState<ViewMode>("canvas");
-  const [status, setStatus] = useState("Sample loaded");
+  const [status, setStatus] = useState("Sample projection loaded");
   const [serviceError, setServiceError] = useState("Checking workflow service");
   const [serviceRetrying, setServiceRetrying] = useState(true);
+  const [navigatorTab, setNavigatorTab] = useState<NavigatorTab>("workflow");
+  const [workspaceView, setWorkspaceView] = useState<WorkspaceView>("canvas");
+  const [inspectorTab, setInspectorTab] = useState<InspectorTab>("node");
+  const [traceTab, setTraceTab] = useState<TraceTab>("operations");
+  const [mobileSurface, setMobileSurface] = useState<MobileSurface>("workspace");
+  const [traceOpen, setTraceOpen] = useState(true);
+  const [searchQuery, setSearchQuery] = useState("");
   const fileInputRef = useRef<HTMLInputElement>(null);
 
+  const outline = useMemo(() => flattenNodes(uiDocument.root), [uiDocument]);
   const selectedNode = useMemo(
     () => findNode(uiDocument.root, selectedNodeId) ?? uiDocument.root,
     [uiDocument, selectedNodeId],
   );
-
-  const outline = useMemo(() => flattenNodes(uiDocument.root), [uiDocument]);
+  const workflowStats = useMemo(() => summarizeWorkflow(outline), [outline]);
+  const blockCatalog = useMemo(() => summarizeBlocks(outline), [outline]);
+  const filteredOutline = useMemo(() => filterFlatNodes(outline, searchQuery), [outline, searchQuery]);
 
   const emitOperation = (operation: EditOperation, message?: string) => {
-    setOperationLog((current) => [operation, ...current].slice(0, 50));
-    setStatus(message ?? `${operation.type} saved for ${operation.targetNodeId ?? "document"}`);
+    setOperationLog((current) => [operation, ...current].slice(0, 80));
+    setStatus(message ?? `${operation.type} recorded for ${operation.targetNodeId ?? "workflow"}`);
   };
 
   const applyServerState = (state: EditorStateResponse) => {
@@ -136,6 +141,7 @@ function App() {
       }
       applyServerState(state);
       setServerAvailable(true);
+      setEditorMode("connected");
       setSaveState("saved");
       setServiceError("");
       setStatus("Workflow service connected");
@@ -145,8 +151,9 @@ function App() {
       }
       const message = formatError(error);
       setServerAvailable(false);
+      setEditorMode((current) => (current === "loaded" ? "loaded" : "sample"));
       setServiceError(message);
-      setStatus(`Using sample projection (${message})`);
+      setStatus(`Sample projection active: ${message}`);
     } finally {
       if (!options?.cancelled?.()) {
         setServiceRetrying(false);
@@ -162,13 +169,9 @@ function App() {
     };
   }, []);
 
-  const handleRetryWorkflowService = () => {
-    void loadWorkflowService({ retry: true });
-  };
-
   const submitOperation = async (operation: EditOperation) => {
     if (!serverAvailable) {
-      setStatus("Workflow service unavailable; edit not saved");
+      emitOperation(operation, "Workflow service unavailable; operation recorded locally");
       return false;
     }
 
@@ -182,6 +185,7 @@ function App() {
       applyServerState(state);
       setSaveState("saved");
       setServerAvailable(true);
+      setEditorMode("connected");
       emitOperation(state.operation ?? operation);
       return true;
     } catch (error) {
@@ -207,10 +211,12 @@ function App() {
       payload: { collapsed: nextCollapsed },
       actor: DEFAULT_ACTOR,
     };
+
     if (serverAvailable) {
       void submitOperation(operation);
       return;
     }
+
     emitOperation(operation);
     setUIDocument((current) => updateNode(current, selectedNode.id, (node) => ({ ...node, collapsed: nextCollapsed })));
   };
@@ -229,7 +235,8 @@ function App() {
 
   const handleRunWorkflow = async () => {
     if (!serverAvailable) {
-      setStatus("Workflow service unavailable; run disabled");
+      setStatus("Workflow service unavailable; run requires Connected AST mode");
+      setInspectorTab("run");
       return;
     }
     setRunPending(true);
@@ -242,13 +249,15 @@ function App() {
       });
       setRunResult(payload.result ?? null);
       setDiagnostics(payload.diagnostics ?? []);
-      setActiveWorkbenchTab("run");
+      setInspectorTab("run");
+      setTraceTab("events");
+      setTraceOpen(true);
       setStatus("Run completed");
     } catch (error) {
       const apiError = normalizeAPIError(error);
       setRunResult(null);
       setDiagnostics(apiError.diagnostics);
-      setActiveWorkbenchTab(apiError.diagnostics.length > 0 ? "diagnostics" : "run");
+      setInspectorTab(apiError.diagnostics.length > 0 ? "diagnostics" : "run");
       if (apiError.network) {
         setServerAvailable(false);
         setServiceError(apiError.message);
@@ -266,12 +275,17 @@ function App() {
     setASTDocument(null);
     setDiagnostics([]);
     setServerAvailable(false);
+    setEditorMode("loaded");
     setServiceError("");
     setSaveState("sample");
     setSelectedNodeId(next.root.id);
     setOperationLog([]);
     setRunResult(null);
-    setStatus(`Loaded ${file.name}`);
+    setStatus(`Loaded UI JSON: ${file.name}`);
+  };
+
+  const handleRetryWorkflowService = () => {
+    void loadWorkflowService({ retry: true });
   };
 
   const handleDownloadOperations = () => {
@@ -280,235 +294,428 @@ function App() {
     const url = URL.createObjectURL(blob);
     const anchor = globalThis.document.createElement("a");
     anchor.href = url;
-    anchor.download = "edit-operation.json";
+    anchor.download = "edit-operations.json";
     anchor.click();
     URL.revokeObjectURL(url);
   };
 
+  const resetSample = () => {
+    const next = sampleDocument as UIDocument;
+    setUIDocument(next);
+    setASTDocument(null);
+    setDiagnostics([]);
+    setServerAvailable(false);
+    setEditorMode("sample");
+    setServiceError("");
+    setSaveState("sample");
+    setSelectedNodeId(next.root.id);
+    setOperationLog([]);
+    setRunResult(null);
+    setStatus("Sample projection loaded");
+  };
+
+  const mode = modeDetails(editorMode, serverAvailable);
+
   return (
-    <div className="app-shell">
-      <header className="topbar">
-        <div className="product-title">
-          <div className="eyebrow">Structured Workflow Editor</div>
-          <h1>{uiDocument.workflowId}</h1>
-        </div>
-        <div className="execution-summary">
-          <div className="summary-item">
-            <span>Connection</span>
-            <strong>{serverAvailable ? "Connected" : "Offline"}</strong>
-          </div>
-          <div className="summary-item">
-            <span>Save</span>
-            <strong>{saveLabel(saveState)}</strong>
-          </div>
-          <div className="summary-item result-summary">
-            <span>Last run</span>
-            <strong>{runResultSummary(runResult)}</strong>
-          </div>
-        </div>
-        <div className="topbar-actions">
-          <button className="icon-button run-button" onClick={handleRunWorkflow} disabled={!serverAvailable || runPending}>
-            <Play size={16} />
-            {runPending ? "Running" : "Run"}
-          </button>
-          <button
-            className="icon-button"
-            onClick={() => {
-              const next = sampleDocument as UIDocument;
-              setUIDocument(next);
-              setASTDocument(null);
-              setDiagnostics([]);
-              setServerAvailable(false);
-              setServiceError("");
-              setSaveState("sample");
-              setSelectedNodeId(next.root.id);
-              setOperationLog([]);
-              setRunResult(null);
-              setStatus("Sample loaded");
+    <div className="workbench-shell" data-mode={editorMode}>
+      <GlobalHeader
+        workflowId={uiDocument.workflowId}
+        mode={mode}
+        saveState={saveState}
+        diagnostics={diagnostics}
+        runResult={runResult}
+        runPending={runPending}
+        serverAvailable={serverAvailable}
+        operationCount={operationLog.length}
+        onRun={handleRunWorkflow}
+        onReset={resetSample}
+        onRetry={handleRetryWorkflowService}
+        onLoadJSON={() => fileInputRef.current?.click()}
+        onDownloadOperations={handleDownloadOperations}
+      />
+
+      <input
+        ref={fileInputRef}
+        className="visually-hidden-file"
+        type="file"
+        accept="application/json"
+        aria-label="Load workflow JSON"
+        onChange={(event) => {
+          const file = event.target.files?.[0];
+          if (file) {
+            void handleFileLoad(file);
+          }
+        }}
+      />
+
+      <MobileSurfaceSwitch value={mobileSurface} onChange={setMobileSurface} />
+
+      <StatusStrip
+        status={status}
+        mode={mode}
+        serviceError={serviceError}
+        serviceRetrying={serviceRetrying}
+        serverAvailable={serverAvailable}
+        onRetry={handleRetryWorkflowService}
+      />
+
+      <main className="workbench-grid">
+        <section className={mobileSurface === "navigator" ? "navigator-region mobile-active" : "navigator-region"}>
+          <WorkflowNavigator
+            activeTab={navigatorTab}
+            onTabChange={setNavigatorTab}
+            nodes={filteredOutline}
+            allNodes={outline}
+            selectedId={selectedNodeId}
+            searchQuery={searchQuery}
+            onSearchChange={setSearchQuery}
+            onSelect={(id) => {
+              setSelectedNodeId(id);
+              setMobileSurface("inspector");
             }}
-          >
-            <RotateCcw size={16} />
-            Reset
-          </button>
-          <button className="icon-button file-button" type="button" onClick={() => fileInputRef.current?.click()}>
-            <FileUp size={16} />
-            Load JSON
-          </button>
-          <input
-            ref={fileInputRef}
-            className="visually-hidden-file"
-            type="file"
-            accept="application/json"
-            aria-label="Load workflow JSON"
-            aria-hidden="true"
-            tabIndex={-1}
-            onChange={(event) => {
-              const file = event.target.files?.[0];
-              if (file) {
-                void handleFileLoad(file);
-              }
+            diagnostics={diagnostics}
+            blockCatalog={blockCatalog}
+          />
+        </section>
+
+        <section className={mobileSurface === "workspace" ? "workspace-region mobile-active" : "workspace-region"}>
+          <WorkspaceSurface
+            view={workspaceView}
+            onViewChange={setWorkspaceView}
+            document={uiDocument}
+            outline={outline}
+            selectedNode={selectedNode}
+            selectedId={selectedNodeId}
+            stats={workflowStats}
+            diagnostics={diagnostics}
+            onSelect={(id) => {
+              setSelectedNodeId(id);
+              setMobileSurface("inspector");
             }}
           />
-          <button className="icon-button" onClick={handleDownloadOperations} disabled={operationLog.length === 0}>
-            <Download size={16} />
-            Export ops
-          </button>
-        </div>
-      </header>
+        </section>
 
-      <section className="statusbar">
-        <div className="status-pill">{status}</div>
-        <div className={saveState === "failed" ? "status-pill warn" : "status-pill"}>{saveLabel(saveState)}</div>
-        <div className="status-pill">{operationLog.length} saved edits</div>
-        <div className="status-pill">{selectedNode.kind}</div>
-        {diagnostics.length > 0 ? <div className="status-pill warn">{diagnostics.length} diagnostics</div> : null}
+        <section className={mobileSurface === "inspector" ? "inspector-region mobile-active" : "inspector-region"}>
+          <NodeInspector
+            activeTab={inspectorTab}
+            onTabChange={setInspectorTab}
+            node={selectedNode}
+            diagnostics={diagnostics}
+            runResult={runResult}
+            runPending={runPending}
+            serverAvailable={serverAvailable}
+            saveState={saveState}
+            mode={mode}
+            astDocument={astDocument}
+            onRun={handleRunWorkflow}
+            onToggleCollapsed={handleToggleCollapsed}
+            onApplyExpression={handleApplyExpression}
+          />
+        </section>
+      </main>
+
+      <section className={mobileSurface === "trace" ? "trace-region mobile-active" : "trace-region"}>
+        <TraceDock
+          open={traceOpen}
+          onOpenChange={setTraceOpen}
+          activeTab={traceTab}
+          onTabChange={setTraceTab}
+          operations={operationLog}
+          runResult={runResult}
+          selectedNode={selectedNode}
+          astDocument={astDocument}
+          uiDocument={uiDocument}
+        />
       </section>
+    </div>
+  );
+}
 
+function GlobalHeader({
+  workflowId,
+  mode,
+  saveState,
+  diagnostics,
+  runResult,
+  runPending,
+  serverAvailable,
+  operationCount,
+  onRun,
+  onReset,
+  onRetry,
+  onLoadJSON,
+  onDownloadOperations,
+}: {
+  workflowId: string;
+  mode: ReturnType<typeof modeDetails>;
+  saveState: SaveState;
+  diagnostics: Diagnostic[];
+  runResult: RunResult | null;
+  runPending: boolean;
+  serverAvailable: boolean;
+  operationCount: number;
+  onRun: () => void;
+  onReset: () => void;
+  onRetry: () => void;
+  onLoadJSON: () => void;
+  onDownloadOperations: () => void;
+}) {
+  return (
+    <header className="global-header">
+      <div className="identity-block">
+        <span className="eyebrow">RPA Workflow Workbench</span>
+        <h1>{workflowId}</h1>
+      </div>
+
+      <div className="header-metrics" aria-label="Workflow status">
+        <StatusMetric label="Mode" value={mode.label} tone={mode.tone} />
+        <StatusMetric label="Save" value={saveLabel(saveState)} tone={saveState === "failed" ? "danger" : "neutral"} />
+        <StatusMetric label="Diagnostics" value={String(diagnostics.length)} tone={diagnostics.length > 0 ? "warn" : "ok"} />
+        <StatusMetric label="Last run" value={runResultSummary(runResult)} tone={runResult ? "ok" : "neutral"} />
+      </div>
+
+      <div className="header-actions">
+        <button className="primary-button" onClick={onRun} disabled={!serverAvailable || runPending}>
+          <Play size={16} />
+          {runPending ? "Running" : "Run"}
+        </button>
+        <button className="icon-button" onClick={onRetry}>
+          <RefreshCw size={16} />
+          Retry service
+        </button>
+        <button className="icon-button" onClick={onReset}>
+          <RotateCcw size={16} />
+          Reset sample
+        </button>
+        <button className="icon-button" onClick={onLoadJSON}>
+          <FileUp size={16} />
+          Load JSON
+        </button>
+        <button className="icon-button" onClick={onDownloadOperations} disabled={operationCount === 0}>
+          <Download size={16} />
+          Export ops
+        </button>
+      </div>
+    </header>
+  );
+}
+
+function StatusMetric({ label, value, tone }: { label: string; value: string; tone: "ok" | "warn" | "danger" | "neutral" }) {
+  return (
+    <div className={`status-metric ${tone}`}>
+      <span>{label}</span>
+      <strong>{value}</strong>
+    </div>
+  );
+}
+
+function MobileSurfaceSwitch({
+  value,
+  onChange,
+}: {
+  value: MobileSurface;
+  onChange: (value: MobileSurface) => void;
+}) {
+  const surfaces: Array<{ value: MobileSurface; label: string }> = [
+    { value: "navigator", label: "Flow" },
+    { value: "workspace", label: "Canvas" },
+    { value: "inspector", label: "Inspect" },
+    { value: "trace", label: "Trace" },
+  ];
+  return (
+    <nav className="mobile-surface-switch" aria-label="Mobile workbench surfaces">
+      {surfaces.map((surface) => (
+        <button
+          key={surface.value}
+          className={surface.value === value ? "surface-button active" : "surface-button"}
+          onClick={() => onChange(surface.value)}
+        >
+          {surface.label}
+        </button>
+      ))}
+    </nav>
+  );
+}
+
+function StatusStrip({
+  status,
+  mode,
+  serviceError,
+  serviceRetrying,
+  serverAvailable,
+  onRetry,
+}: {
+  status: string;
+  mode: ReturnType<typeof modeDetails>;
+  serviceError: string;
+  serviceRetrying: boolean;
+  serverAvailable: boolean;
+  onRetry: () => void;
+}) {
+  return (
+    <section className="mode-strip" aria-live="polite">
+      <div className={`mode-label ${mode.tone}`}>
+        {mode.icon}
+        <strong>{mode.label}</strong>
+        <span>{mode.description}</span>
+      </div>
+      <div className="status-message">{status}</div>
       {!serverAvailable && serviceError ? (
-        <section className="service-banner" aria-live="polite">
-          <div>
-            <strong>{serviceRetrying ? "Checking workflow service" : "Workflow service offline"}</strong>
-            <span>{serviceError}</span>
-          </div>
-          <button className="ghost-button" type="button" onClick={handleRetryWorkflowService} disabled={serviceRetrying}>
+        <div className="service-recovery">
+          <AlertTriangle size={16} />
+          <span>{serviceError}</span>
+          <button className="text-action" onClick={onRetry} disabled={serviceRetrying}>
             {serviceRetrying ? "Checking" : "Retry connection"}
           </button>
-        </section>
+        </div>
       ) : null}
+    </section>
+  );
+}
 
-      <main className="workspace">
-        <aside className="panel outline-panel">
-          <div className="panel-title">
-            <LayoutList size={16} />
-            Outline
-          </div>
-          <NodeOutline nodes={outline} selectedId={selectedNodeId} onSelect={setSelectedNodeId} />
-        </aside>
+function WorkflowNavigator({
+  activeTab,
+  onTabChange,
+  nodes,
+  allNodes,
+  selectedId,
+  searchQuery,
+  onSearchChange,
+  onSelect,
+  diagnostics,
+  blockCatalog,
+}: {
+  activeTab: NavigatorTab;
+  onTabChange: (tab: NavigatorTab) => void;
+  nodes: FlatNode[];
+  allNodes: FlatNode[];
+  selectedId: string;
+  searchQuery: string;
+  onSearchChange: (value: string) => void;
+  onSelect: (id: string) => void;
+  diagnostics: Diagnostic[];
+  blockCatalog: Array<{ key: string; count: number; nodes: UINode[] }>;
+}) {
+  return (
+    <aside className="workbench-panel navigator-panel">
+      <PanelHeader icon={<ListTree size={16} />} title="Navigator" detail={`${allNodes.length} nodes`} />
+      <SegmentedTabs
+        tabs={[
+          { value: "workflow", label: "Workflow" },
+          { value: "blocks", label: "Blocks" },
+          { value: "issues", label: `Issues ${diagnostics.length}` },
+        ]}
+        value={activeTab}
+        onChange={(value) => onTabChange(value as NavigatorTab)}
+      />
 
-        <section className="panel canvas-panel">
-          <div className="panel-header">
-            <div className="panel-title">
-              <Layers3 size={16} />
-              Canvas
-            </div>
-            <div className="mode-switch">
-              {(["outline", "canvas", "operations"] as ViewMode[]).map((mode) => (
-                <button
-                  key={mode}
-                  className={mode === viewMode ? "mode-button active" : "mode-button"}
-                  onClick={() => setViewMode(mode)}
-                >
-                  {mode}
-                </button>
-              ))}
-            </div>
-          </div>
-          <div className="canvas-scroll">
-            {viewMode === "operations" ? (
-              <OperationsFeed operations={operationLog} />
-            ) : viewMode === "outline" ? (
-              <NodeOutline nodes={outline} selectedId={selectedNodeId} onSelect={setSelectedNodeId} />
-            ) : (
-              <WorkflowCanvas node={uiDocument.root} selectedId={selectedNodeId} onSelect={setSelectedNodeId} />
-            )}
-          </div>
-        </section>
-
-        <aside className="panel inspector-panel">
-          <div className="panel-title">
-            <SquarePen size={16} />
-            Workbench
-          </div>
-          <div className="workbench-tabs">
-            {(["properties", "run", "diagnostics"] as WorkbenchTab[]).map((tab) => (
+      {activeTab === "workflow" ? (
+        <>
+          <label className="search-box">
+            <Search size={15} />
+            <input
+              value={searchQuery}
+              placeholder="Search id, label, kind, path"
+              onChange={(event) => onSearchChange(event.target.value)}
+            />
+          </label>
+          <div className="workflow-tree">
+            {nodes.map(({ node, depth, branch }) => (
               <button
-                key={tab}
-                className={tab === activeWorkbenchTab ? "workbench-tab active" : "workbench-tab"}
-                onClick={() => setActiveWorkbenchTab(tab)}
+                key={`${branch ?? "root"}-${node.id}`}
+                className={node.id === selectedId ? "tree-row selected" : "tree-row"}
+                style={{ "--depth": depth } as React.CSSProperties}
+                onClick={() => onSelect(node.id)}
               >
-                {tab}
-                {tab === "diagnostics" && diagnostics.length > 0 ? <span>{diagnostics.length}</span> : null}
+                <span className="tree-kind">{node.kind}</span>
+                <span className="tree-label">{node.label ?? node.id}</span>
+                {branch ? <span className="tree-branch">{branch}</span> : null}
+                {node.validationSummary?.errors ? <span className="issue-dot error">{node.validationSummary.errors}</span> : null}
+                {node.validationSummary?.warnings ? <span className="issue-dot warn">{node.validationSummary.warnings}</span> : null}
               </button>
             ))}
           </div>
-          <InspectorPane
-            node={selectedNode}
-            onToggleCollapsed={handleToggleCollapsed}
-            onApplyExpression={handleApplyExpression}
-            onSelect={setSelectedNodeId}
-            diagnostics={diagnostics}
-            astDocument={astDocument}
-            runResult={runResult}
-            activeTab={activeWorkbenchTab}
-            saveState={saveState}
-            onRun={handleRunWorkflow}
-            runPending={runPending}
-            serverAvailable={serverAvailable}
-          />
-        </aside>
-      </main>
-    </div>
+        </>
+      ) : null}
+
+      {activeTab === "blocks" ? (
+        <div className="block-catalog">
+          {blockCatalog.length === 0 ? <EmptyState>No block nodes in this projection.</EmptyState> : null}
+          {blockCatalog.map((block) => (
+            <section className="catalog-row" key={block.key}>
+              <div>
+                <strong>{block.key}</strong>
+                <span>{block.count} node instances</span>
+              </div>
+              <code>{block.nodes.map((node) => node.id).join(", ")}</code>
+            </section>
+          ))}
+        </div>
+      ) : null}
+
+      {activeTab === "issues" ? <DiagnosticsList diagnostics={diagnostics} /> : null}
+    </aside>
   );
 }
 
-function NodeOutline({
-  nodes,
+function WorkspaceSurface({
+  view,
+  onViewChange,
+  document,
+  outline,
+  selectedNode,
   selectedId,
+  stats,
+  diagnostics,
   onSelect,
-  depth = 0,
 }: {
-  nodes: UINode[];
+  view: WorkspaceView;
+  onViewChange: (view: WorkspaceView) => void;
+  document: UIDocument;
+  outline: FlatNode[];
+  selectedNode: UINode;
   selectedId: string;
+  stats: ReturnType<typeof summarizeWorkflow>;
+  diagnostics: Diagnostic[];
   onSelect: (id: string) => void;
-  depth?: number;
 }) {
   return (
-    <div className="outline-tree">
-      {nodes.map((node) => (
-        <button
-          key={node.id}
-          className={node.id === selectedId ? "outline-item selected" : "outline-item"}
-          style={{ paddingLeft: `${0.75 + depth * 0.9}rem` }}
-          onClick={() => onSelect(node.id)}
-        >
-          <span className="outline-kind">{node.kind}</span>
-          <span className="outline-label">{node.label ?? node.id}</span>
-        </button>
-      ))}
-    </div>
+    <section className="workbench-panel workspace-panel">
+      <div className="workspace-toolbar">
+        <PanelHeader icon={<Layers3 size={16} />} title="Workspace" detail={selectedNode.path ?? selectedNode.id} />
+        <SegmentedTabs
+          tabs={[
+            { value: "canvas", label: "Canvas" },
+            { value: "outline", label: "Outline" },
+            { value: "contract", label: "Contract" },
+          ]}
+          value={view}
+          onChange={(value) => onViewChange(value as WorkspaceView)}
+        />
+      </div>
+      <div className="workspace-summary">
+        <SummaryTile label="Nodes" value={String(stats.nodes)} />
+        <SummaryTile label="Blocks" value={String(stats.blocks)} />
+        <SummaryTile label="Branches" value={String(stats.branches)} />
+        <SummaryTile label="Issues" value={String(diagnostics.length)} />
+      </div>
+      <div className="workspace-body">
+        {view === "canvas" ? <WorkflowCanvas root={document.root} selectedId={selectedId} onSelect={onSelect} /> : null}
+        {view === "outline" ? <OutlineTable nodes={outline} selectedId={selectedId} onSelect={onSelect} /> : null}
+        {view === "contract" ? <ContractOverview document={document} selectedNode={selectedNode} /> : null}
+      </div>
+    </section>
   );
 }
 
-function WorkflowCanvas({
-  node,
-  selectedId,
-  onSelect,
-}: {
-  node: UINode;
-  selectedId: string;
-  onSelect: (id: string) => void;
-}) {
-  const graph = useMemo(() => buildFlowGraph(node, selectedId), [node, selectedId]);
-  const handleCanvasKeyDown = (event: KeyboardEvent<HTMLDivElement>) => {
-    if (event.key !== "Enter" && event.key !== " ") {
-      return;
-    }
-    const target = event.target instanceof Element ? event.target.closest(".react-flow__node") : null;
-    const nodeId = target?.getAttribute("data-id");
-    const flowNode = nodeId ? graph.nodes.find((current) => current.id === nodeId) : undefined;
-    if (!flowNode || flowNode.data.ghost) {
-      return;
-    }
-    event.preventDefault();
-    onSelect(flowNode.data.uiNode.id);
-  };
+function WorkflowCanvas({ root, selectedId, onSelect }: { root: UINode; selectedId: string; onSelect: (id: string) => void }) {
+  const graph = useMemo(() => buildFlowGraph(root), [root]);
   return (
     <div className="flow-pane">
       <ReactFlow
         nodes={graph.nodes}
         edges={graph.edges}
         nodeTypes={nodeTypes}
-        edgeTypes={edgeTypes}
         nodesDraggable={false}
         nodesConnectable={false}
         edgesFocusable
@@ -517,17 +724,12 @@ function WorkflowCanvas({
         elementsSelectable
         deleteKeyCode={null}
         fitView
-        fitViewOptions={{ padding: 0.18 }}
-        minZoom={0.45}
-        maxZoom={1.4}
-        onNodeClick={(_, flowNode) => {
-          if (!flowNode.data.ghost) {
-            onSelect(flowNode.data.uiNode.id);
-          }
-        }}
-        onKeyDown={handleCanvasKeyDown}
+        fitViewOptions={{ padding: 0.2 }}
+        minZoom={0.35}
+        maxZoom={1.5}
+        onNodeClick={(_, flowNode) => onSelect(flowNode.data.uiNode.id)}
       >
-        <Background color="var(--canvas-dot)" gap={22} size={1} />
+        <Background color="var(--canvas-dot)" gap={24} size={1} />
         <Controls showInteractive={false} />
         <MiniMap
           pannable
@@ -540,280 +742,165 @@ function WorkflowCanvas({
   );
 }
 
-function NodeCard({
-  node,
-  selectedId,
-  onSelect,
-}: {
-  node: UINode;
-  selectedId: string;
-  onSelect?: (id: string) => void;
-}) {
-  const selected = node.id === selectedId;
+function WorkflowFlowNode({ data, selected }: NodeProps<WorkflowFlowNode>) {
+  const node = data.uiNode;
+  const inputs = (node.inspector ?? []).filter((field) => field.control === "expression").length;
+  const outputs = normalizeBindingTokens(node.metadata?.outputs).length;
+  const errors = node.validationSummary?.errors ?? 0;
+  const warnings = node.validationSummary?.warnings ?? 0;
   return (
-    <article className={selected ? "node-card selected" : "node-card"}>
-      <div className="node-head">
-        <div>
-          <div className="node-label">{node.label ?? node.id}</div>
-          <div className="node-meta">
-            <span>{node.kind}</span>
-            {node.path ? <span>{node.path}</span> : null}
-          </div>
-        </div>
-        <div className="node-badges">
-          {node.collapsed ? <span className="badge warn">collapsed</span> : null}
-          {node.editable ? <span className="badge accent">editable</span> : null}
-        </div>
+    <article className={selected ? "flow-node selected" : "flow-node"}>
+      <Handle type="target" position={Position.Top} />
+      <div className="flow-node-head">
+        <span>{node.kind}</span>
+        {data.branch ? <strong>{data.branch}</strong> : null}
       </div>
+      <div className="flow-node-title">{node.label ?? node.id}</div>
+      <div className="flow-node-meta">
+        <span>{inputs} inputs</span>
+        <span>{outputs} outputs</span>
+        {errors > 0 ? <span className="node-status error">{errors} errors</span> : warnings > 0 ? <span className="node-status warn">{warnings} warnings</span> : <span className="node-status ok">valid</span>}
+      </div>
+      <Handle type="source" position={Position.Bottom} />
     </article>
   );
 }
 
-function WorkflowFlowNode({ data, selected }: NodeProps<WorkflowFlowNode>) {
-  if (data.ghost) {
-    return (
-      <div className="branch-ghost">
-        <Handle type="target" position={Position.Top} />
-        <span>{data.branchLabel ?? "Empty branch"}</span>
-      </div>
-    );
-  }
-
-  return (
-    <div className="flow-node-shell">
-      <Handle type="target" position={Position.Top} />
-      <NodeCard node={data.uiNode} selectedId={selected ? data.uiNode.id : ""} />
-      <Handle type="source" position={Position.Bottom} />
-    </div>
-  );
-}
-
-function WorkflowFlowEdge(props: EdgeProps<WorkflowFlowEdge>) {
-  const [edgePath, labelX, labelY] = getBezierPath({
-    sourceX: props.sourceX,
-    sourceY: props.sourceY,
-    sourcePosition: props.sourcePosition,
-    targetX: props.targetX,
-    targetY: props.targetY,
-    targetPosition: props.targetPosition,
-  });
-
-  return (
-    <>
-      <BaseEdge path={edgePath} markerEnd={props.markerEnd} style={props.style} />
-      {props.label ? (
-        <EdgeLabelRenderer>
-          <div
-            className="edge-label"
-            style={{
-              transform: `translate(-50%, -50%) translate(${labelX}px,${labelY}px)`,
-            }}
-          >
-            {props.label}
-          </div>
-        </EdgeLabelRenderer>
-      ) : null}
-    </>
-  );
-}
-
-function InspectorPane({
-  node,
-  onToggleCollapsed,
-  onApplyExpression,
-  onSelect,
-  diagnostics,
-  astDocument,
-  runResult,
+function NodeInspector({
   activeTab,
-  saveState,
-  onRun,
+  onTabChange,
+  node,
+  diagnostics,
+  runResult,
   runPending,
   serverAvailable,
+  saveState,
+  mode,
+  astDocument,
+  onRun,
+  onToggleCollapsed,
+  onApplyExpression,
 }: {
+  activeTab: InspectorTab;
+  onTabChange: (tab: InspectorTab) => void;
   node: UINode;
-  onToggleCollapsed: () => void;
-  onApplyExpression: (field: InspectorField, value: unknown) => void;
-  onSelect: (id: string) => void;
   diagnostics: Diagnostic[];
-  astDocument: unknown;
   runResult: RunResult | null;
-  activeTab: WorkbenchTab;
-  saveState: SaveState;
-  onRun: () => void;
   runPending: boolean;
   serverAvailable: boolean;
+  saveState: SaveState;
+  mode: ReturnType<typeof modeDetails>;
+  astDocument: unknown;
+  onRun: () => void;
+  onToggleCollapsed: () => void;
+  onApplyExpression: (field: InspectorField, value: unknown) => void;
 }) {
   const fields = node.inspector ?? [];
-  const expressionFields = fields.filter((field) => field.control === "expression");
+  const inputFields = fields.filter((field) => field.control === "expression");
   const propertyFields = fields.filter((field) => field.control !== "expression");
-  const exposedOutputs = normalizeBindingTokens(node.metadata?.outputs);
-  const nodeTitle = stringMetadata(node.metadata, "title") || node.label || node.id;
-  const nodeDescription = stringMetadata(node.metadata, "description") || "No component description";
-  const onError = stringMetadata(node.metadata, "onError") || "default";
-  if (activeTab === "run") {
-    return (
-      <div className="inspector">
-        <div className="inspector-block run-control">
-          <div>
-            <div className="inspector-title">Execution</div>
-            <strong>{runResultSummary(runResult)}</strong>
-          </div>
-          <button className="ghost-button run-button" onClick={onRun} disabled={!serverAvailable || runPending}>
-            <Play size={16} />
-            {runPending ? "Running" : "Run current workflow"}
-          </button>
-        </div>
-        {runResult ? <RunResultPanel result={runResult} /> : <div className="empty-state">Run the current saved AST to see returns, state, node outputs, and events.</div>}
-      </div>
-    );
-  }
-
-  if (activeTab === "diagnostics") {
-    return (
-      <div className="inspector">
-        <DiagnosticsPanel diagnostics={diagnostics} />
-      </div>
-    );
-  }
+  const outputs = normalizeBindingTokens(node.metadata?.outputs);
+  const diagnosticsForNode = diagnostics.filter((diagnostic) => diagnostic.path && node.path && diagnostic.path.includes(node.path));
 
   return (
-    <div className="inspector">
-      <div className={saveState === "failed" ? "save-banner failed" : "save-banner"}>
-        <span>AST file</span>
-        <strong>{saveLabel(saveState)}</strong>
-      </div>
-      <div className="inspector-block">
-        <div className="inspector-title">Basic info</div>
-        <div className="node-summary">
-          <strong>{nodeTitle}</strong>
-          <span>{nodeDescription}</span>
-        </div>
-        <div className="kv-grid">
-          <div>
-            <span>ID</span>
-            <strong>{node.id}</strong>
-          </div>
-          <div>
-            <span>Kind</span>
-            <strong>{node.kind}</strong>
-          </div>
-          <div>
-            <span>Path</span>
-            <strong>{node.path ?? "root"}</strong>
-          </div>
-          <div>
-            <span>onError</span>
-            <strong>{onError}</strong>
-          </div>
-        </div>
-      </div>
+    <aside className="workbench-panel inspector-panel">
+      <PanelHeader icon={<FileJson size={16} />} title="Inspector" detail={node.id} />
+      <SegmentedTabs
+        tabs={[
+          { value: "node", label: "Node" },
+          { value: "run", label: "Run" },
+          { value: "diagnostics", label: `Diagnostics ${diagnostics.length}` },
+        ]}
+        value={activeTab}
+        onChange={(value) => onTabChange(value as InspectorTab)}
+      />
 
-      <div className="inspector-block">
-        <div className="inspector-title">Actions</div>
-        <div className="button-stack">
-          <button className="ghost-button" onClick={onToggleCollapsed}>
-            <SplitSquareHorizontal size={16} />
-            Toggle collapsed
-          </button>
-          <button className="ghost-button" onClick={() => onSelect(node.id)}>
-            <FileJson size={16} />
-            Focus node
-          </button>
-        </div>
-      </div>
+      {activeTab === "node" ? (
+        <div className="inspector-stack">
+          <section className={`save-state ${saveState === "failed" ? "failed" : ""}`}>
+            <span>{mode.label}</span>
+            <strong>{saveLabel(saveState)}</strong>
+          </section>
 
-      <div className="inspector-block">
-        <div className="inspector-title">Inputs Dynamic Binding</div>
-        <div className="field-list">
-          {expressionFields.length === 0 ? <div className="inline-empty">No bindable inputs</div> : null}
-          {expressionFields.map((field) => (
-            <InspectorFieldRow key={field.path} field={field} onApplyExpression={onApplyExpression} />
-          ))}
-        </div>
-      </div>
+          <section className="node-hero">
+            <div>
+              <span>{node.kind}</span>
+              <h2>{node.label ?? node.id}</h2>
+            </div>
+            <code>{node.path ?? "$"}</code>
+          </section>
 
-      <div className="inspector-block">
-        <div className="inspector-title">Outputs Expose</div>
-        {exposedOutputs.length === 0 ? (
-          <div className="inline-empty">No exposed outputs</div>
-        ) : (
-          <div className="output-list">
-            {exposedOutputs.map((output) => (
+          <InspectorSection title="Input Bindings" detail={`${inputFields.length} editable`}>
+            {inputFields.length === 0 ? <EmptyState>No bindable inputs for this node.</EmptyState> : null}
+            {inputFields.map((field) => (
+              <InspectorFieldRow key={field.path} field={field} onApplyExpression={onApplyExpression} />
+            ))}
+          </InspectorSection>
+
+          <InspectorSection title="Exposed Outputs" detail={`${outputs.length} tokens`}>
+            {outputs.length === 0 ? <EmptyState>No exposed outputs for downstream bindings.</EmptyState> : null}
+            {outputs.map((output) => (
               <div className="output-row" key={output.ref}>
                 <div>
                   <strong>{output.label}</strong>
-                  {output.type ? <span>{output.type}</span> : null}
+                  <span>{output.type ?? "unknown"}</span>
                 </div>
                 <code>{output.ref}</code>
               </div>
             ))}
-          </div>
-        )}
-      </div>
+          </InspectorSection>
 
-      <div className="inspector-block">
-        <div className="inspector-title">Properties</div>
-        <div className="field-list">
-          {propertyFields.map((field) => (
-            <InspectorFieldRow key={field.path} field={field} onApplyExpression={onApplyExpression} />
-          ))}
+          <InspectorSection title="Contract" detail="AST projection">
+            <KeyValueGrid
+              rows={[
+                ["Node ID", node.id],
+                ["Kind", node.kind],
+                ["Editable", node.editable ? "yes" : "no"],
+                ["Errors", String(node.validationSummary?.errors ?? diagnosticsForNode.length)],
+                ["Warnings", String(node.validationSummary?.warnings ?? 0)],
+              ]}
+            />
+            {propertyFields.length > 0 ? (
+              <div className="property-list">
+                {propertyFields.map((field) => (
+                  <div className="property-row" key={field.path}>
+                    <span>{field.label ?? field.path}</span>
+                    <code>{renderFieldValue(field.value)}</code>
+                  </div>
+                ))}
+              </div>
+            ) : null}
+          </InspectorSection>
+
+          <InspectorSection title="Capabilities" detail="Allowed operations">
+            <CapabilityList node={node} onToggleCollapsed={onToggleCollapsed} />
+          </InspectorSection>
         </div>
-      </div>
+      ) : null}
 
-      {astDocument ? null : <div className="empty-state">No AST document loaded from the workflow service.</div>}
-    </div>
+      {activeTab === "run" ? (
+        <RunPanel
+          runResult={runResult}
+          runPending={runPending}
+          serverAvailable={serverAvailable}
+          astDocument={astDocument}
+          onRun={onRun}
+        />
+      ) : null}
+
+      {activeTab === "diagnostics" ? <DiagnosticsList diagnostics={diagnostics} /> : null}
+    </aside>
   );
 }
 
-function DiagnosticsPanel({ diagnostics }: { diagnostics: Diagnostic[] }) {
-  if (diagnostics.length === 0) {
-    return <div className="empty-state">No diagnostics reported.</div>;
-  }
+function InspectorSection({ title, detail, children }: { title: string; detail: string; children: React.ReactNode }) {
   return (
-    <div className="inspector-block">
-      <div className="inspector-title">Diagnostics</div>
-      <div className="diagnostic-list">
-        {diagnostics.map((diag, index) => (
-          <div className="diagnostic-row" key={`${diag.code ?? "diagnostic"}-${index}`}>
-            <strong>{diag.code ?? diag.severity ?? "diagnostic"}</strong>
-            <span>{diag.message ?? "No message"}</span>
-            {diag.path ? <small>{diag.path}</small> : null}
-          </div>
-        ))}
+    <section className="inspector-section">
+      <div className="section-heading">
+        <h3>{title}</h3>
+        <span>{detail}</span>
       </div>
-    </div>
-  );
-}
-
-function RunResultPanel({ result }: { result: RunResult }) {
-  const events = result.events ?? [];
-  return (
-    <div className="inspector-block run-result">
-      <div className="inspector-title">Run result</div>
-      <div className="result-grid">
-        <div>
-          <span>Inputs</span>
-          <pre>{JSON.stringify(result.inputs ?? {}, null, 2)}</pre>
-        </div>
-        <div>
-          <span>Returns</span>
-          <pre>{JSON.stringify(result.returns ?? {}, null, 2)}</pre>
-        </div>
-        <div>
-          <span>State</span>
-          <pre>{JSON.stringify(result.state ?? result.variables ?? {}, null, 2)}</pre>
-        </div>
-        <div>
-          <span>Node outputs</span>
-          <pre>{JSON.stringify(result.nodeOutputs ?? {}, null, 2)}</pre>
-        </div>
-      </div>
-      <details className="event-details">
-        <summary>{events.length} events</summary>
-        <pre>{JSON.stringify(events, null, 2)}</pre>
-      </details>
-    </div>
+      {children}
+    </section>
   );
 }
 
@@ -827,162 +914,67 @@ function InspectorFieldRow({
   const editable = field.control === "expression" && !field.readonly;
   return (
     <div className="field-row">
-      <div className="field-label">{field.label ?? field.path}</div>
+      <div className="field-label">
+        <span>{field.label ?? field.path}</span>
+        <code>{shortPath(field.path)}</code>
+      </div>
       {editable ? (
         <BindingExpressionEditor field={field} onApply={(value) => onApplyExpression(field, value)} />
       ) : (
-        <div className="field-value">{renderFieldValue(field.value)}</div>
+        <code className="field-value">{renderFieldValue(field.value)}</code>
       )}
     </div>
   );
 }
 
-function BindingExpressionEditor({
-  field,
-  onApply,
-}: {
-  field: InspectorField;
-  onApply: (value: unknown) => void;
-}) {
+function BindingExpressionEditor({ field, onApply }: { field: InspectorField; onApply: (value: unknown) => void }) {
   const [open, setOpen] = useState(false);
   const tokens = normalizeBindingTokens(field.metadata?.availableTokens);
   const grouped = groupBindingTokens(tokens);
 
-  const applyToken = (token: BindingToken) => {
-    onApply({ kind: "ref", ref: token.ref });
-    setOpen(false);
-  };
-
   return (
     <div className="binding-editor">
       <button className="binding-input" type="button" onClick={() => setOpen((current) => !current)}>
-        <span>{expressionDisplay(field.value)}</span>
+        <span>{compactExpression(field.value)}</span>
+        <ChevronDown size={15} />
       </button>
       {open ? (
         <div className="token-picker" role="dialog" aria-label="Token Picker">
-          {tokens.length === 0 ? <div className="token-empty">No legal references in scope</div> : null}
+          {tokens.length === 0 ? <EmptyState>No legal references in scope.</EmptyState> : null}
           {grouped.map((group) => (
             <section className="token-group" key={group.name}>
               <div className="token-group-title">{group.name}</div>
-              <div className="token-options">
-                {group.tokens.map((token) => (
-                  <button className="token-option" type="button" key={token.ref} onClick={() => applyToken(token)}>
-                    <span>{token.label}</span>
-                    <code>{token.ref}</code>
-                    <small>
-                      {[token.type, token.detail].filter(Boolean).join(" · ") || "reference"}
-                    </small>
-                  </button>
-                ))}
-              </div>
+              {group.tokens.map((token) => (
+                <button
+                  className="token-option"
+                  type="button"
+                  key={token.ref}
+                  onClick={() => {
+                    onApply({ kind: "ref", ref: token.ref });
+                    setOpen(false);
+                  }}
+                >
+                  <span>{token.label}</span>
+                  <code>{token.ref}</code>
+                  <small>{[token.type, token.detail].filter(Boolean).join(" - ") || "reference"}</small>
+                </button>
+              ))}
             </section>
           ))}
         </div>
       ) : null}
       <details className="advanced-expression">
-        <summary>Edit literal / advanced expression</summary>
+        <summary>Edit literal or JSON expression</summary>
         <ExpressionEditor value={field.value} onApply={onApply} />
       </details>
     </div>
   );
 }
 
-function QuickExpressionEditor({
-  field,
-  kind,
-  value,
-  onApply,
-}: {
-  field: InspectorField;
-  kind: "number" | "operator";
-  value: unknown;
-  onApply: (value: unknown) => void;
-}) {
-  const initial = normalizeExpression(value);
-  const [numberDraft, setNumberDraft] = useState(literalNumberDraft(initial));
-  const [operatorDraft, setOperatorDraft] = useState(literalOperatorDraft(initial));
-
-  useEffect(() => {
-    const next = normalizeExpression(value);
-    setNumberDraft(literalNumberDraft(next));
-    setOperatorDraft(literalOperatorDraft(next));
-  }, [value]);
-
-  const dirty = isQuickDraftDirty(initial, kind, kind === "number" ? numberDraft : operatorDraft);
-  const invalid =
-    kind === "number"
-      ? numberDraft.trim() === "" || !Number.isFinite(Number(numberDraft))
-      : operatorDraft.trim() === "";
-  const statusLabel = quickDraftStatus(initial, dirty);
-
-  const revertQuickValue = () => {
-    setNumberDraft(literalNumberDraft(initial));
-    setOperatorDraft(literalOperatorDraft(initial));
-  };
-
-  const saveQuickValue = () => {
-    if (kind === "number") {
-      const numeric = Number(numberDraft);
-      if (!Number.isFinite(numeric)) {
-        return;
-      }
-      onApply({ kind: "literal", value: numeric });
-      return;
-    }
-    if (operatorDraft.trim() === "") {
-      return;
-    }
-    onApply({ kind: "literal", value: operatorDraft });
-  };
-
-  return (
-    <div className="quick-editor">
-      <div className="quick-editor-main">
-        {kind === "number" ? (
-          <input
-            type="number"
-            inputMode="decimal"
-            placeholder={expressionHint(initial)}
-            value={numberDraft}
-            onChange={(event) => setNumberDraft(event.target.value)}
-          />
-        ) : (
-          <select value={operatorDraft} onChange={(event) => setOperatorDraft(event.target.value)}>
-            <option value="" disabled>
-              Select
-            </option>
-            <option value="+">+</option>
-            <option value="-">-</option>
-            <option value="*">*</option>
-            <option value="/">/</option>
-          </select>
-        )}
-        <button className="ghost-button" onClick={saveQuickValue} disabled={!dirty || invalid}>
-          Save
-        </button>
-      </div>
-      <div className={dirty ? "quick-editor-status dirty" : "quick-editor-status"}>
-        <span>{statusLabel}</span>
-        {dirty ? (
-          <button className="text-button" onClick={revertQuickValue}>
-            Revert
-          </button>
-        ) : null}
-      </div>
-      {dirty ? null : (
-        <details className="advanced-expression">
-          <summary>Use expression mode</summary>
-          <ExpressionEditor value={field.value} onApply={onApply} />
-        </details>
-      )}
-    </div>
-  );
-}
-
 function ExpressionEditor({ value, onApply }: { value: unknown; onApply: (value: unknown) => void }) {
   const initial = normalizeExpression(value);
-  const [kind, setKind] = useState(initial.kind);
-  const [literalType, setLiteralType] = useState(literalInputType(initial));
+  const [kind, setKind] = useState<ExpressionKind>(initial.kind);
+  const [literalType, setLiteralType] = useState<LiteralInputType>(literalInputType(initial));
   const [literalValue, setLiteralValue] = useState(formatLiteralInput(initial.value));
   const [refValue, setRefValue] = useState(initial.ref ?? "");
   const [jsonDraft, setJsonDraft] = useState(JSON.stringify(initial, null, 2));
@@ -1024,65 +1016,451 @@ function ExpressionEditor({ value, onApply }: { value: unknown; onApply: (value:
           </select>
         ) : null}
       </div>
-      {kind === "literal" ? (
-        literalType === "boolean" ? (
-          <label className="check-row">
-            <input
-              type="checkbox"
-              checked={literalValue === "true"}
-              onChange={(event) => setLiteralValue(event.target.checked ? "true" : "false")}
-            />
-            true
-          </label>
-        ) : (
+      {kind === "literal" && literalType !== "boolean" ? (
+        <input
+          type={literalType === "number" ? "number" : "text"}
+          value={literalValue}
+          onChange={(event) => setLiteralValue(event.target.value)}
+        />
+      ) : null}
+      {kind === "literal" && literalType === "boolean" ? (
+        <label className="check-row">
           <input
-            type={literalType === "number" ? "number" : "text"}
-            value={literalValue}
-            onChange={(event) => setLiteralValue(event.target.value)}
+            type="checkbox"
+            checked={literalValue === "true"}
+            onChange={(event) => setLiteralValue(event.target.checked ? "true" : "false")}
           />
-        )
+          true
+        </label>
       ) : null}
       {kind === "ref" ? <input value={refValue} onChange={(event) => setRefValue(event.target.value)} /> : null}
-      {kind === "json" ? (
-        <textarea value={jsonDraft} onChange={(event) => setJsonDraft(event.target.value)} rows={7} />
-      ) : null}
+      {kind === "json" ? <textarea value={jsonDraft} onChange={(event) => setJsonDraft(event.target.value)} /> : null}
       {error ? <div className="edit-error">{error}</div> : null}
-      <button className="ghost-button" onClick={apply}>
-        <SquarePen size={16} />
-        Apply
+      <button className="secondary-button" onClick={apply}>
+        Apply expression
       </button>
     </div>
   );
 }
 
-function OperationsFeed({ operations }: { operations: EditOperation[] }) {
+function CapabilityList({ node, onToggleCollapsed }: { node: UINode; onToggleCollapsed: () => void }) {
+  const capabilities = node.capabilities ?? {};
+  const entries = Object.entries(capabilities);
   return (
-    <div className="operations-feed">
-      {operations.length === 0 ? <div className="empty-state">No edit operations emitted yet.</div> : null}
+    <div className="capability-list">
+      <button className="secondary-button" onClick={onToggleCollapsed}>
+        <GitBranch size={15} />
+        Toggle collapsed
+      </button>
+      {entries.length === 0 ? <EmptyState>No capabilities exposed by this projection.</EmptyState> : null}
+      {entries.map(([name, capability]) => (
+        <div className={capability.enabled ? "capability-row enabled" : "capability-row disabled"} key={name}>
+          <span>{capability.label ?? name}</span>
+          <strong>{capability.enabled ? "enabled" : capability.reason ?? "disabled"}</strong>
+        </div>
+      ))}
+    </div>
+  );
+}
+
+function RunPanel({
+  runResult,
+  runPending,
+  serverAvailable,
+  astDocument,
+  onRun,
+}: {
+  runResult: RunResult | null;
+  runPending: boolean;
+  serverAvailable: boolean;
+  astDocument: unknown;
+  onRun: () => void;
+}) {
+  return (
+    <div className="inspector-stack">
+      <section className="run-callout">
+        <div>
+          <span>Execution</span>
+          <strong>{runResultSummary(runResult)}</strong>
+        </div>
+        <button className="primary-button" onClick={onRun} disabled={!serverAvailable || runPending}>
+          <Play size={16} />
+          {runPending ? "Running" : "Run workflow"}
+        </button>
+      </section>
+      {!serverAvailable ? <EmptyState>Run requires Connected AST mode. Start the workflow service and retry.</EmptyState> : null}
+      {runResult ? <RunResultPanel result={runResult} /> : <EmptyState>No run result yet.</EmptyState>}
+      {!astDocument ? <EmptyState>No AST document loaded from the workflow service.</EmptyState> : null}
+    </div>
+  );
+}
+
+function TraceDock({
+  open,
+  onOpenChange,
+  activeTab,
+  onTabChange,
+  operations,
+  runResult,
+  selectedNode,
+  astDocument,
+  uiDocument,
+}: {
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
+  activeTab: TraceTab;
+  onTabChange: (tab: TraceTab) => void;
+  operations: EditOperation[];
+  runResult: RunResult | null;
+  selectedNode: UINode;
+  astDocument: unknown;
+  uiDocument: UIDocument;
+}) {
+  const rawState = {
+    selectedNode,
+    uiDocument: { schemaVersion: uiDocument.schemaVersion, workflowId: uiDocument.workflowId },
+    astLoaded: Boolean(astDocument),
+  };
+  return (
+    <aside className={open ? "trace-dock open" : "trace-dock"}>
+      <button className="trace-toggle" onClick={() => onOpenChange(!open)} aria-expanded={open}>
+        <TerminalSquare size={16} />
+        Trace Dock
+        <span>{open ? "Collapse" : "Expand"}</span>
+      </button>
+      {open ? (
+        <div className="trace-content">
+          <SegmentedTabs
+            tabs={[
+              { value: "operations", label: `Edit Operations ${operations.length}` },
+              { value: "events", label: `Run Events ${(runResult?.events ?? []).length}` },
+              { value: "raw", label: "Raw State" },
+            ]}
+            value={activeTab}
+            onChange={(value) => onTabChange(value as TraceTab)}
+          />
+          {activeTab === "operations" ? <OperationsTrace operations={operations} /> : null}
+          {activeTab === "events" ? <EventsTrace runResult={runResult} /> : null}
+          {activeTab === "raw" ? <JsonBlock value={rawState} /> : null}
+        </div>
+      ) : null}
+    </aside>
+  );
+}
+
+function OperationsTrace({ operations }: { operations: EditOperation[] }) {
+  if (operations.length === 0) {
+    return <EmptyState>No edit operations recorded.</EmptyState>;
+  }
+  return (
+    <div className="trace-table">
       {operations.map((operation) => (
-        <article key={operation.operationId} className="operation-card">
-          <div className="operation-head">
+        <article className="trace-row" key={operation.operationId}>
+          <div>
             <strong>{operation.type}</strong>
-            <span>{operation.targetNodeId ?? "document"}</span>
+            <span>{operation.targetNodeId ?? "workflow"}</span>
           </div>
-          <pre>{JSON.stringify(operation, null, 2)}</pre>
+          <code>{operation.path ?? operation.operationId}</code>
+          <small>{summarizePayload(operation.payload)}</small>
         </article>
       ))}
     </div>
   );
 }
 
-function findNode(node: UINode, id: string): UINode | null {
-  if (node.id === id) {
-    return node;
+function EventsTrace({ runResult }: { runResult: RunResult | null }) {
+  const events = runResult?.events ?? [];
+  if (events.length === 0) {
+    return <EmptyState>No run events captured.</EmptyState>;
   }
-  for (const child of node.children ?? []) {
+  return (
+    <div className="trace-table">
+      {events.map((event, index) => (
+        <article className="trace-row" key={`${event.name ?? "event"}-${index}`}>
+          <div>
+            <strong>{event.name ?? "event"}</strong>
+            <span>{event.statementKind ?? "statement"}</span>
+          </div>
+          <code>{event.statementId ?? event.workflowId ?? "workflow"}</code>
+          <small>{summarizePayload(event.payload)}</small>
+        </article>
+      ))}
+    </div>
+  );
+}
+
+function RunResultPanel({ result }: { result: RunResult }) {
+  return (
+    <section className="run-result-grid">
+      <JsonCard title="Inputs" value={result.inputs ?? {}} />
+      <JsonCard title="Returns" value={result.returns ?? {}} />
+      <JsonCard title="State" value={result.state ?? result.variables ?? {}} />
+      <JsonCard title="Node outputs" value={result.nodeOutputs ?? {}} />
+    </section>
+  );
+}
+
+function DiagnosticsList({ diagnostics }: { diagnostics: Diagnostic[] }) {
+  if (diagnostics.length === 0) {
+    return <EmptyState>No diagnostics reported.</EmptyState>;
+  }
+  return (
+    <div className="diagnostic-list">
+      {diagnostics.map((diagnostic, index) => (
+        <article className={`diagnostic-row ${diagnostic.severity ?? "warn"}`} key={`${diagnostic.code ?? "diagnostic"}-${index}`}>
+          <strong>{diagnostic.code ?? diagnostic.severity ?? "diagnostic"}</strong>
+          <span>{diagnostic.message ?? "No message"}</span>
+          {diagnostic.path ? <code>{diagnostic.path}</code> : null}
+          {diagnostic.hint ? <small>{diagnostic.hint}</small> : null}
+        </article>
+      ))}
+    </div>
+  );
+}
+
+function OutlineTable({ nodes, selectedId, onSelect }: { nodes: FlatNode[]; selectedId: string; onSelect: (id: string) => void }) {
+  return (
+    <div className="outline-table">
+      {nodes.map(({ node, depth, branch }) => (
+        <button
+          key={`${branch ?? "root"}-${node.id}`}
+          className={node.id === selectedId ? "outline-row selected" : "outline-row"}
+          onClick={() => onSelect(node.id)}
+        >
+          <span style={{ "--depth": depth } as React.CSSProperties}>{node.label ?? node.id}</span>
+          <code>{node.kind}</code>
+          <code>{node.path ?? "$"}</code>
+          <small>{branch ?? "main"}</small>
+        </button>
+      ))}
+    </div>
+  );
+}
+
+function ContractOverview({ document, selectedNode }: { document: UIDocument; selectedNode: UINode }) {
+  return (
+    <div className="contract-overview">
+      <JsonCard
+        title="Document contract"
+        value={{
+          schemaVersion: document.schemaVersion,
+          workflowId: document.workflowId,
+          rootKind: document.root.kind,
+          metadata: document.metadata ?? {},
+        }}
+      />
+      <JsonCard title="Selected UI node" value={selectedNode} />
+    </div>
+  );
+}
+
+function PanelHeader({ icon, title, detail }: { icon: React.ReactNode; title: string; detail?: string }) {
+  return (
+    <div className="panel-heading">
+      <div>
+        {icon}
+        <span>{title}</span>
+      </div>
+      {detail ? <code>{detail}</code> : null}
+    </div>
+  );
+}
+
+function SegmentedTabs({
+  tabs,
+  value,
+  onChange,
+}: {
+  tabs: Array<{ value: string; label: string }>;
+  value: string;
+  onChange: (value: string) => void;
+}) {
+  return (
+    <div className="segmented-tabs" role="tablist">
+      {tabs.map((tab) => (
+        <button
+          key={tab.value}
+          className={tab.value === value ? "tab-button active" : "tab-button"}
+          role="tab"
+          aria-selected={tab.value === value}
+          onClick={() => onChange(tab.value)}
+        >
+          {tab.label}
+        </button>
+      ))}
+    </div>
+  );
+}
+
+function SummaryTile({ label, value }: { label: string; value: string }) {
+  return (
+    <div className="summary-tile">
+      <span>{label}</span>
+      <strong>{value}</strong>
+    </div>
+  );
+}
+
+function KeyValueGrid({ rows }: { rows: Array<[string, string]> }) {
+  return (
+    <div className="kv-grid">
+      {rows.map(([key, value]) => (
+        <div key={key}>
+          <span>{key}</span>
+          <strong>{value}</strong>
+        </div>
+      ))}
+    </div>
+  );
+}
+
+function EmptyState({ children }: { children: React.ReactNode }) {
+  return <div className="empty-state">{children}</div>;
+}
+
+function JsonCard({ title, value }: { title: string; value: unknown }) {
+  return (
+    <section className="json-card">
+      <h3>{title}</h3>
+      <JsonBlock value={value} />
+    </section>
+  );
+}
+
+function JsonBlock({ value }: { value: unknown }) {
+  return <pre className="json-block">{JSON.stringify(value, null, 2)}</pre>;
+}
+
+function modeDetails(mode: EditorMode, serverAvailable: boolean) {
+  if (serverAvailable && mode === "connected") {
+    return {
+      label: "Connected AST",
+      description: "Edits are submitted to the local workflow service and written back to AST.",
+      tone: "ok" as const,
+      icon: <CheckCircle2 size={16} />,
+    };
+  }
+  if (mode === "loaded") {
+    return {
+      label: "Loaded UI JSON",
+      description: "Inspecting a local UI projection. Run and save require the workflow service.",
+      tone: "warn" as const,
+      icon: <FileJson size={16} />,
+    };
+  }
+  return {
+    label: "Sample Projection",
+    description: "Using bundled projection data. Local edits are recorded as operations.",
+    tone: "warn" as const,
+    icon: <AlertTriangle size={16} />,
+  };
+}
+
+function flattenNodes(root: UINode): FlatNode[] {
+  const rows: FlatNode[] = [];
+  const visit = (node: UINode, depth: number, branch?: string) => {
+    rows.push({ node, depth, branch });
+    if (!node.collapsed) {
+      for (const child of node.children ?? []) {
+        visit(child, depth + 1, branch);
+      }
+      for (const nextBranch of node.branches ?? []) {
+        for (const child of nextBranch.children ?? []) {
+          visit(child, depth + 1, nextBranch.label ?? nextBranch.kind ?? nextBranch.id);
+        }
+      }
+    }
+  };
+  visit(root, 0);
+  return rows;
+}
+
+function filterFlatNodes(nodes: FlatNode[], query: string) {
+  const normalized = query.trim().toLowerCase();
+  if (!normalized) {
+    return nodes;
+  }
+  return nodes.filter(({ node, branch }) =>
+    [node.id, node.kind, node.label, node.path, branch].some((value) => String(value ?? "").toLowerCase().includes(normalized)),
+  );
+}
+
+function summarizeWorkflow(nodes: FlatNode[]) {
+  return {
+    nodes: nodes.length,
+    blocks: nodes.filter(({ node }) => node.kind === "callBlock").length,
+    branches: nodes.filter(({ node }) => (node.branches ?? []).length > 0).length,
+  };
+}
+
+function summarizeBlocks(nodes: FlatNode[]) {
+  const blocks = new Map<string, UINode[]>();
+  for (const { node } of nodes) {
+    if (node.kind !== "callBlock") {
+      continue;
+    }
+    const block = fieldValue(node, "Block") ?? node.label ?? node.id;
+    blocks.set(block, [...(blocks.get(block) ?? []), node]);
+  }
+  return [...blocks.entries()]
+    .map(([key, blockNodes]) => ({ key, count: blockNodes.length, nodes: blockNodes }))
+    .sort((left, right) => left.key.localeCompare(right.key));
+}
+
+function buildFlowGraph(root: UINode): { nodes: WorkflowFlowNode[]; edges: WorkflowFlowEdge[] } {
+  const nodes: WorkflowFlowNode[] = [];
+  const edges: WorkflowFlowEdge[] = [];
+  const visit = (node: UINode, depth: number, slot: number, branch?: string) => {
+    nodes.push({
+      id: node.id,
+      type: "workflow",
+      position: { x: slot * GAP_X, y: depth * GAP_Y },
+      data: { uiNode: node, branch },
+    });
+
+    let childSlot = slot;
+    for (const child of node.children ?? []) {
+      edges.push(makeEdge(node.id, child.id));
+      visit(child, depth + 1, childSlot, branch);
+    }
+
+    const branches = node.branches ?? [];
+    const startSlot = slot - (branches.length - 1) / 2;
+    branches.forEach((nextBranch, index) => {
+      const branchSlot = startSlot + index;
+      for (const child of nextBranch.children ?? []) {
+        edges.push(makeEdge(node.id, child.id, nextBranch.label ?? nextBranch.kind));
+        visit(child, depth + 1, branchSlot, nextBranch.label ?? nextBranch.kind ?? nextBranch.id);
+        childSlot = Math.max(childSlot, branchSlot);
+      }
+    });
+  };
+  visit(root, 0, 0);
+  return { nodes, edges };
+}
+
+function makeEdge(source: string, target: string, label?: string): WorkflowFlowEdge {
+  return {
+    id: `${source}-${target}`,
+    source,
+    target,
+    label,
+    markerEnd: { type: MarkerType.ArrowClosed },
+    style: { strokeWidth: 1.5 },
+  };
+}
+
+function findNode(root: UINode, id: string): UINode | null {
+  if (root.id === id) {
+    return root;
+  }
+  for (const child of root.children ?? []) {
     const found = findNode(child, id);
     if (found) {
       return found;
     }
   }
-  for (const branch of node.branches ?? []) {
+  for (const branch of root.branches ?? []) {
     for (const child of branch.children ?? []) {
       const found = findNode(child, id);
       if (found) {
@@ -1093,263 +1471,41 @@ function findNode(node: UINode, id: string): UINode | null {
   return null;
 }
 
-function flattenNodes(node: UINode): UINode[] {
-  const nodes = [node];
-  for (const child of node.children ?? []) {
-    nodes.push(...flattenNodes(child));
-  }
-  for (const branch of node.branches ?? []) {
-    for (const child of branch.children ?? []) {
-      nodes.push(...flattenNodes(child));
-    }
-  }
-  return nodes;
+function updateNode(document: UIDocument, id: string, update: (node: UINode) => UINode): UIDocument {
+  return { ...document, root: updateNodeRecursive(document.root, id, update) };
 }
 
-function buildFlowGraph(root: UINode, selectedId: string): { nodes: WorkflowFlowNode[]; edges: WorkflowFlowEdge[] } {
-  const nodes: WorkflowFlowNode[] = [];
-  const edges: WorkflowFlowEdge[] = [];
-  const measure = measureNode(root);
-  placeNode(root, 32, 32, measure.width, selectedId, nodes, edges);
-  return { nodes, edges };
-}
-
-function measureNode(node: UINode): Measure {
-  if (node.collapsed) {
-    return { width: NODE_WIDTH, height: NODE_HEIGHT };
-  }
-
-  const children = node.children ?? [];
-  const branches = node.branches ?? [];
-  if (branches.length > 0) {
-    const branchMeasures = branches.map((branch) => measureSequence(branch.children ?? []));
-    const width = Math.max(
-      NODE_WIDTH,
-      branchMeasures.reduce((total, branch, index) => total + branch.width + (index > 0 ? GAP_X : 0), 0),
-    );
-    return {
-      width,
-      height: NODE_HEIGHT + GAP_Y + Math.max(...branchMeasures.map((branch) => branch.height), NODE_HEIGHT),
-    };
-  }
-
-  if (children.length > 0) {
-    const sequence = measureSequence(children);
-    return {
-      width: Math.max(NODE_WIDTH, sequence.width),
-      height: NODE_HEIGHT + GAP_Y + sequence.height,
-    };
-  }
-
-  return { width: NODE_WIDTH, height: NODE_HEIGHT };
-}
-
-function measureSequence(nodes: UINode[]): Measure {
-  if (nodes.length === 0) {
-    return { width: NODE_WIDTH, height: NODE_HEIGHT * 0.72 };
-  }
-  const measures = nodes.map(measureNode);
+function updateNodeRecursive(node: UINode, id: string, update: (node: UINode) => UINode): UINode {
+  const nextNode = node.id === id ? update(node) : node;
   return {
-    width: Math.max(NODE_WIDTH, ...measures.map((measure) => measure.width)),
-    height: measures.reduce((total, measure, index) => total + measure.height + (index > 0 ? GAP_Y : 0), 0),
+    ...nextNode,
+    children: nextNode.children?.map((child) => updateNodeRecursive(child, id, update)),
+    branches: nextNode.branches?.map((branch) => ({
+      ...branch,
+      children: branch.children?.map((child) => updateNodeRecursive(child, id, update)),
+    })),
   };
 }
 
-function placeNode(
-  node: UINode,
-  x: number,
-  y: number,
-  width: number,
-  selectedId: string,
-  nodes: WorkflowFlowNode[],
-  edges: WorkflowFlowEdge[],
-) {
-  const measured = measureNode(node);
-  const nodeX = x + (width - NODE_WIDTH) / 2;
-  nodes.push({
-    id: node.id,
-    type: "workflow",
-    position: { x: nodeX, y },
-    data: { uiNode: node },
-    selected: node.id === selectedId,
-    width: NODE_WIDTH,
-    height: NODE_HEIGHT,
-  });
-
-  if (node.collapsed) {
-    return measured;
+async function requestJSON<T>(url: string, init?: RequestInit): Promise<T> {
+  const response = await fetch(url, init);
+  if (!response.ok) {
+    throw new Error(`Request failed with status ${response.status}`);
   }
-
-  const branches = node.branches ?? [];
-  if (branches.length > 0) {
-    placeBranches(node, x, y + NODE_HEIGHT + GAP_Y, measured.width, selectedId, nodes, edges);
-    return measured;
-  }
-
-  const children = node.children ?? [];
-  if (children.length > 0) {
-    placeSequence(children, x, y + NODE_HEIGHT + GAP_Y, measured.width, selectedId, nodes, edges, node.id);
-  }
-
-  return measured;
+  return (await response.json()) as T;
 }
 
-function placeSequence(
-  sequence: UINode[],
-  x: number,
-  y: number,
-  width: number,
-  selectedId: string,
-  nodes: WorkflowFlowNode[],
-  edges: WorkflowFlowEdge[],
-  incomingId?: string,
-  incomingLabel?: string,
-) {
-  let cursorY = y;
-  let previousId = incomingId;
-
-  sequence.forEach((child, index) => {
-    const childMeasure = measureNode(child);
-    placeNode(child, x + (width - childMeasure.width) / 2, cursorY, childMeasure.width, selectedId, nodes, edges);
-    if (previousId) {
-      edges.push(makeEdge(previousId, child.id, index === 0 ? incomingLabel : undefined));
-    }
-    previousId = child.id;
-    cursorY += childMeasure.height + GAP_Y;
-  });
-}
-
-function placeBranches(
-  node: UINode,
-  x: number,
-  y: number,
-  width: number,
-  selectedId: string,
-  nodes: WorkflowFlowNode[],
-  edges: WorkflowFlowEdge[],
-) {
-  const branches = node.branches ?? [];
-  const measures = branches.map((branch) => measureSequence(branch.children ?? []));
-  const totalWidth = measures.reduce((total, measure, index) => total + measure.width + (index > 0 ? GAP_X : 0), 0);
-  let cursorX = x + (width - totalWidth) / 2;
-
-  branches.forEach((branch, index) => {
-    const branchMeasure = measures[index];
-    const branchLabel = branch.label ?? branch.kind ?? branch.id;
-    if (branch.children?.length) {
-      placeSequence(branch.children, cursorX, y, branchMeasure.width, selectedId, nodes, edges, node.id, branchLabel);
-    } else {
-      const ghostId = `${node.id}::${branch.id}`;
-      nodes.push({
-        id: ghostId,
-        type: "workflow",
-        position: { x: cursorX + (branchMeasure.width - NODE_WIDTH) / 2, y },
-        data: {
-          ghost: true,
-          branchLabel,
-          uiNode: {
-            id: ghostId,
-            kind: "branch",
-            label: "No steps",
-          },
-        },
-        width: NODE_WIDTH,
-        height: NODE_HEIGHT,
-      });
-      edges.push(makeEdge(node.id, ghostId, branchLabel));
-    }
-    cursorX += branchMeasure.width + GAP_X;
-  });
-}
-
-function makeEdge(source: string, target: string, label?: string): WorkflowFlowEdge {
+function normalizeAPIError(error: unknown): { message: string; diagnostics: Diagnostic[]; network: boolean } {
+  const message = formatError(error);
   return {
-    id: `${source}->${target}`,
-    type: "workflow",
-    source,
-    target,
-    label,
-    markerEnd: {
-      type: MarkerType.ArrowClosed,
-      width: 16,
-      height: 16,
-      color: "var(--accent)",
-    },
-    style: {
-      stroke: "var(--accent)",
-      strokeWidth: 1.8,
-    },
+    message,
+    diagnostics: [{ severity: "error", code: "workflow.api", message }],
+    network: message.includes("Failed to fetch") || message.includes("Request failed"),
   };
-}
-
-function updateNode(document: UIDocument, id: string, updater: (node: UINode) => UINode): UIDocument {
-  return {
-    ...document,
-    root: updateNodeRecursive(document.root, id, updater),
-  };
-}
-
-function updateNodeRecursive(node: UINode, id: string, updater: (node: UINode) => UINode): UINode {
-  if (node.id === id) {
-    return updater(node);
-  }
-  const children = node.children?.map((child) => updateNodeRecursive(child, id, updater));
-  const branches = node.branches?.map((branch) => ({
-    ...branch,
-    children: branch.children?.map((child) => updateNodeRecursive(child, id, updater)),
-  }));
-  return {
-    ...node,
-    children,
-    branches,
-  };
-}
-
-function updateNodeMetadata(node: UINode, path: string, value: string): UINode {
-  const [head, ...rest] = path.split(".");
-  const metadata = { ...(node.metadata ?? {}) };
-  if (rest.length === 0) {
-    metadata[head] = value;
-  } else {
-    const current = (metadata[head] as Record<string, unknown> | undefined) ?? {};
-    let cursor: Record<string, unknown> = current;
-    for (let i = 0; i < rest.length - 1; i += 1) {
-      const key = rest[i];
-      const next = (cursor[key] as Record<string, unknown> | undefined) ?? {};
-      cursor[key] = next;
-      cursor = next;
-    }
-    cursor[rest[rest.length - 1]] = value;
-    metadata[head] = current;
-  }
-  return { ...node, metadata };
-}
-
-function readEditableValue(node: UINode): string {
-  const note = node.metadata?.ui && typeof node.metadata.ui === "object" ? (node.metadata.ui as Record<string, unknown>).note : undefined;
-  return typeof note === "string" ? note : "";
 }
 
 function makeOperationId(prefix: string) {
-  return `${prefix}-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 8)}`;
-}
-
-function renderFieldValue(value: unknown) {
-  if (typeof value === "string") {
-    return value;
-  }
-  if (typeof value === "number" || typeof value === "boolean") {
-    return String(value);
-  }
-  if (value == null) {
-    return "-";
-  }
-  return JSON.stringify(value);
-}
-
-function stringMetadata(metadata: Record<string, unknown> | undefined, key: string) {
-  const value = metadata?.[key];
-  return typeof value === "string" ? value : "";
+  return `${prefix}-${Date.now().toString(36)}`;
 }
 
 function normalizeBindingTokens(value: unknown): BindingToken[] {
@@ -1392,8 +1548,64 @@ function groupBindingTokens(tokens: BindingToken[]) {
     .map(([name, groupTokens]) => ({ name, tokens: groupTokens }));
 }
 
-function expressionDisplay(value: unknown) {
-  return compactExpression(value);
+function normalizeExpression(value: unknown): { kind: ExpressionKind; value?: unknown; ref?: string } {
+  if (value && typeof value === "object" && !Array.isArray(value)) {
+    const expression = value as Record<string, unknown>;
+    if (expression.kind === "literal" || expression.kind === "ref" || expression.kind === "json") {
+      return {
+        kind: expression.kind,
+        value: expression.value,
+        ref: typeof expression.ref === "string" ? expression.ref : undefined,
+      };
+    }
+  }
+  return { kind: "json", value };
+}
+
+function buildExpression(
+  kind: ExpressionKind,
+  literalType: LiteralInputType,
+  literalValue: string,
+  refValue: string,
+  jsonDraft: string,
+) {
+  if (kind === "json") {
+    return JSON.parse(jsonDraft) as unknown;
+  }
+  if (kind === "ref") {
+    if (!refValue.trim()) {
+      throw new Error("Reference is required");
+    }
+    return { kind: "ref", ref: refValue.trim() };
+  }
+  if (literalType === "number") {
+    const numeric = Number(literalValue);
+    if (!Number.isFinite(numeric)) {
+      throw new Error("Number literal is invalid");
+    }
+    return { kind: "literal", value: numeric };
+  }
+  if (literalType === "boolean") {
+    return { kind: "literal", value: literalValue === "true" };
+  }
+  return { kind: "literal", value: literalValue };
+}
+
+function literalInputType(expression: { value?: unknown }): LiteralInputType {
+  if (typeof expression.value === "number") {
+    return "number";
+  }
+  if (typeof expression.value === "boolean") {
+    return "boolean";
+  }
+  return "string";
+}
+
+function formatLiteralInput(value: unknown) {
+  if (typeof value === "string" || typeof value === "number" || typeof value === "boolean") {
+    return String(value);
+  }
+  return "";
 }
 
 function compactExpression(value: unknown): string {
@@ -1405,165 +1617,62 @@ function compactExpression(value: unknown): string {
     return expression.ref;
   }
   if (expression.kind === "literal") {
-    if (typeof expression.value === "string") {
-      return `"${expression.value}"`;
-    }
-    if (typeof expression.value === "number" || typeof expression.value === "boolean") {
-      return String(expression.value);
-    }
-    return "literal";
+    return renderFieldValue(expression.value);
   }
   if (expression.kind === "binary") {
-    const left = compactExpression(expression.left);
-    const op = typeof expression.op === "string" ? expression.op : "?";
-    const right = compactExpression(expression.right);
-    return `${left} ${op} ${right}`;
-  }
-  if (expression.kind === "branch") {
-    return "branch expression";
+    return `${compactExpression(expression.left)} ${typeof expression.op === "string" ? expression.op : "?"} ${compactExpression(expression.right)}`;
   }
   return typeof expression.kind === "string" ? `${expression.kind} expression` : "expression";
 }
 
-function quickInputKind(field: InspectorField): "number" | "operator" | null {
-  if (field.path.endsWith(".inputs.left") || field.path.endsWith(".inputs.right")) {
-    return "number";
+function renderFieldValue(value: unknown) {
+  if (typeof value === "string") {
+    return value;
   }
-  if (field.path.endsWith(".inputs.operator")) {
-    return "operator";
-  }
-  return null;
-}
-
-function normalizeExpression(value: unknown): ExpressionDraft {
-  if (value && typeof value === "object" && !Array.isArray(value)) {
-    const expression = value as Record<string, unknown>;
-    if (expression.kind === "literal" || expression.kind === "ref" || expression.kind === "json") {
-      return {
-        ...expression,
-        kind: expression.kind,
-        ref: typeof expression.ref === "string" ? expression.ref : undefined,
-      };
-    }
-    if (typeof expression.kind === "string" && expression.kind.length > 0) {
-      return {
-        ...expression,
-        kind: "json",
-      };
-    }
-  }
-  return { kind: "literal", value: "" };
-}
-
-function literalNumberDraft(expression: Record<string, unknown>) {
-  return expression.kind === "literal" && typeof expression.value === "number" ? String(expression.value) : "";
-}
-
-function literalOperatorDraft(expression: Record<string, unknown>) {
-  if (expression.kind === "literal" && typeof expression.value === "string" && ["+", "-", "*", "/"].includes(expression.value)) {
-    return expression.value;
-  }
-  return "";
-}
-
-function isQuickDraftDirty(expression: Record<string, unknown>, kind: "number" | "operator", draft: string) {
-  if (expression.kind !== "literal") {
-    return draft.trim() !== "";
-  }
-  if (kind === "number") {
-    return typeof expression.value !== "number" || Number(draft) !== expression.value;
-  }
-  return draft !== expression.value;
-}
-
-function quickDraftStatus(expression: Record<string, unknown>, dirty: boolean) {
-  if (dirty) {
-    return "Unsaved changes";
-  }
-  if (expression.kind === "literal") {
-    return "Saved";
-  }
-  if (expression.kind === "ref") {
-    return "Using expression";
-  }
-  return "Saved expression";
-}
-
-function expressionHint(expression: Record<string, unknown>) {
-  if (expression.kind === "ref" && typeof expression.ref === "string") {
-    return expression.ref;
-  }
-  return "value";
-}
-
-function literalInputType(expression: Record<string, unknown>): LiteralInputType {
-  switch (typeof expression.value) {
-    case "number":
-      return "number";
-    case "boolean":
-      return "boolean";
-    default:
-      return "string";
-  }
-}
-
-function formatLiteralInput(value: unknown) {
-  if (typeof value === "boolean") {
-    return value ? "true" : "false";
-  }
-  if (typeof value === "number" || typeof value === "string") {
+  if (typeof value === "number" || typeof value === "boolean") {
     return String(value);
   }
-  return "";
-}
-
-function buildExpression(
-  kind: string,
-  literalType: LiteralInputType,
-  literalValue: string,
-  refValue: string,
-  jsonDraft: string,
-) {
-  if (kind === "literal") {
-    if (literalType === "number") {
-      const numeric = Number(literalValue);
-      if (!Number.isFinite(numeric)) {
-        throw new Error("Number literal is invalid");
+  if (value == null) {
+    return "null";
+  }
+  if (typeof value === "object" && !Array.isArray(value)) {
+    const record = value as Record<string, unknown>;
+    const name = typeof record.name === "string" ? record.name : "";
+    const type = record.type;
+    if (name && type && typeof type === "object" && !Array.isArray(type)) {
+      const typeName = (type as Record<string, unknown>).name;
+      if (typeof typeName === "string") {
+        return `${name}: ${typeName}`;
       }
-      return { kind: "literal", value: numeric };
     }
-    if (literalType === "boolean") {
-      return { kind: "literal", value: literalValue === "true" };
-    }
-    return { kind: "literal", value: literalValue };
   }
-  if (kind === "ref") {
-    if (!refValue.trim()) {
-      throw new Error("Reference cannot be empty");
-    }
-    return { kind: "ref", ref: refValue.trim() };
-  }
-  const parsed = JSON.parse(jsonDraft) as unknown;
-  if (!parsed || typeof parsed !== "object" || Array.isArray(parsed)) {
-    throw new Error("Expression JSON must be an object");
-  }
-  const expression = parsed as Record<string, unknown>;
-  if (typeof expression.kind !== "string" || expression.kind.length === 0) {
-    throw new Error("Expression JSON requires a string kind");
-  }
-  return expression;
+  return JSON.stringify(value);
 }
 
-function firstDiagnosticMessage(diags: Diagnostic[] | undefined) {
-  const first = diags?.[0];
-  if (!first) {
-    return "";
-  }
-  return first.message ? `${first.code ?? "diagnostic"}: ${first.message}` : first.code ?? "diagnostic";
+function fieldValue(node: UINode, label: string) {
+  const field = (node.inspector ?? []).find((candidate) => candidate.label === label);
+  return typeof field?.value === "string" ? field.value : "";
 }
 
-function formatError(error: unknown) {
-  return error instanceof Error ? error.message : String(error);
+function shortPath(path: string) {
+  const parts = path.split(".");
+  return parts.slice(-2).join(".");
+}
+
+function summarizePayload(payload: unknown) {
+  if (!payload || typeof payload !== "object") {
+    return renderFieldValue(payload);
+  }
+  const raw = JSON.stringify(payload);
+  return raw.length > 120 ? `${raw.slice(0, 117)}...` : raw;
+}
+
+function runResultSummary(result: RunResult | null) {
+  if (!result) {
+    return "Not run";
+  }
+  const returns = Object.keys(result.returns ?? {});
+  return returns.length > 0 ? `Returns ${returns.join(", ")}` : "Completed";
 }
 
 function saveLabel(state: SaveState) {
@@ -1575,77 +1684,12 @@ function saveLabel(state: SaveState) {
     case "failed":
       return "Save failed";
     case "sample":
-      return "Sample";
+      return "Local only";
   }
 }
 
-function runResultSummary(result: RunResult | null) {
-  if (!result) {
-    return "Not run";
-  }
-  const returns = result.returns ?? {};
-  if ("result" in returns) {
-    return `result = ${String(returns.result)}`;
-  }
-  const firstKey = Object.keys(returns)[0];
-  if (firstKey) {
-    return `${firstKey} = ${String(returns[firstKey])}`;
-  }
-  return "Completed";
-}
-
-class APIError extends Error {
-  diagnostics: Diagnostic[];
-  network: boolean;
-
-  constructor(message: string, options?: { diagnostics?: Diagnostic[]; network?: boolean }) {
-    super(message);
-    this.name = "APIError";
-    this.diagnostics = options?.diagnostics ?? [];
-    this.network = options?.network ?? false;
-  }
-}
-
-async function requestJSON<T>(url: string, init?: RequestInit): Promise<T> {
-  let response: Response;
-  try {
-    response = await fetch(url, init);
-  } catch (error) {
-    throw new APIError(`Workflow service unavailable (${formatError(error)})`, { network: true });
-  }
-
-  const raw = await response.text();
-  let parsed: unknown = {};
-  if (raw.trim()) {
-    try {
-      parsed = JSON.parse(raw) as unknown;
-    } catch {
-      throw new APIError(`Workflow service returned non-JSON response: ${raw.slice(0, 120)}`);
-    }
-  }
-
-  const diagnostics = diagnosticsFromPayload(parsed);
-  if (!response.ok) {
-    throw new APIError(firstDiagnosticMessage(diagnostics) || `Request failed with status ${response.status}`, {
-      diagnostics,
-    });
-  }
-  return parsed as T;
-}
-
-function diagnosticsFromPayload(payload: unknown): Diagnostic[] {
-  if (!payload || typeof payload !== "object" || Array.isArray(payload)) {
-    return [];
-  }
-  const diagnostics = (payload as { diagnostics?: unknown }).diagnostics;
-  return Array.isArray(diagnostics) ? (diagnostics as Diagnostic[]) : [];
-}
-
-function normalizeAPIError(error: unknown) {
-  if (error instanceof APIError) {
-    return error;
-  }
-  return new APIError(formatError(error));
+function formatError(error: unknown) {
+  return error instanceof Error ? error.message : String(error);
 }
 
 export default App;

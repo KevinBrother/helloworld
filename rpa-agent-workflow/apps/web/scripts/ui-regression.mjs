@@ -8,6 +8,46 @@ const htmlSource = fs.readFileSync(path.join(root.pathname, "index.html"), "utf8
 
 const checks = [
   {
+    name: "workbench shell has explicit product regions",
+    pass:
+      appSource.includes("workbench-shell") &&
+      appSource.includes("WorkflowNavigator") &&
+      appSource.includes("WorkspaceSurface") &&
+      appSource.includes("NodeInspector") &&
+      appSource.includes("TraceDock"),
+  },
+  {
+    name: "editor mode distinguishes connected, sample, and loaded json states",
+    pass:
+      appSource.includes("Connected AST") &&
+      appSource.includes("Sample Projection") &&
+      appSource.includes("Loaded UI JSON") &&
+      appSource.includes("mode-label"),
+  },
+  {
+    name: "navigator supports workflow, block, and issue tasks",
+    pass: appSource.includes('"workflow"') && appSource.includes('"blocks"') && appSource.includes('"issues"'),
+  },
+  {
+    name: "inspector is organized around node contract objects",
+    pass:
+      appSource.includes("Input Bindings") &&
+      appSource.includes("Exposed Outputs") &&
+      appSource.includes("Contract") &&
+      appSource.includes("Capabilities"),
+  },
+  {
+    name: "trace dock exposes operations, run events, and raw state",
+    pass: appSource.includes("Edit Operations") && appSource.includes("Run Events") && appSource.includes("Raw State"),
+  },
+  {
+    name: "responsive layout uses a single-task mobile surface",
+    pass:
+      cssSource.includes("@media (max-width: 760px)") &&
+      cssSource.includes(".mobile-surface-switch") &&
+      cssSource.includes("grid-template-columns: minmax(0, 1fr);"),
+  },
+  {
     name: "file upload is exposed as a focusable control",
     pass: !appSource.includes('<label className="icon-button file-button">') && !cssSource.includes(".file-button input {\n  display: none;"),
   },
