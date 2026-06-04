@@ -75,6 +75,7 @@
         "ref": { "type": "string" },
         "name": { "type": "string" },
         "op": { "type": "string" },
+        "operator": { "$ref": "#/$defs/expression" },
         "left": { "$ref": "#/$defs/expression" },
         "right": { "$ref": "#/$defs/expression" },
         "args": { "type": "array", "items": { "$ref": "#/$defs/expression" } },

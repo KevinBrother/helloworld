@@ -180,6 +180,8 @@ func setEditableStatementField(stmt *ast.Statement, fieldPath string, value any)
 	case strings.HasPrefix(fieldPath, "returns."):
 		name := strings.TrimPrefix(fieldPath, "returns.")
 		return setExpressionMapField(&stmt.Returns, name, value)
+	case fieldPath == "condition.operator":
+		return setConditionOperator(stmt, value)
 	case fieldPath == "value":
 		return setExpressionPointer(&stmt.Value, value)
 	case fieldPath == "condition":
@@ -190,6 +192,24 @@ func setEditableStatementField(stmt *ast.Statement, fieldPath string, value any)
 		diag := unsafeEditPathDiagnostic("statement field is not editable")
 		return &diag
 	}
+}
+
+func setConditionOperator(stmt *ast.Statement, value any) *diagnostic.Diagnostic {
+	if stmt.Condition == nil {
+		diag := unsafeEditPathDiagnostic("condition operator requires an existing condition")
+		return &diag
+	}
+	expr, diag := decodeExpression(value)
+	if diag != nil {
+		return diag
+	}
+	stmt.Condition.Operator = &expr
+	if expr.Kind == "literal" {
+		if operator, ok := expr.Value.(string); ok {
+			stmt.Condition.Op = operator
+		}
+	}
+	return nil
 }
 
 func setExpressionMapField(target *map[string]ast.Expression, name string, value any) *diagnostic.Diagnostic {

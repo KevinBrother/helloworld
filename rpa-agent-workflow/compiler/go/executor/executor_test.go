@@ -192,6 +192,29 @@ func TestEvaluateExpressionBinaryEqualitySupportsCompositeValues(t *testing.T) {
 	}
 }
 
+func TestEvaluateExpressionBinarySupportsDynamicOperator(t *testing.T) {
+	st := newTestState(ast.Workflow{
+		SchemaVersion: "1.0.0",
+		Workflow:      ast.Metadata{ID: "wf"},
+		Body:          ast.Statement{ID: "root", Kind: "sequence"},
+	}, Options{
+		Inputs: map[string]any{"operator": ">"},
+	})
+
+	got, err := st.evalExpression(&ast.Expression{
+		Kind:     "binary",
+		Operator: &ast.Expression{Kind: "ref", Ref: "input.operator"},
+		Left:     &ast.Expression{Kind: "literal", Value: float64(12)},
+		Right:    &ast.Expression{Kind: "literal", Value: float64(10)},
+	})
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if got != true {
+		t.Fatalf("dynamic operator result = %#v, want true", got)
+	}
+}
+
 func TestEvaluateExpressionSupportsPythonComparisonOperators(t *testing.T) {
 	st := newTestState(ast.Workflow{
 		SchemaVersion: "1.0.0",

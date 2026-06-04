@@ -27,7 +27,7 @@ describe("workbench model", () => {
 
     expect(branchNode.inputs).toEqual([
       expect.objectContaining({ key: "left", type: "number", control: "reference", value: { kind: "ref", ref: "input.left" } }),
-      expect.objectContaining({ key: "operator", type: "string", control: "select", value: { kind: "literal", value: ">" }, options: [">", ">=", "<", "<=", "=="] }),
+      expect.objectContaining({ key: "operator", type: "string", control: "input", value: { kind: "literal", value: ">" }, options: [">", ">=", "<", "<=", "=="] }),
       expect.objectContaining({ key: "right", type: "number", control: "input", value: { kind: "literal", value: 10 } }),
     ]);
   });
@@ -37,6 +37,18 @@ describe("workbench model", () => {
     const operatorField = calculateNode.inputs.find((field) => field.key === "operator")!;
 
     expect(operatorField.options).toEqual(["+", "-", "*", "/"]);
+  });
+
+  it("keeps operator fields bindable even when they expose manual choices", () => {
+    const calculateNode = model.nodes.find((node) => node.id === "calculate_large_value")!;
+    const operatorField = calculateNode.inputs.find((field) => field.key === "operator")!;
+    const branchNode = model.nodes.find((node) => node.id === "branch_by_threshold")!;
+    const conditionOperator = branchNode.inputs.find((field) => field.key === "operator")!;
+
+    expect(operatorField.control).toBe("reference");
+    expect(getSourceOptions(model.nodes, calculateNode.id, operatorField).map((source) => source.id)).toEqual(["input.operator"]);
+    expect(conditionOperator.control).toBe("input");
+    expect(getSourceOptions(model.nodes, branchNode.id, conditionOperator).map((source) => source.id)).toEqual(["input.operator"]);
   });
 
   it("filters source choices by expected field type", () => {

@@ -262,6 +262,7 @@ function toWorkbenchField(field: InspectorField, editableWorkflowInput = false, 
 
 function toInputFields(field: InspectorField, editableWorkflowInput = false): WorkbenchField[] {
   if (field.label === "Condition" && isExpressionRecord(field.value) && field.value.kind === "binary") {
+    const operatorValue = isRecord(field.value.operator) ? field.value.operator : { kind: "literal", value: String(field.value.op ?? ">") };
     return [
       {
         key: "left",
@@ -276,9 +277,9 @@ function toInputFields(field: InspectorField, editableWorkflowInput = false): Wo
         key: "operator",
         label: "operator",
         type: "string",
-        control: "select",
+        control: expressionRef(operatorValue) ? "reference" : "input",
         path: `${field.path}.operator`,
-        value: { kind: "literal", value: String(field.value.op ?? ">") },
+        value: operatorValue,
         options: [">", ">=", "<", "<=", "=="],
       },
       {

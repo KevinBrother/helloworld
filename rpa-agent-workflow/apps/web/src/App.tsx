@@ -40,6 +40,7 @@ function App() {
     () => model.nodes.find((node) => node.id === selectedNodeId) ?? model.nodes[0],
     [model.nodes, selectedNodeId],
   );
+  const workflowInputNode = useMemo(() => model.nodes.find((node) => node.kind === "sequence" && node.order === 0), [model.nodes]);
   const filteredBlocks = useMemo(() => {
     const query = blockQuery.trim().toLowerCase();
     if (!query) return model.blockOptions;
@@ -134,13 +135,13 @@ function App() {
     setRunModalOpen(false);
     setRunResult(null);
     setNodeRunStates({});
-    setRunLines((current) => [`[${new Date().toLocaleTimeString("en-US", { hour12: false })}] test run started`, ...current].slice(0, 18));
+    setRunLines((current) => appendRunLines(current, [`[${new Date().toLocaleTimeString("en-US", { hour12: false })}] test run started`], 18));
     const timestamp = new Date().toLocaleTimeString("en-US", { hour12: false });
 
     const outcome = await runWorkflowStream(getWorkflowRunInputs(model), (message) => {
       setNodeRunStates((current) => reduceRunMessage(current, message));
       if (message.type === "trace" && message.event.statementId && message.event.name === "statement.start") {
-        setRunLines((current) => [`[${timestamp}] running node ${message.event.statementId}`, ...current].slice(0, 18));
+        setRunLines((current) => appendRunLines(current, [`[${timestamp}] running node ${message.event.statementId}`], 18));
       }
     });
 
@@ -148,13 +149,13 @@ function App() {
       const payload = outcome.response;
       setRunResult(payload.result ?? null);
       setDiagnostics(payload.diagnostics ?? []);
-      setRunLines((current) => [`[${timestamp}] test run completed`, ...formatRunLines(payload.result), ...current].slice(0, 18));
+      setRunLines((current) => appendRunLines(current, [`[${timestamp}] test run completed`, ...formatRunLines(payload.result)], 18));
       setStatus("Test run completed");
     } else {
       const apiError = normalizeAPIError(outcome.diagnostics[0]?.message ?? "Workflow run failed");
       setRunResult(null);
       setDiagnostics(outcome.diagnostics.length > 0 ? outcome.diagnostics : apiError.diagnostics);
-      setRunLines((current) => [`[${timestamp}] test run failed: ${apiError.message}`, ...current].slice(0, 12));
+      setRunLines((current) => appendRunLines(current, [`[${timestamp}] test run failed: ${apiError.message}`], 12));
       setStatus(apiError.message);
     }
 
@@ -226,9 +227,18 @@ function App() {
 
       {runModalOpen ? (
         <TestRunModal
+          model={model}
           pending={runPending}
           serverAvailable={serverAvailable}
+          workflowInputNode={workflowInputNode}
+          openSourceKey={openSourceKey}
           onClose={() => setRunModalOpen(false)}
+          onFieldChange={(field, value) => {
+            if (workflowInputNode) {
+              void submitFieldUpdate(workflowInputNode, field, value);
+            }
+          }}
+          onOpenSourceKeyChange={setOpenSourceKey}
           onRun={() => void handleRunWorkflow()}
         />
       ) : null}
@@ -256,8 +266,12 @@ function updateInspectorFieldValue(field: NonNullable<UINode["inspector"]>[numbe
   }
 
   const segment = path.slice(field.path.length + 1);
-  if (segment === "operator" && isRecord(value) && value.kind === "literal") {
-    return { ...field, value: { ...field.value, op: value.value } };
+  if (segment === "operator" && isRecord(value)) {
+    const nextValue = { ...field.value, operator: value };
+    if (value.kind === "literal") {
+      return { ...field, value: { ...nextValue, op: value.value } };
+    }
+    return { ...field, value: nextValue };
   }
   if (segment === "left" || segment === "right") {
     return { ...field, value: { ...field.value, [segment]: value } };
@@ -317,6 +331,10 @@ function formatRunLines(result: RunResult | null | undefined) {
   if (result.nodeOutputs) lines.push(`node outputs = ${JSON.stringify(result.nodeOutputs)}`);
   if (result.returns) lines.push(`returns = ${JSON.stringify(result.returns)}`);
   return lines;
+}
+
+function appendRunLines(current: string[], next: string[], limit: number) {
+  return [...current.filter((line) => line !== "No server run yet."), ...next].slice(-limit);
 }
 
 function getWorkflowRunInputs(model: ReturnType<typeof buildWorkbenchModel>) {

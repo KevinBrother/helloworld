@@ -180,7 +180,11 @@ func renderExpression(expr ast.Expression) string {
 	case "ref":
 		return fmt.Sprintf("{\"kind\": \"ref\", \"ref\": %q}", expr.Ref)
 	case "binary":
-		return fmt.Sprintf("{\"kind\": \"binary\", \"op\": %q, \"left\": %s, \"right\": %s}", expr.Op, renderOptionalExpression(expr.Left), renderOptionalExpression(expr.Right))
+		operator := ""
+		if expr.Operator != nil {
+			operator = fmt.Sprintf(", \"operator\": %s", renderExpression(*expr.Operator))
+		}
+		return fmt.Sprintf("{\"kind\": \"binary\", \"op\": %q%s, \"left\": %s, \"right\": %s}", expr.Op, operator, renderOptionalExpression(expr.Left), renderOptionalExpression(expr.Right))
 	case "array":
 		var b strings.Builder
 		b.WriteString("{\"kind\": \"array\", \"items\": [")

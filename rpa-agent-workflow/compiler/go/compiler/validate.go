@@ -221,6 +221,7 @@ func validateExpression(expr *ast.Expression, workflow ast.Workflow, blocks map[
 		return nil
 	case "binary":
 		var diags []diagnostic.Diagnostic
+		diags = append(diags, validateExpression(expr.Operator, workflow, blocks, path+".operator")...)
 		diags = append(diags, validateExpression(expr.Left, workflow, blocks, path+".left")...)
 		diags = append(diags, validateExpression(expr.Right, workflow, blocks, path+".right")...)
 		return diags

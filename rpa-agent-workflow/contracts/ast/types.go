@@ -117,6 +117,7 @@ type Expression struct {
 	Ref      string                `json:"ref,omitempty"`
 	Name     string                `json:"name,omitempty"`
 	Op       string                `json:"op,omitempty"`
+	Operator *Expression           `json:"operator,omitempty"`
 	Left     *Expression           `json:"left,omitempty"`
 	Right    *Expression           `json:"right,omitempty"`
 	Args     []Expression          `json:"args,omitempty"`

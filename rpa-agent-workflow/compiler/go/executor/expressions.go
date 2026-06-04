@@ -118,6 +118,10 @@ func (s *state) applySelector(value any, selector string) (any, error) {
 }
 
 func (s *state) evalBinary(expr *ast.Expression) (any, error) {
+	operator, err := s.evalBinaryOperator(expr)
+	if err != nil {
+		return nil, err
+	}
 	left, err := s.evalExpression(expr.Left)
 	if err != nil {
 		return nil, err
@@ -127,7 +131,7 @@ func (s *state) evalBinary(expr *ast.Expression) (any, error) {
 		return nil, err
 	}
 
-	switch expr.Op {
+	switch operator {
 	case "==":
 		return reflect.DeepEqual(left, right), nil
 	case "!=":
@@ -137,41 +141,56 @@ func (s *state) evalBinary(expr *ast.Expression) (any, error) {
 		case string:
 			r, ok := right.(string)
 			if !ok {
-				return nil, s.evalErrorf("unsupported binary operator %q for %T and %T", expr.Op, left, right)
+				return nil, s.evalErrorf("unsupported binary operator %q for %T and %T", operator, left, right)
 			}
 			return l + r, nil
 		case int:
 			if r, ok := right.(int); ok {
 				return l + r, nil
 			}
-			return nil, s.evalErrorf("unsupported binary operator %q for %T and %T", expr.Op, left, right)
+			return nil, s.evalErrorf("unsupported binary operator %q for %T and %T", operator, left, right)
 		case int64:
 			if r, ok := right.(int64); ok {
 				return l + r, nil
 			}
-			return nil, s.evalErrorf("unsupported binary operator %q for %T and %T", expr.Op, left, right)
+			return nil, s.evalErrorf("unsupported binary operator %q for %T and %T", operator, left, right)
 		case float64:
 			if r, ok := right.(float64); ok {
 				return l + r, nil
 			}
-			return nil, s.evalErrorf("unsupported binary operator %q for %T and %T", expr.Op, left, right)
+			return nil, s.evalErrorf("unsupported binary operator %q for %T and %T", operator, left, right)
 		}
-		return nil, s.evalErrorf("unsupported binary operator %q for %T and %T", expr.Op, left, right)
+		return nil, s.evalErrorf("unsupported binary operator %q for %T and %T", operator, left, right)
 	case "<":
 		value, err := compareOrdered(left, right, func(result int) bool { return result < 0 })
 		if err != nil {
-			return nil, s.evalErrorf("unsupported binary operator %q for %T and %T", expr.Op, left, right)
+			return nil, s.evalErrorf("unsupported binary operator %q for %T and %T", operator, left, right)
 		}
 		return value, nil
 	case ">":
 		value, err := compareOrdered(left, right, func(result int) bool { return result > 0 })
 		if err != nil {
-			return nil, s.evalErrorf("unsupported binary operator %q for %T and %T", expr.Op, left, right)
+			return nil, s.evalErrorf("unsupported binary operator %q for %T and %T", operator, left, right)
 		}
 		return value, nil
 	default:
-		return nil, s.evalErrorf("unsupported binary operator %q", expr.Op)
+		return nil, s.evalErrorf("unsupported binary operator %q", operator)
 	}
+}
+
+func (s *state) evalBinaryOperator(expr *ast.Expression) (string, error) {
+	if expr.Operator == nil {
+		return expr.Op, nil
+	}
+	value, err := s.evalExpression(expr.Operator)
+	if err != nil {
+		return "", err
+	}
+	operator, ok := value.(string)
+	if !ok {
+		return "", s.evalErrorf("binary operator must evaluate to string, got %T", value)
+	}
+	return operator, nil
 }
 
 func compareOrdered(left, right any, accept func(int) bool) (any, error) {

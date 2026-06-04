@@ -84,12 +84,10 @@ function CanvasNode({ node, runState, selected, onSelect }: { node?: WorkbenchNo
 }
 
 function getCanvasNodeClassName(selected: boolean, runState: NodeRunState) {
-  return ["canvas-node", selected ? "selected" : "", runState !== "idle" ? `run-${runState}` : ""].filter(Boolean).join(" ");
+  return ["canvas-node", selected ? "selected" : "", runState === "running" ? "run-running" : ""].filter(Boolean).join(" ");
 }
 
 function getRunStateLabel(runState: NodeRunState) {
   if (runState === "running") return "Running";
-  if (runState === "completed") return "Done";
-  if (runState === "failed") return "Failed";
   return "";
 }

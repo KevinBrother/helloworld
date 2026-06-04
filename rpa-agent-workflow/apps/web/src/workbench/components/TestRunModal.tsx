@@ -1,13 +1,30 @@
 import { Play, X } from "lucide-react";
+import type { WorkbenchField, WorkbenchModel, WorkbenchNode } from "../../workbenchModel";
+import { ParameterFieldList } from "./ParameterPanel";
 
 type TestRunModalProps = {
+  model: WorkbenchModel;
   pending: boolean;
   serverAvailable: boolean;
+  workflowInputNode?: WorkbenchNode;
+  openSourceKey: string | null;
   onClose: () => void;
+  onFieldChange: (field: WorkbenchField, value: unknown) => void;
+  onOpenSourceKeyChange: (key: string | null) => void;
   onRun: () => void;
 };
 
-export function TestRunModal({ pending, serverAvailable, onClose, onRun }: TestRunModalProps) {
+export function TestRunModal({
+  model,
+  pending,
+  serverAvailable,
+  workflowInputNode,
+  openSourceKey,
+  onClose,
+  onFieldChange,
+  onOpenSourceKeyChange,
+  onRun,
+}: TestRunModalProps) {
   return (
     <div className="modal-backdrop" role="presentation">
       <section className="test-modal" role="dialog" aria-modal="true" aria-labelledby="test-run-title">
@@ -20,7 +37,26 @@ export function TestRunModal({ pending, serverAvailable, onClose, onRun }: TestR
             <X size={18} />
           </button>
         </div>
-        <div className="server-run-note">Run output is populated only from the server response.</div>
+        <div className="run-inputs-panel">
+          <div className="modal-section-title">
+            <h3>Workflow inputs</h3>
+            <span>{workflowInputNode?.inputs.length ?? 0} inputs</span>
+          </div>
+          <div className="schema-box">
+            {workflowInputNode ? (
+              <ParameterFieldList
+                fields={workflowInputNode.inputs}
+                model={model}
+                node={workflowInputNode}
+                openSourceKey={openSourceKey}
+                onFieldChange={onFieldChange}
+                onOpenSourceKeyChange={onOpenSourceKeyChange}
+              />
+            ) : (
+              <div className="empty-state">No workflow inputs.</div>
+            )}
+          </div>
+        </div>
         <div className="modal-actions">
           <button className="secondary-button" onClick={onClose}>
             Cancel

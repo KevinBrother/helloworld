@@ -1,4 +1,4 @@
-import { ChevronDown } from "lucide-react";
+import { ChevronDown, X } from "lucide-react";
 import type { ReactNode } from "react";
 import {
   getFieldSourceId,
@@ -37,17 +37,14 @@ export function ParameterPanel({ model, node, openSourceKey, onOpenSourceKeyChan
 
       {showInputs ? (
         <SchemaSection title={node.kind === "sequence" ? "Workflow inputs" : "Inputs"}>
-          {node.inputs.map((field) => (
-            <FieldRow
-              field={field}
-              key={field.path}
-              model={model}
-              node={node}
-              openSourceKey={openSourceKey}
-              onFieldChange={onFieldChange}
-              onOpenSourceKeyChange={onOpenSourceKeyChange}
-            />
-          ))}
+          <ParameterFieldList
+            fields={node.inputs}
+            model={model}
+            node={node}
+            openSourceKey={openSourceKey}
+            onFieldChange={onFieldChange}
+            onOpenSourceKeyChange={onOpenSourceKeyChange}
+          />
         </SchemaSection>
       ) : null}
 
@@ -61,6 +58,38 @@ export function ParameterPanel({ model, node, openSourceKey, onOpenSourceKeyChan
 
       {!showInputs && !showOutputs ? <div className="empty-state">No configurable fields for this node.</div> : null}
     </aside>
+  );
+}
+
+export function ParameterFieldList({
+  fields,
+  model,
+  node,
+  openSourceKey,
+  onFieldChange,
+  onOpenSourceKeyChange,
+}: {
+  fields: WorkbenchField[];
+  model: WorkbenchModel;
+  node: WorkbenchNode;
+  openSourceKey: string | null;
+  onFieldChange: (field: WorkbenchField, value: unknown) => void;
+  onOpenSourceKeyChange: (key: string | null) => void;
+}) {
+  return (
+    <>
+      {fields.map((field) => (
+        <FieldRow
+          field={field}
+          key={field.path}
+          model={model}
+          node={node}
+          openSourceKey={openSourceKey}
+          onFieldChange={onFieldChange}
+          onOpenSourceKeyChange={onOpenSourceKeyChange}
+        />
+      ))}
+    </>
   );
 }
 
@@ -90,29 +119,44 @@ function FieldRow({
     <div className="schema-row">
       <span className="field-name">{field.label}</span>
       <code className={`field-type ${field.type}`}>{field.type}</code>
-      {field.options?.length ? (
-        <select
-          className="value-control"
-          value={String(resolvedValue)}
-          onChange={(event) => onFieldChange(field, { kind: "literal", value: event.target.value })}
-        >
-          {field.options.map((option) => (
-            <option key={option}>{option}</option>
-          ))}
-        </select>
-      ) : field.readonly ? (
+      {field.readonly ? (
         <span className="value-control readonly-value">{resolvedValue}</span>
       ) : (
-        <div className={activeSource ? "input-binding linked" : "input-binding"}>
-          {activeSource ? <span className="binding-badge">ref</span> : null}
-          <input
-            className="value-control"
-            value={String(resolvedValue)}
-            onChange={(event) => onFieldChange(field, { kind: "literal", value: parseFieldInput(event.target.value, field.type) })}
-          />
+        <div className={activeSource ? "value-editor linked" : "value-editor"}>
+          {activeSource ? (
+            <>
+              <span className="binding-badge">ref</span>
+              <span className="reference-token">
+                <span>{activeSource.nodeLabel}</span>
+                <strong>{activeSource.output}</strong>
+                <button
+                  aria-label={`Clear ${field.label} reference`}
+                  onClick={() => onFieldChange(field, { kind: "literal", value: parseFieldInput(resolvedValue, field.type) })}
+                >
+                  <X size={13} />
+                </button>
+              </span>
+            </>
+          ) : field.options?.length ? (
+            <select
+              className="value-control"
+              value={String(resolvedValue)}
+              onChange={(event) => onFieldChange(field, { kind: "literal", value: event.target.value })}
+            >
+              {field.options.map((option) => (
+                <option key={option}>{option}</option>
+              ))}
+            </select>
+          ) : (
+            <input
+              className="value-control"
+              value={String(resolvedValue)}
+              onChange={(event) => onFieldChange(field, { kind: "literal", value: parseFieldInput(event.target.value, field.type) })}
+            />
+          )}
           {canChooseSource ? (
             <button className="source-picker-trigger" onClick={() => onOpenSourceKeyChange(openSourceKey === sourceKey ? null : sourceKey)}>
-              {activeSource ? `${activeSource.nodeLabel}.${activeSource.output}` : "Use ref"}
+              {activeSource ? "Change" : "Use ref"}
               <ChevronDown size={14} />
             </button>
           ) : null}
