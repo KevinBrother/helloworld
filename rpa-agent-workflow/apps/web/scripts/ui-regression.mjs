@@ -25,6 +25,14 @@ const checks = [
       appSource.includes("mode-label"),
   },
   {
+    name: "global actions expose availability and disabled reasons",
+    pass:
+      appSource.includes("ActionAvailability") &&
+      appSource.includes("getActionAvailability") &&
+      appSource.includes("disabledReason") &&
+      appSource.includes("modeAllowsRun"),
+  },
+  {
     name: "navigator supports workflow, block, and issue tasks",
     pass: appSource.includes('"workflow"') && appSource.includes('"blocks"') && appSource.includes('"issues"'),
   },

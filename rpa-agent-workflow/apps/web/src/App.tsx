@@ -49,6 +49,10 @@ type TraceTab = "operations" | "events" | "raw";
 type MobileSurface = "navigator" | "workspace" | "inspector" | "trace";
 type ExpressionKind = "literal" | "ref" | "json";
 type LiteralInputType = "string" | "number" | "boolean";
+type ActionAvailability = {
+  run: { enabled: boolean; disabledReason?: string };
+  exportOperations: { enabled: boolean; disabledReason?: string };
+};
 
 type FlatNode = {
   node: UINode;
@@ -315,6 +319,7 @@ function App() {
   };
 
   const mode = modeDetails(editorMode, serverAvailable);
+  const actionAvailability = getActionAvailability(editorMode, serverAvailable, runPending, operationLog.length);
 
   return (
     <div className="workbench-shell" data-mode={editorMode}>
@@ -326,6 +331,7 @@ function App() {
         runResult={runResult}
         runPending={runPending}
         serverAvailable={serverAvailable}
+        availability={actionAvailability}
         operationCount={operationLog.length}
         onRun={handleRunWorkflow}
         onReset={resetSample}
@@ -356,6 +362,7 @@ function App() {
         serviceError={serviceError}
         serviceRetrying={serviceRetrying}
         serverAvailable={serverAvailable}
+        availability={actionAvailability}
         onRetry={handleRetryWorkflowService}
       />
 
@@ -439,6 +446,7 @@ function GlobalHeader({
   runResult,
   runPending,
   serverAvailable,
+  availability,
   operationCount,
   onRun,
   onReset,
@@ -453,6 +461,7 @@ function GlobalHeader({
   runResult: RunResult | null;
   runPending: boolean;
   serverAvailable: boolean;
+  availability: ActionAvailability;
   operationCount: number;
   onRun: () => void;
   onReset: () => void;
@@ -475,7 +484,12 @@ function GlobalHeader({
       </div>
 
       <div className="header-actions">
-        <button className="primary-button" onClick={onRun} disabled={!serverAvailable || runPending}>
+        <button
+          className="primary-button"
+          onClick={onRun}
+          disabled={!availability.run.enabled}
+          title={availability.run.disabledReason}
+        >
           <Play size={16} />
           {runPending ? "Running" : "Run"}
         </button>
@@ -491,7 +505,12 @@ function GlobalHeader({
           <FileUp size={16} />
           Load JSON
         </button>
-        <button className="icon-button" onClick={onDownloadOperations} disabled={operationCount === 0}>
+        <button
+          className="icon-button"
+          onClick={onDownloadOperations}
+          disabled={!availability.exportOperations.enabled}
+          title={availability.exportOperations.disabledReason}
+        >
           <Download size={16} />
           Export ops
         </button>
@@ -543,6 +562,7 @@ function StatusStrip({
   serviceError,
   serviceRetrying,
   serverAvailable,
+  availability,
   onRetry,
 }: {
   status: string;
@@ -550,6 +570,7 @@ function StatusStrip({
   serviceError: string;
   serviceRetrying: boolean;
   serverAvailable: boolean;
+  availability: ActionAvailability;
   onRetry: () => void;
 }) {
   return (
@@ -569,6 +590,10 @@ function StatusStrip({
           </button>
         </div>
       ) : null}
+      <div className="action-availability" aria-label="Action availability">
+        <span>{availability.run.enabled ? "Run ready" : availability.run.disabledReason}</span>
+        <span>{availability.exportOperations.enabled ? "Operations export ready" : availability.exportOperations.disabledReason}</span>
+      </div>
     </section>
   );
 }
@@ -1390,6 +1415,34 @@ function modeDetails(mode: EditorMode, serverAvailable: boolean) {
     description: "Using bundled projection data. Local edits are recorded as operations.",
     tone: "warn" as const,
     icon: <AlertTriangle size={16} />,
+  };
+}
+
+function modeAllowsRun(mode: EditorMode, serverAvailable: boolean) {
+  return mode === "connected" && serverAvailable;
+}
+
+function getActionAvailability(
+  mode: EditorMode,
+  serverAvailable: boolean,
+  runPending: boolean,
+  operationCount: number,
+): ActionAvailability {
+  const runEnabled = modeAllowsRun(mode, serverAvailable) && !runPending;
+  const runReason = runPending
+    ? "Run is already in progress"
+    : modeAllowsRun(mode, serverAvailable)
+      ? undefined
+      : "Run requires Connected AST mode";
+  return {
+    run: {
+      enabled: runEnabled,
+      disabledReason: runReason,
+    },
+    exportOperations: {
+      enabled: operationCount > 0,
+      disabledReason: operationCount > 0 ? undefined : "Export requires at least one recorded edit operation",
+    },
   };
 }
 
