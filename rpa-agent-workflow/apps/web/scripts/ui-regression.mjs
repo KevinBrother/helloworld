@@ -37,6 +37,14 @@ const checks = [
     pass: appSource.includes('"workflow"') && appSource.includes('"blocks"') && appSource.includes('"issues"'),
   },
   {
+    name: "navigator scales with node filters and block catalog search",
+    pass:
+      appSource.includes("NodeKindFilter") &&
+      appSource.includes("BlockCatalogSearch") &&
+      appSource.includes("workflowCapacity") &&
+      appSource.includes("filteredBlockCatalog"),
+  },
+  {
     name: "inspector is organized around node contract objects",
     pass:
       appSource.includes("Input Bindings") &&

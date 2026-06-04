@@ -110,6 +110,8 @@ function App() {
   const [mobileSurface, setMobileSurface] = useState<MobileSurface>("workspace");
   const [traceOpen, setTraceOpen] = useState(true);
   const [searchQuery, setSearchQuery] = useState("");
+  const [kindFilter, setKindFilter] = useState("all");
+  const [blockQuery, setBlockQuery] = useState("");
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const outline = useMemo(() => flattenNodes(uiDocument.root), [uiDocument]);
@@ -119,7 +121,8 @@ function App() {
   );
   const workflowStats = useMemo(() => summarizeWorkflow(outline), [outline]);
   const blockCatalog = useMemo(() => summarizeBlocks(outline), [outline]);
-  const filteredOutline = useMemo(() => filterFlatNodes(outline, searchQuery), [outline, searchQuery]);
+  const filteredOutline = useMemo(() => filterFlatNodes(outline, searchQuery, kindFilter), [outline, searchQuery, kindFilter]);
+  const filteredBlockCatalog = useMemo(() => filterBlockCatalog(blockCatalog, blockQuery), [blockCatalog, blockQuery]);
 
   const emitOperation = (operation: EditOperation, message?: string) => {
     setOperationLog((current) => [operation, ...current].slice(0, 80));
@@ -376,12 +379,16 @@ function App() {
             selectedId={selectedNodeId}
             searchQuery={searchQuery}
             onSearchChange={setSearchQuery}
+            kindFilter={kindFilter}
+            onKindFilterChange={setKindFilter}
+            blockQuery={blockQuery}
+            onBlockQueryChange={setBlockQuery}
             onSelect={(id) => {
               setSelectedNodeId(id);
               setMobileSurface("inspector");
             }}
             diagnostics={diagnostics}
-            blockCatalog={blockCatalog}
+            blockCatalog={filteredBlockCatalog}
           />
         </section>
 
@@ -606,6 +613,10 @@ function WorkflowNavigator({
   selectedId,
   searchQuery,
   onSearchChange,
+  kindFilter,
+  onKindFilterChange,
+  blockQuery,
+  onBlockQueryChange,
   onSelect,
   diagnostics,
   blockCatalog,
@@ -617,10 +628,16 @@ function WorkflowNavigator({
   selectedId: string;
   searchQuery: string;
   onSearchChange: (value: string) => void;
+  kindFilter: string;
+  onKindFilterChange: (value: string) => void;
+  blockQuery: string;
+  onBlockQueryChange: (value: string) => void;
   onSelect: (id: string) => void;
   diagnostics: Diagnostic[];
   blockCatalog: Array<{ key: string; count: number; nodes: UINode[] }>;
 }) {
+  const kinds = useMemo(() => ["all", ...new Set(allNodes.map(({ node }) => node.kind))], [allNodes]);
+  const workflowCapacity = `${allNodes.length} nodes / ${blockCatalog.length} block types`;
   return (
     <aside className="workbench-panel navigator-panel">
       <PanelHeader icon={<ListTree size={16} />} title="Navigator" detail={`${allNodes.length} nodes`} />
@@ -636,6 +653,10 @@ function WorkflowNavigator({
 
       {activeTab === "workflow" ? (
         <>
+          <div className="capacity-strip">
+            <strong>Scale ready</strong>
+            <span>{workflowCapacity}</span>
+          </div>
           <label className="search-box">
             <Search size={15} />
             <input
@@ -644,6 +665,7 @@ function WorkflowNavigator({
               onChange={(event) => onSearchChange(event.target.value)}
             />
           </label>
+          <NodeKindFilter kinds={kinds} value={kindFilter} onChange={onKindFilterChange} />
           <div className="workflow-tree">
             {nodes.map(({ node, depth, branch }) => (
               <button
@@ -664,22 +686,49 @@ function WorkflowNavigator({
       ) : null}
 
       {activeTab === "blocks" ? (
-        <div className="block-catalog">
-          {blockCatalog.length === 0 ? <EmptyState>No block nodes in this projection.</EmptyState> : null}
-          {blockCatalog.map((block) => (
-            <section className="catalog-row" key={block.key}>
-              <div>
-                <strong>{block.key}</strong>
-                <span>{block.count} node instances</span>
-              </div>
-              <code>{block.nodes.map((node) => node.id).join(", ")}</code>
-            </section>
-          ))}
-        </div>
+        <>
+          <BlockCatalogSearch value={blockQuery} onChange={onBlockQueryChange} />
+          <div className="block-catalog">
+            {blockCatalog.length === 0 ? <EmptyState>No block nodes match the current filter.</EmptyState> : null}
+            {blockCatalog.map((block) => (
+              <section className="catalog-row" key={block.key}>
+                <div>
+                  <strong>{block.key}</strong>
+                  <span>{block.count} node instances</span>
+                </div>
+                <code>{block.nodes.map((node) => node.id).join(", ")}</code>
+              </section>
+            ))}
+          </div>
+        </>
       ) : null}
 
       {activeTab === "issues" ? <DiagnosticsList diagnostics={diagnostics} /> : null}
     </aside>
+  );
+}
+
+function NodeKindFilter({ kinds, value, onChange }: { kinds: string[]; value: string; onChange: (value: string) => void }) {
+  return (
+    <label className="filter-row">
+      <span>Kind</span>
+      <select value={value} onChange={(event) => onChange(event.target.value)}>
+        {kinds.map((kind) => (
+          <option key={kind} value={kind}>
+            {kind === "all" ? "All node kinds" : kind}
+          </option>
+        ))}
+      </select>
+    </label>
+  );
+}
+
+function BlockCatalogSearch({ value, onChange }: { value: string; onChange: (value: string) => void }) {
+  return (
+    <label className="search-box block-search">
+      <Search size={15} />
+      <input value={value} placeholder="Search block id or node instance" onChange={(event) => onChange(event.target.value)} />
+    </label>
   );
 }
 
@@ -1465,13 +1514,25 @@ function flattenNodes(root: UINode): FlatNode[] {
   return rows;
 }
 
-function filterFlatNodes(nodes: FlatNode[], query: string) {
+function filterFlatNodes(nodes: FlatNode[], query: string, kindFilter: string) {
+  const normalized = query.trim().toLowerCase();
+  return nodes.filter(({ node, branch }) =>
+    (kindFilter === "all" || node.kind === kindFilter) &&
+    (!normalized ||
+      [node.id, node.kind, node.label, node.path, branch].some((value) => String(value ?? "").toLowerCase().includes(normalized))),
+  );
+}
+
+function filterBlockCatalog(blocks: Array<{ key: string; count: number; nodes: UINode[] }>, query: string) {
   const normalized = query.trim().toLowerCase();
   if (!normalized) {
-    return nodes;
+    return blocks;
   }
-  return nodes.filter(({ node, branch }) =>
-    [node.id, node.kind, node.label, node.path, branch].some((value) => String(value ?? "").toLowerCase().includes(normalized)),
+  return blocks.filter((block) =>
+    [block.key, ...block.nodes.map((node) => node.id), ...block.nodes.map((node) => node.label ?? "")]
+      .join(" ")
+      .toLowerCase()
+      .includes(normalized),
   );
 }
 
