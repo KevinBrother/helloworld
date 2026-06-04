@@ -119,3 +119,24 @@ export type RunResponse = {
   result?: RunResult;
   diagnostics?: Diagnostic[];
 };
+
+export type RunEvent = NonNullable<RunResult["events"]>[number] & {
+  name?: string;
+  statementId?: string;
+};
+
+export type RunStreamMessage =
+  | {
+      type: "trace";
+      event: RunEvent;
+    }
+  | {
+      type: "result";
+      result?: RunResult;
+      diagnostics?: Diagnostic[];
+    }
+  | {
+      type: "error";
+      event?: RunEvent;
+      diagnostics?: Diagnostic[];
+    };

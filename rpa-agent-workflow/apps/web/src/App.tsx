@@ -1,31 +1,14 @@
 import { useEffect, useMemo, useRef, useState } from "react";
-import {
-  AlertTriangle,
-  CheckCircle2,
-  ChevronDown,
-  ChevronUp,
-  FileUp,
-  Play,
-  RefreshCw,
-  Save,
-  Search,
-  X,
-} from "lucide-react";
 import sampleDocument from "../../../output/calculator-ui-node.json";
-import {
-  buildWorkbenchModel,
-  getFieldSourceId,
-  getNodeIoLabel,
-  getResolvedFieldValue,
-  getSourceOptions,
-  makeFieldValueFromSource,
-  type WorkbenchField,
-  type WorkbenchModel,
-  type WorkbenchNode,
-} from "./workbenchModel";
-import type { Diagnostic, EditOperation, EditorStateResponse, RunResult, RunResponse, UIDocument, UINode } from "./types";
-
-type SaveState = "sample" | "saved" | "saving" | "failed";
+import { reduceRunMessage, runWorkflowStream, type NodeRunStateMap } from "./runEvents";
+import { buildWorkbenchModel, type WorkbenchField, type WorkbenchNode } from "./workbenchModel";
+import { Header, type SaveState } from "./workbench/components/Header";
+import { NodeLibrary } from "./workbench/components/NodeLibrary";
+import { ParameterPanel } from "./workbench/components/ParameterPanel";
+import { RunLog } from "./workbench/components/RunLog";
+import { TestRunModal } from "./workbench/components/TestRunModal";
+import { WorkflowCanvas } from "./workbench/components/WorkflowCanvas";
+import type { Diagnostic, EditOperation, EditorStateResponse, RunResult, UIDocument, UINode } from "./types";
 
 const DEFAULT_ACTOR = {
   id: "local-user",
@@ -48,13 +31,8 @@ function App() {
   const [serviceRetrying, setServiceRetrying] = useState(true);
   const [blockQuery, setBlockQuery] = useState("");
   const [openSourceKey, setOpenSourceKey] = useState<string | null>(null);
-  const [runLines, setRunLines] = useState<string[]>([
-    "[10:42:01] test run started: calculator",
-    "[10:42:01] left = 12, operator = +, right = 7",
-    "[10:42:01] condition selected then path",
-    "[10:42:01] math.calculate result = 19",
-    "[10:42:01] workflow result = 19",
-  ]);
+  const [runLines, setRunLines] = useState<string[]>(["No server run yet."]);
+  const [nodeRunStates, setNodeRunStates] = useState<NodeRunStateMap>({});
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const model = useMemo(() => buildWorkbenchModel(uiDocument), [uiDocument]);
@@ -154,37 +132,33 @@ function App() {
     setOpenSourceKey(null);
     setRunPending(true);
     setRunModalOpen(false);
+    setRunResult(null);
+    setNodeRunStates({});
+    setRunLines((current) => [`[${new Date().toLocaleTimeString("en-US", { hour12: false })}] test run started`, ...current].slice(0, 18));
     const timestamp = new Date().toLocaleTimeString("en-US", { hour12: false });
 
-    if (!serverAvailable) {
-      setRunResult({
-        inputs: { left: 12, operator: "+", right: 7 },
-        returns: { result: 19 },
-        nodeOutputs: { branch_by_threshold: { result: 19 } },
-      });
-      setRunLines((current) =>
-        [`[${timestamp}] sample test run: result = 19`, `[${timestamp}] using local projection data`, ...current].slice(0, 12),
-      );
-      setStatus("Sample test run completed");
-      setRunPending(false);
-      return;
-    }
+    const outcome = await runWorkflowStream(getWorkflowRunInputs(model), (message) => {
+      setNodeRunStates((current) => reduceRunMessage(current, message));
+      if (message.type === "trace" && message.event.statementId && message.event.name === "statement.start") {
+        setRunLines((current) => [`[${timestamp}] running node ${message.event.statementId}`, ...current].slice(0, 18));
+      }
+    });
 
-    try {
-      const payload = await requestJSON<RunResponse>("/api/run", { method: "POST" });
+    if (outcome.ok) {
+      const payload = outcome.response;
       setRunResult(payload.result ?? null);
       setDiagnostics(payload.diagnostics ?? []);
       setRunLines((current) => [`[${timestamp}] test run completed`, ...formatRunLines(payload.result), ...current].slice(0, 18));
       setStatus("Test run completed");
-    } catch (error) {
-      const apiError = normalizeAPIError(error);
+    } else {
+      const apiError = normalizeAPIError(outcome.diagnostics[0]?.message ?? "Workflow run failed");
       setRunResult(null);
-      setDiagnostics(apiError.diagnostics);
+      setDiagnostics(outcome.diagnostics.length > 0 ? outcome.diagnostics : apiError.diagnostics);
       setRunLines((current) => [`[${timestamp}] test run failed: ${apiError.message}`, ...current].slice(0, 12));
       setStatus(apiError.message);
-    } finally {
-      setRunPending(false);
     }
+
+    setRunPending(false);
   };
 
   const handleLoadJSON = async (file: File | undefined) => {
@@ -209,16 +183,10 @@ function App() {
   return (
     <div className="workbench-shell">
       <Header
-        diagnostics={diagnostics}
         runPending={runPending}
-        saveState={saveState}
         serverAvailable={serverAvailable}
-        serviceError={serviceError}
-        serviceRetrying={serviceRetrying}
-        status={status}
         workflowName={model.workflowName}
         onLoadJSON={() => fileInputRef.current?.click()}
-        onRetry={() => void loadWorkflowService({ retry: true })}
         onRun={() => {
           setOpenSourceKey(null);
           setRunModalOpen(true);
@@ -238,6 +206,7 @@ function App() {
         <NodeLibrary blocks={filteredBlocks} query={blockQuery} onQueryChange={setBlockQuery} />
         <WorkflowCanvas
           model={model}
+          nodeRunStates={nodeRunStates}
           selectedId={selectedNode.id}
           onSelect={(id) => {
             setOpenSourceKey(null);
@@ -267,433 +236,34 @@ function App() {
   );
 }
 
-function Header({
-  diagnostics,
-  runPending,
-  saveState,
-  serverAvailable,
-  serviceError,
-  serviceRetrying,
-  status,
-  workflowName,
-  onLoadJSON,
-  onRetry,
-  onRun,
-}: {
-  diagnostics: Diagnostic[];
-  runPending: boolean;
-  saveState: SaveState;
-  serverAvailable: boolean;
-  serviceError: string;
-  serviceRetrying: boolean;
-  status: string;
-  workflowName: string;
-  onLoadJSON: () => void;
-  onRetry: () => void;
-  onRun: () => void;
-}) {
-  return (
-    <header className="workbench-header">
-      <div className="product-title">
-        <span>Workflow Workbench</span>
-        <h1>{workflowName}</h1>
-      </div>
-      <div className="header-status" aria-live="polite">
-        <StatusPill tone={serverAvailable ? "ok" : "warn"}>{serverAvailable ? "Connected" : "Local sample"}</StatusPill>
-        <StatusPill tone={saveState === "failed" ? "danger" : saveState === "saved" ? "ok" : "neutral"}>{saveLabel(saveState)}</StatusPill>
-        {diagnostics.length > 0 ? <StatusPill tone="warn">{diagnostics.length} issues</StatusPill> : <StatusPill tone="ok">No issues</StatusPill>}
-        <p>{status}</p>
-        {!serverAvailable && serviceError ? (
-          <button className="link-button" disabled={serviceRetrying} onClick={onRetry}>
-            <RefreshCw size={15} />
-            Retry service
-          </button>
-        ) : null}
-      </div>
-      <div className="header-actions">
-        <button className="secondary-button" onClick={onLoadJSON}>
-          <FileUp size={17} />
-          Load JSON
-        </button>
-        <button className="secondary-button" disabled={!serverAvailable}>
-          <Save size={17} />
-          Save workflow
-        </button>
-        <button className="primary-button" onClick={onRun} disabled={runPending}>
-          <Play size={17} />
-          {runPending ? "Running" : "Test run"}
-        </button>
-      </div>
-    </header>
-  );
-}
-
-function NodeLibrary({
-  blocks,
-  query,
-  onQueryChange,
-}: {
-  blocks: WorkbenchModel["blockOptions"];
-  query: string;
-  onQueryChange: (value: string) => void;
-}) {
-  return (
-    <aside className="panel node-library">
-      <PanelHeading title="Block library" detail={`${blocks.length} available`} />
-      <label className="search-field">
-        <Search size={16} />
-        <input value={query} onChange={(event) => onQueryChange(event.target.value)} placeholder="Search block or control node" />
-      </label>
-      <div className="block-list">
-        {blocks.map((block) => (
-          <button className="block-option" key={block.key}>
-            <span>
-              <strong>{block.key}</strong>
-              <small>{block.detail}</small>
-            </span>
-            <em>{block.category}</em>
-            {block.instances > 0 ? <b>{block.instances}</b> : null}
-          </button>
-        ))}
-      </div>
-    </aside>
-  );
-}
-
-function WorkflowCanvas({
-  model,
-  selectedId,
-  onSelect,
-}: {
-  model: WorkbenchModel;
-  selectedId: string;
-  onSelect: (id: string) => void;
-}) {
-  return (
-    <section className="panel canvas-panel">
-      <PanelHeading title="Canvas" detail="Select a node to configure it" />
-      <div className="canvas-scroll">
-        <NodeSequence nodes={[model.root]} model={model} selectedId={selectedId} onSelect={onSelect} root />
-      </div>
-    </section>
-  );
-}
-
-function NodeSequence({
-  nodes,
-  model,
-  selectedId,
-  onSelect,
-  root = false,
-}: {
-  nodes: UINode[];
-  model: WorkbenchModel;
-  selectedId: string;
-  onSelect: (id: string) => void;
-  root?: boolean;
-}) {
-  return (
-    <div className={root ? "node-sequence root-sequence" : "node-sequence"}>
-      {nodes.map((node, index) => (
-        <div className="sequence-item" key={node.id}>
-          {index > 0 || root ? <div className="flow-line" /> : null}
-          <CanvasNode node={model.nodes.find((candidate) => candidate.id === node.id)} selected={selectedId === node.id} onSelect={onSelect} />
-          {node.branches?.length ? (
-            <div className="branch-layout">
-              {node.branches.map((branch) => (
-                <div className="branch-column" key={branch.id}>
-                  <span>{branch.label ?? branch.kind}</span>
-                  <NodeSequence nodes={branch.children ?? []} model={model} selectedId={selectedId} onSelect={onSelect} />
-                </div>
-              ))}
-            </div>
-          ) : null}
-          {node.children?.length ? <NodeSequence nodes={node.children} model={model} selectedId={selectedId} onSelect={onSelect} /> : null}
-        </div>
-      ))}
-    </div>
-  );
-}
-
-function CanvasNode({ node, selected, onSelect }: { node?: WorkbenchNode; selected: boolean; onSelect: (id: string) => void }) {
-  if (!node) return null;
-
-  return (
-    <button className={selected ? "canvas-node selected" : "canvas-node"} onClick={() => onSelect(node.id)}>
-      <span className="node-kind">{node.kind === "sequence" && node.order === 0 ? "Workflow Inputs" : node.kind}</span>
-      <strong>{node.kind === "return" ? "Return result" : node.label}</strong>
-      {node.branch ? <small>{node.branch}</small> : null}
-      <div className="node-io">
-        {getNodeIoLabel(node).map((label) => (
-          <span key={label}>{label}</span>
-        ))}
-      </div>
-    </button>
-  );
-}
-
-function ParameterPanel({
-  model,
-  node,
-  openSourceKey,
-  onOpenSourceKeyChange,
-  onFieldChange,
-}: {
-  model: WorkbenchModel;
-  node: WorkbenchNode;
-  openSourceKey: string | null;
-  onOpenSourceKeyChange: (key: string | null) => void;
-  onFieldChange: (field: WorkbenchField, value: unknown) => void;
-}) {
-  const title = node.kind === "sequence" && node.order === 0 ? "Workflow Inputs" : node.kind === "return" ? "Return result" : node.label;
-  const showInputs = node.kind !== "return" && node.inputs.length > 0;
-  const showOutputs = node.kind !== "sequence" && node.outputs.length > 0;
-
-  return (
-    <aside className="panel parameter-panel">
-      <PanelHeading title="Parameters" detail={node.path ?? node.id} />
-      <div className="selected-node-summary">
-        <div>
-          <h2>{title}</h2>
-          <span>{node.kind}</span>
-        </div>
-        {node.branch ? <b>{node.branch}</b> : null}
-      </div>
-
-      {showInputs ? (
-        <SchemaSection title={node.kind === "sequence" ? "Workflow inputs" : "Inputs"}>
-          {node.inputs.map((field) => (
-            <FieldRow
-              field={field}
-              key={field.path}
-              model={model}
-              node={node}
-              openSourceKey={openSourceKey}
-              onFieldChange={onFieldChange}
-              onOpenSourceKeyChange={onOpenSourceKeyChange}
-            />
-          ))}
-        </SchemaSection>
-      ) : null}
-
-      {showOutputs ? (
-        <SchemaSection title={node.kind === "return" ? "Workflow outputs" : "Outputs"}>
-          {node.outputs.map((field) => (
-            <FieldRow
-              field={field}
-              key={field.path}
-              model={model}
-              node={node}
-              openSourceKey={openSourceKey}
-              onFieldChange={onFieldChange}
-              onOpenSourceKeyChange={onOpenSourceKeyChange}
-            />
-          ))}
-        </SchemaSection>
-      ) : null}
-
-      {!showInputs && !showOutputs ? <div className="empty-state">No configurable fields for this node.</div> : null}
-    </aside>
-  );
-}
-
-function FieldRow({
-  field,
-  model,
-  node,
-  openSourceKey,
-  onFieldChange,
-  onOpenSourceKeyChange,
-}: {
-  field: WorkbenchField;
-  model: WorkbenchModel;
-  node: WorkbenchNode;
-  openSourceKey: string | null;
-  onFieldChange: (field: WorkbenchField, value: unknown) => void;
-  onOpenSourceKeyChange: (key: string | null) => void;
-}) {
-  const sourceKey = `${node.id}:${field.path}`;
-  const sourceOptions = getSourceOptions(model.nodes, node.id, field);
-  const canChooseSource = !field.readonly && field.type !== "unknown" && sourceOptions.length > 0;
-  const resolvedValue = getResolvedFieldValue(field, model.sourcesById);
-  const activeSourceId = getFieldSourceId(field);
-
-  return (
-    <div className="schema-row">
-      <span className="field-name">{field.label}</span>
-      <code className={`field-type ${field.type}`}>{field.type}</code>
-      {field.options?.length ? (
-        <select
-          className="value-control"
-          value={String(resolvedValue)}
-          onChange={(event) => onFieldChange(field, { kind: "literal", value: event.target.value })}
-        >
-          {field.options.map((option) => (
-            <option key={option}>{option}</option>
-          ))}
-        </select>
-      ) : canChooseSource ? (
-        <button className="value-control source-value" onClick={() => onOpenSourceKeyChange(openSourceKey === sourceKey ? null : sourceKey)}>
-          {resolvedValue || "Choose source"}
-          <ChevronDown size={14} />
-        </button>
-      ) : field.readonly ? (
-        <span className="value-control readonly-value">{resolvedValue || "declared"}</span>
-      ) : (
-        <input
-          className="value-control"
-          value={String(resolvedValue)}
-          onChange={(event) => onFieldChange(field, { kind: "literal", value: parseFieldInput(event.target.value, field.type) })}
-        />
-      )}
-
-      {canChooseSource && openSourceKey === sourceKey ? (
-        <div className="source-picker">
-          {sourceOptions.map((source) => (
-            <button
-              className={activeSourceId === source.id ? "active" : ""}
-              key={source.id}
-              onClick={() => {
-                onFieldChange(field, makeFieldValueFromSource(source.id));
-                onOpenSourceKeyChange(null);
-              }}
-            >
-              <span>{source.nodeLabel}</span>
-              <strong>{source.output}</strong>
-              <code>{source.type}</code>
-              <em>{source.displayValue}</em>
-            </button>
-          ))}
-        </div>
-      ) : null}
-    </div>
-  );
-}
-
-function TestRunModal({
-  pending,
-  serverAvailable,
-  onClose,
-  onRun,
-}: {
-  pending: boolean;
-  serverAvailable: boolean;
-  onClose: () => void;
-  onRun: () => void;
-}) {
-  return (
-    <div className="modal-backdrop" role="presentation">
-      <section className="test-modal" role="dialog" aria-modal="true" aria-labelledby="test-run-title">
-        <div className="modal-header">
-          <div>
-            <h2 id="test-run-title">Test run workflow</h2>
-            <p>{serverAvailable ? "Run the current saved workflow." : "Run against local sample data."}</p>
-          </div>
-          <button className="icon-button" aria-label="Close test run" onClick={onClose}>
-            <X size={18} />
-          </button>
-        </div>
-        <div className="sample-input-grid">
-          <ReadOnlyField label="left" value="12" />
-          <ReadOnlyField label="operator" value="+" />
-          <ReadOnlyField label="right" value="7" />
-        </div>
-        <div className="result-preview">Expected result: 19</div>
-        <div className="modal-actions">
-          <button className="secondary-button" onClick={onClose}>
-            Cancel
-          </button>
-          <button className="primary-button" onClick={onRun} disabled={pending}>
-            <Play size={17} />
-            {pending ? "Running" : "Run test"}
-          </button>
-        </div>
-      </section>
-    </div>
-  );
-}
-
-function RunLog({
-  lines,
-  open,
-  result,
-  onOpenChange,
-}: {
-  lines: string[];
-  open: boolean;
-  result: RunResult | null;
-  onOpenChange: (open: boolean) => void;
-}) {
-  return (
-    <section className={open ? "run-log open" : "run-log"}>
-      <button className="run-log-header" onClick={() => onOpenChange(!open)} aria-expanded={open}>
-        <span>Run output</span>
-        {result?.returns ? <strong>{JSON.stringify(result.returns)}</strong> : null}
-        {open ? <ChevronDown size={18} /> : <ChevronUp size={18} />}
-      </button>
-      {open ? (
-        <div className="run-log-body">
-          {lines.map((line, index) => (
-            <code key={`${line}-${index}`}>{line}</code>
-          ))}
-        </div>
-      ) : null}
-    </section>
-  );
-}
-
-function SchemaSection({ title, children }: { title: string; children: React.ReactNode }) {
-  return (
-    <section className="schema-section">
-      <h3>{title}</h3>
-      <div className="schema-box">
-        <span className="brace">{"{"}</span>
-        {children}
-        <span className="brace">{"}"}</span>
-      </div>
-    </section>
-  );
-}
-
-function PanelHeading({ title, detail }: { title: string; detail: string }) {
-  return (
-    <div className="panel-heading">
-      <h2>{title}</h2>
-      <span>{detail}</span>
-    </div>
-  );
-}
-
-function StatusPill({ children, tone }: { children: React.ReactNode; tone: "ok" | "warn" | "danger" | "neutral" }) {
-  return <span className={`status-pill ${tone}`}>{children}</span>;
-}
-
-function ReadOnlyField({ label, value }: { label: string; value: string }) {
-  return (
-    <label className="readonly-field">
-      <span>{label}</span>
-      <input readOnly value={value} />
-    </label>
-  );
-}
-
-function parseFieldInput(value: string, type: WorkbenchField["type"]) {
-  if (type === "number") {
-    const parsed = Number(value);
-    return Number.isFinite(parsed) ? parsed : value;
-  }
-  if (type === "boolean") return value === "true";
-  return value;
-}
-
 function updateFieldValue(document: UIDocument, nodeId: string, path: string, value: unknown): UIDocument {
   return {
     ...document,
     root: updateNodeRecursive(document.root, nodeId, (node) => ({
       ...node,
-      inspector: (node.inspector ?? []).map((field) => (field.path === path ? { ...field, value } : field)),
+      inspector: (node.inspector ?? []).map((field) => updateInspectorFieldValue(field, path, value)),
     })),
   };
+}
+
+function updateInspectorFieldValue(field: NonNullable<UINode["inspector"]>[number], path: string, value: unknown) {
+  if (field.path === path) {
+    return { ...field, value };
+  }
+
+  if (!path.startsWith(`${field.path}.`) || field.label !== "Condition" || !isRecord(field.value) || field.value.kind !== "binary") {
+    return field;
+  }
+
+  const segment = path.slice(field.path.length + 1);
+  if (segment === "operator" && isRecord(value) && value.kind === "literal") {
+    return { ...field, value: { ...field.value, op: value.value } };
+  }
+  if (segment === "left" || segment === "right") {
+    return { ...field, value: { ...field.value, [segment]: value } };
+  }
+
+  return field;
 }
 
 function updateNodeRecursive(node: UINode, id: string, update: (node: UINode) => UINode): UINode {
@@ -749,6 +319,19 @@ function formatRunLines(result: RunResult | null | undefined) {
   return lines;
 }
 
+function getWorkflowRunInputs(model: ReturnType<typeof buildWorkbenchModel>) {
+  const startNode = model.nodes.find((node) => node.kind === "sequence" && node.order === 0);
+  if (!startNode) return {};
+  return Object.fromEntries(startNode.inputs.map((field) => [field.key, toRunInputValue(field.value)]));
+}
+
+function toRunInputValue(value: unknown): unknown {
+  if (isRecord(value) && value.kind === "literal") {
+    return value.value;
+  }
+  return value;
+}
+
 function makeOperationId(prefix: string) {
   return `${prefix}-${Date.now()}-${Math.random().toString(16).slice(2)}`;
 }
@@ -762,6 +345,10 @@ function saveLabel(state: SaveState) {
 
 function formatError(error: unknown) {
   return error instanceof Error ? error.message : String(error);
+}
+
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === "object" && value !== null && !Array.isArray(value);
 }
 
 export default App;

@@ -3,6 +3,7 @@ package main
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"io"
 	"net/http"
@@ -39,6 +40,13 @@ type editorRunResponse struct {
 	Diagnostics []diagnostic.Diagnostic `json:"diagnostics"`
 }
 
+type editorRunStreamMessage struct {
+	Type        string                  `json:"type"`
+	Event       *executor.Event         `json:"event,omitempty"`
+	Result      *executor.Result        `json:"result,omitempty"`
+	Diagnostics []diagnostic.Diagnostic `json:"diagnostics,omitempty"`
+}
+
 type editorServer struct {
 	mu       sync.Mutex
 	workflow ast.Workflow
@@ -60,6 +68,7 @@ func newEditorServerWithPath(workflow ast.Workflow, blocks map[string]block.Defi
 	mux.HandleFunc("/api/workflow", server.handleWorkflow)
 	mux.HandleFunc("/api/edit", server.handleEdit)
 	mux.HandleFunc("/api/run", server.handleRun)
+	mux.HandleFunc("/api/run/stream", server.handleRunStream)
 	return mux
 }
 
@@ -131,6 +140,118 @@ func (s *editorServer) handleRun(w http.ResponseWriter, r *http.Request) {
 		Result:      result,
 		Diagnostics: nil,
 	})
+}
+
+func (s *editorServer) handleRunStream(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodGet {
+		respondRunDiagnostics(w, http.StatusMethodNotAllowed, methodNotAllowedDiagnostic(r.Method))
+		return
+	}
+
+	flusher, ok := w.(http.Flusher)
+	if !ok {
+		respondRunDiagnostics(w, http.StatusInternalServerError, diagnostic.Diagnostic{
+			Code:     "RUN_STREAM_UNSUPPORTED",
+			Severity: diagnostic.SeverityError,
+			Message:  "server does not support streaming responses",
+			Path:     "$",
+		})
+		return
+	}
+
+	s.mu.Lock()
+	workflow := s.workflow
+	blocks := s.blocks
+	s.mu.Unlock()
+
+	w.Header().Set("Content-Type", "text/event-stream")
+	w.Header().Set("Cache-Control", "no-cache")
+	w.Header().Set("Connection", "keep-alive")
+
+	send := func(message editorRunStreamMessage) bool {
+		data, err := json.Marshal(message)
+		if err != nil {
+			return false
+		}
+		if _, err := fmt.Fprintf(w, "data: %s\n\n", data); err != nil {
+			return false
+		}
+		flusher.Flush()
+		return true
+	}
+
+	if diags := s.validateWorkflow(workflow); len(diags) > 0 {
+		send(editorRunStreamMessage{Type: "error", Diagnostics: diags})
+		return
+	}
+
+	inputs, inputDiags := parseRunStreamInputs(r)
+	if len(inputDiags) > 0 {
+		send(editorRunStreamMessage{Type: "error", Diagnostics: inputDiags})
+		return
+	}
+
+	recorder := &sseRecorder{send: send}
+	opts := executor.Options{
+		Inputs:   inputs,
+		Blocks:   blocks,
+		Recorder: recorder,
+	}
+	if len(blocks) > 0 {
+		opts.Host = executor.NewPythonHost(executor.PythonHostOptions{})
+	}
+	result, err := executor.RunWorkflow(r.Context(), workflow, opts)
+	if err != nil {
+		runDiagnostic := diagnostic.Diagnostic{
+			Code:     "RUN_FAILED",
+			Severity: diagnostic.SeverityError,
+			Message:  err.Error(),
+			Path:     "$",
+		}
+		var runtimeErr *executor.RuntimeError
+		if errors.As(err, &runtimeErr) && runtimeErr.StatementID != "" {
+			event := executor.Event{
+				Name:          "run.error",
+				WorkflowID:    runtimeErr.WorkflowID,
+				StatementID:   runtimeErr.StatementID,
+				StatementKind: runtimeErr.StatementKind,
+			}
+			send(editorRunStreamMessage{Type: "error", Event: &event, Diagnostics: []diagnostic.Diagnostic{runDiagnostic}})
+			return
+		}
+		send(editorRunStreamMessage{Type: "error", Diagnostics: []diagnostic.Diagnostic{runDiagnostic}})
+		return
+	}
+
+	send(editorRunStreamMessage{Type: "result", Result: &result})
+}
+
+func parseRunStreamInputs(r *http.Request) (map[string]any, []diagnostic.Diagnostic) {
+	rawInputs := r.URL.Query().Get("inputs")
+	if rawInputs == "" {
+		return nil, nil
+	}
+	var inputs map[string]any
+	if err := json.Unmarshal([]byte(rawInputs), &inputs); err != nil {
+		return nil, []diagnostic.Diagnostic{{
+			Code:     "RUN_INPUTS_INVALID",
+			Severity: diagnostic.SeverityError,
+			Message:  fmt.Sprintf("invalid run inputs json: %v", err),
+			Path:     "$.inputs",
+		}}
+	}
+	return inputs, nil
+}
+
+type sseRecorder struct {
+	mu   sync.Mutex
+	send func(editorRunStreamMessage) bool
+}
+
+func (r *sseRecorder) Record(event executor.Event) {
+	r.mu.Lock()
+	defer r.mu.Unlock()
+	r.send(editorRunStreamMessage{Type: "trace", Event: &event})
 }
 
 func (s *editorServer) handleEdit(w http.ResponseWriter, r *http.Request) {

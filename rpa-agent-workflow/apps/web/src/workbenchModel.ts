@@ -54,6 +54,14 @@ export type WorkbenchModel = {
   blockOptions: BlockOption[];
 };
 
+export type CanvasTopology = {
+  start?: WorkbenchNode;
+  decision?: WorkbenchNode;
+  thenNodes: WorkbenchNode[];
+  elseNodes: WorkbenchNode[];
+  returnNode?: WorkbenchNode;
+};
+
 const SAMPLE_INPUT_VALUES: Record<string, unknown> = {
   left: 12,
   operator: "+",
@@ -118,6 +126,10 @@ export function getSourceOptions(nodes: WorkbenchNode[], currentNodeId: string, 
     }
 
     const sourceNode = nodes.find((node) => node.id === source.nodeId);
+    if (current.kind === "return") {
+      return sourceNode?.kind === "callBlock";
+    }
+
     if (sourceNode?.kind === "if" && sourceNode.path && current.path?.startsWith(`${sourceNode.path}.`)) {
       return false;
     }
@@ -157,6 +169,22 @@ export function makeFieldValueFromSource(sourceId: string) {
   return { kind: "ref", ref: sourceId };
 }
 
+export function buildCanvasTopology(model: WorkbenchModel): CanvasTopology {
+  const start = model.nodes.find((node) => node.kind === "sequence" && node.order === 0);
+  const decision = model.nodes.find((node) => node.kind === "if");
+  const thenNodes = model.nodes.filter((node) => node.branch?.toLowerCase() === "then");
+  const elseNodes = model.nodes.filter((node) => node.branch?.toLowerCase() === "else");
+  const returnNode = model.nodes.find((node) => node.kind === "return");
+
+  return {
+    start,
+    decision,
+    thenNodes,
+    elseNodes,
+    returnNode,
+  };
+}
+
 function flattenWorkbenchNodes(root: UINode) {
   const nodes: WorkbenchNode[] = [];
 
@@ -178,8 +206,8 @@ function flattenWorkbenchNodes(root: UINode) {
 
 function toWorkbenchNode(node: UINode, order: number, branch?: string): WorkbenchNode {
   const fields = node.inspector ?? [];
-  const inputs = fields.filter(isInputField).map((field) => toWorkbenchField(field, order === 0 && node.kind === "sequence"));
-  const outputs = fields.filter(isOutputField).map(toWorkbenchField);
+  const inputs = fields.filter(isInputField).flatMap((field) => toInputFields(field, order === 0 && node.kind === "sequence"));
+  const outputs = fields.filter(isOutputField).map((field) => toWorkbenchField(field, false, node.kind === "return"));
 
   if (node.kind === "callBlock" && outputs.length === 0) {
     outputs.push({
@@ -218,18 +246,54 @@ function isOutputField(field: InspectorField) {
   return field.path.includes(".outputs.") || field.path.includes(".returns.");
 }
 
-function toWorkbenchField(field: InspectorField, editableWorkflowInput = false): WorkbenchField {
+function toWorkbenchField(field: InspectorField, editableWorkflowInput = false, declarationOnly = false): WorkbenchField {
   const key = fieldKey(field);
   return {
     key,
     label: key,
     type: inferFieldType(field),
-    control: editableWorkflowInput ? "input" : inferControl(field),
+    control: declarationOnly ? "readonly" : editableWorkflowInput ? "input" : inferControl(field),
     path: field.path,
-    value: field.control === "port" ? SAMPLE_INPUT_VALUES[key] : field.value,
-    readonly: editableWorkflowInput ? false : field.readonly,
-    options: inferOptions(key),
+    value: declarationOnly ? undefined : field.control === "port" ? SAMPLE_INPUT_VALUES[key] : field.value,
+    readonly: declarationOnly ? true : editableWorkflowInput ? false : field.readonly,
+    options: inferOptions(key, field.path),
   };
+}
+
+function toInputFields(field: InspectorField, editableWorkflowInput = false): WorkbenchField[] {
+  if (field.label === "Condition" && isExpressionRecord(field.value) && field.value.kind === "binary") {
+    return [
+      {
+        key: "left",
+        label: "left",
+        type: "number",
+        control: expressionRef(field.value.left) ? "reference" : "input",
+        path: `${field.path}.left`,
+        value: field.value.left,
+        options: undefined,
+      },
+      {
+        key: "operator",
+        label: "operator",
+        type: "string",
+        control: "select",
+        path: `${field.path}.operator`,
+        value: { kind: "literal", value: String(field.value.op ?? ">") },
+        options: [">", ">=", "<", "<=", "=="],
+      },
+      {
+        key: "right",
+        label: "right",
+        type: "number",
+        control: expressionRef(field.value.right) ? "reference" : "input",
+        path: `${field.path}.right`,
+        value: field.value.right,
+        options: undefined,
+      },
+    ];
+  }
+
+  return [toWorkbenchField(field, editableWorkflowInput)];
 }
 
 function buildSources(nodes: WorkbenchNode[]) {
@@ -306,8 +370,9 @@ function inferControl(field: InspectorField): FieldControl {
   return "input";
 }
 
-function inferOptions(key: string) {
-  if (key === "operator") return ["+", "-", "*", "/", ">", ">=", "<", "<=", "=="];
+function inferOptions(key: string, path: string) {
+  if (key === "operator" && path.includes(".condition.")) return [">", ">=", "<", "<=", "=="];
+  if (key === "operator") return ["+", "-", "*", "/"];
   return undefined;
 }
 

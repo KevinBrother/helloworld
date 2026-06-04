@@ -7,6 +7,7 @@ import (
 	"net/http/httptest"
 	"os"
 	"path/filepath"
+	"strings"
 	"testing"
 
 	"rpa-agent-workflow/compiler/go/diagnostic"
@@ -162,6 +163,52 @@ func TestEditorServerRunReturnsCurrentWorkflowResult(t *testing.T) {
 	}
 }
 
+func TestEditorServerRunStreamEmitsNodeEventsAndResult(t *testing.T) {
+	server := newEditorServer(testRunnableWorkflow(), nil)
+
+	response := httptest.NewRecorder()
+	request := httptest.NewRequest(http.MethodGet, "/api/run/stream", nil)
+	server.ServeHTTP(response, request)
+
+	if response.Code != http.StatusOK {
+		t.Fatalf("status = %d, want %d: %s", response.Code, http.StatusOK, response.Body.String())
+	}
+	if contentType := response.Header().Get("Content-Type"); contentType != "text/event-stream" {
+		t.Fatalf("content type = %q, want text/event-stream", contentType)
+	}
+
+	messages := decodeSSEMessages(t, response.Body.String())
+	got := make([]string, 0, len(messages))
+	var result *executor.Result
+	for _, message := range messages {
+		switch message.Type {
+		case "trace":
+			if message.Event != nil && message.Event.StatementID != "" {
+				got = append(got, message.Event.Name+":"+message.Event.StatementID)
+			}
+		case "result":
+			result = message.Result
+		}
+	}
+
+	want := []string{
+		"statement.start:root",
+		"statement.start:assign_result",
+		"statement.end:assign_result",
+		"statement.start:return_result",
+		"statement.end:return_result",
+		"statement.end:root",
+	}
+	for _, expected := range want {
+		if !containsString(got, expected) {
+			t.Fatalf("stream trace = %#v, missing %q", got, expected)
+		}
+	}
+	if result == nil || result.Returns["result"] != float64(19) {
+		t.Fatalf("stream result = %#v, want result 19", result)
+	}
+}
+
 func TestEditorServerMethodErrorsReturnJSONDiagnostics(t *testing.T) {
 	server := newEditorServer(testRunnableWorkflow(), nil)
 
@@ -177,6 +224,32 @@ func TestEditorServerMethodErrorsReturnJSONDiagnostics(t *testing.T) {
 	if len(result.Diagnostics) != 1 || result.Diagnostics[0].Code != "METHOD_NOT_ALLOWED" {
 		t.Fatalf("diagnostics = %#v, want METHOD_NOT_ALLOWED", result.Diagnostics)
 	}
+}
+
+func decodeSSEMessages(t *testing.T, stream string) []editorRunStreamMessage {
+	t.Helper()
+	var messages []editorRunStreamMessage
+	for _, line := range strings.Split(stream, "\n") {
+		line = strings.TrimSpace(line)
+		if !strings.HasPrefix(line, "data: ") {
+			continue
+		}
+		var message editorRunStreamMessage
+		if err := json.Unmarshal([]byte(strings.TrimPrefix(line, "data: ")), &message); err != nil {
+			t.Fatalf("decode sse message: %v\n%s", err, line)
+		}
+		messages = append(messages, message)
+	}
+	return messages
+}
+
+func containsString(values []string, needle string) bool {
+	for _, value := range values {
+		if value == needle {
+			return true
+		}
+	}
+	return false
 }
 
 func testEditorWorkflow() ast.Workflow {

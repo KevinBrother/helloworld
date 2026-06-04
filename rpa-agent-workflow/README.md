@@ -151,5 +151,7 @@ go run ./apps/cli/rpawf project-ui examples/calculator/ast.json > output/calcula
 
 ## 运行方式
 
+``` bash
 CGO_ENABLED=0 go run ./apps/cli/rpawf serve examples/calculator/ast.json sdks/python/blocks
 pnpm --dir apps/web dev
+```
