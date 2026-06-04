@@ -1316,6 +1316,51 @@ textarea {
   font-size: 0.78rem;
 }
 
+.trace-row.saved {
+  border-color: color-mix(in oklab, var(--ok) 30%, var(--line));
+}
+
+.trace-row.local {
+  border-color: color-mix(in oklab, var(--warn) 30%, var(--line));
+}
+
+.trace-row.failed {
+  border-color: color-mix(in oklab, var(--danger) 34%, var(--line));
+  background: var(--danger-soft);
+}
+
+.trace-result {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.35rem;
+}
+
+.trace-status {
+  display: inline-flex;
+  align-items: center;
+  min-height: 1.45rem;
+  border-radius: 999px;
+  padding: 0.08rem 0.42rem;
+  font-family: "IBM Plex Mono", ui-monospace, monospace;
+  font-size: 0.68rem;
+}
+
+.trace-status.saved {
+  background: var(--ok-soft);
+  color: var(--ok);
+}
+
+.trace-status.local {
+  background: var(--warn-soft);
+  color: var(--warn);
+}
+
+.trace-status.failed {
+  background: var(--danger-soft);
+  color: var(--danger);
+}
+
 @media (prefers-color-scheme: dark) {
   :root {
     color-scheme: dark;

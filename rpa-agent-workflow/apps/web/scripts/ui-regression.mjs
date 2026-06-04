@@ -69,6 +69,14 @@ const checks = [
     pass: appSource.includes("Edit Operations") && appSource.includes("Run Events") && appSource.includes("Raw State"),
   },
   {
+    name: "trace dock records operation status and timestamps",
+    pass:
+      appSource.includes("OperationTraceEntry") &&
+      appSource.includes("recordedAt") &&
+      appSource.includes("traceStatus") &&
+      appSource.includes("formatTraceTime"),
+  },
+  {
     name: "responsive layout uses a single-task mobile surface",
     pass:
       cssSource.includes("@media (max-width: 760px)") &&

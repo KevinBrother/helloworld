@@ -68,6 +68,13 @@ type BindingToken = {
   detail?: string;
 };
 
+type OperationTraceEntry = {
+  operation: EditOperation;
+  recordedAt: string;
+  traceStatus: "local" | "saved" | "failed";
+  message: string;
+};
+
 type WorkflowNodeData = {
   uiNode: UINode;
   branch?: string;
@@ -96,7 +103,7 @@ function App() {
   const [serverAvailable, setServerAvailable] = useState(false);
   const [editorMode, setEditorMode] = useState<EditorMode>("sample");
   const [selectedNodeId, setSelectedNodeId] = useState(() => (sampleDocument as UIDocument).root.id);
-  const [operationLog, setOperationLog] = useState<EditOperation[]>([]);
+  const [operationLog, setOperationLog] = useState<OperationTraceEntry[]>([]);
   const [runResult, setRunResult] = useState<RunResult | null>(null);
   const [runPending, setRunPending] = useState(false);
   const [saveState, setSaveState] = useState<SaveState>("sample");
@@ -124,8 +131,18 @@ function App() {
   const filteredOutline = useMemo(() => filterFlatNodes(outline, searchQuery, kindFilter), [outline, searchQuery, kindFilter]);
   const filteredBlockCatalog = useMemo(() => filterBlockCatalog(blockCatalog, blockQuery), [blockCatalog, blockQuery]);
 
-  const emitOperation = (operation: EditOperation, message?: string) => {
-    setOperationLog((current) => [operation, ...current].slice(0, 80));
+  const emitOperation = (
+    operation: EditOperation,
+    message?: string,
+    traceStatus: OperationTraceEntry["traceStatus"] = serverAvailable ? "saved" : "local",
+  ) => {
+    const entry: OperationTraceEntry = {
+      operation,
+      recordedAt: new Date().toISOString(),
+      traceStatus,
+      message: message ?? `${operation.type} recorded for ${operation.targetNodeId ?? "workflow"}`,
+    };
+    setOperationLog((current) => [entry, ...current].slice(0, 80));
     setStatus(message ?? `${operation.type} recorded for ${operation.targetNodeId ?? "workflow"}`);
   };
 
@@ -178,7 +195,7 @@ function App() {
 
   const submitOperation = async (operation: EditOperation) => {
     if (!serverAvailable) {
-      emitOperation(operation, "Workflow service unavailable; operation recorded locally");
+      emitOperation(operation, "Workflow service unavailable; operation recorded locally", "local");
       return false;
     }
 
@@ -193,7 +210,7 @@ function App() {
       setSaveState("saved");
       setServerAvailable(true);
       setEditorMode("connected");
-      emitOperation(state.operation ?? operation);
+      emitOperation(state.operation ?? operation, "Operation saved to AST", "saved");
       return true;
     } catch (error) {
       const apiError = normalizeAPIError(error);
@@ -204,6 +221,7 @@ function App() {
         setServiceError(apiError.message);
       }
       setStatus(apiError.message);
+      emitOperation(operation, apiError.message, "failed");
       return false;
     }
   };
@@ -1221,7 +1239,7 @@ function TraceDock({
   onOpenChange: (open: boolean) => void;
   activeTab: TraceTab;
   onTabChange: (tab: TraceTab) => void;
-  operations: EditOperation[];
+  operations: OperationTraceEntry[];
   runResult: RunResult | null;
   selectedNode: UINode;
   astDocument: unknown;
@@ -1259,24 +1277,32 @@ function TraceDock({
   );
 }
 
-function OperationsTrace({ operations }: { operations: EditOperation[] }) {
+function OperationsTrace({ operations }: { operations: OperationTraceEntry[] }) {
   if (operations.length === 0) {
     return <EmptyState>No edit operations recorded.</EmptyState>;
   }
   return (
     <div className="trace-table">
-      {operations.map((operation) => (
-        <article className="trace-row" key={operation.operationId}>
+      {operations.map((entry) => (
+        <article className={`trace-row ${entry.traceStatus}`} key={entry.operation.operationId}>
           <div>
-            <strong>{operation.type}</strong>
-            <span>{operation.targetNodeId ?? "workflow"}</span>
+            <strong>{entry.operation.type}</strong>
+            <span>{entry.operation.targetNodeId ?? "workflow"}</span>
           </div>
-          <code>{operation.path ?? operation.operationId}</code>
-          <small>{summarizePayload(operation.payload)}</small>
+          <code>{entry.operation.path ?? entry.operation.operationId}</code>
+          <div className="trace-result">
+            <span>{formatTraceTime(entry.recordedAt)}</span>
+            <TraceStatus status={entry.traceStatus} />
+            <small>{entry.message || summarizePayload(entry.operation.payload)}</small>
+          </div>
         </article>
       ))}
     </div>
   );
+}
+
+function TraceStatus({ status }: { status: OperationTraceEntry["traceStatus"] }) {
+  return <strong className={`trace-status ${status}`}>{status}</strong>;
 }
 
 function EventsTrace({ runResult }: { runResult: RunResult | null }) {
@@ -1828,6 +1854,14 @@ function summarizePayload(payload: unknown) {
   }
   const raw = JSON.stringify(payload);
   return raw.length > 120 ? `${raw.slice(0, 117)}...` : raw;
+}
+
+function formatTraceTime(value: string) {
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) {
+    return value;
+  }
+  return date.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit", second: "2-digit" });
 }
 
 function runResultSummary(result: RunResult | null) {
