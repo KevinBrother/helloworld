@@ -100,8 +100,9 @@ function App() {
       actor: DEFAULT_ACTOR,
     };
 
+    setUIDocument((current) => updateFieldValue(current, node.id, field.path, value));
+
     if (!serverAvailable) {
-      setUIDocument((current) => updateFieldValue(current, node.id, field.path, value));
       setSaveState("sample");
       setStatus("Change applied locally");
       return;

@@ -1,5 +1,5 @@
-import { ChevronDown, X } from "lucide-react";
-import type { ReactNode } from "react";
+import { ChevronDown } from "lucide-react";
+import { useEffect, useState, type ReactNode } from "react";
 import {
   getFieldSourceId,
   getResolvedFieldValue,
@@ -114,6 +114,14 @@ function FieldRow({
   const resolvedValue = getResolvedFieldValue(field, model.sourcesById);
   const activeSourceId = getFieldSourceId(field);
   const activeSource = activeSourceId ? sourceOptions.find((source) => source.id === activeSourceId) : undefined;
+  const sourceLabel = activeSource ? `${activeSource.nodeLabel}.${activeSource.output}` : activeSourceId;
+  const optionListId = field.options?.length ? `field-options-${sourceKey.replace(/[^a-zA-Z0-9_-]/g, "-")}` : undefined;
+  const [draftValue, setDraftValue] = useState<string | null>(null);
+  const displayValue = draftValue ?? String(resolvedValue);
+
+  useEffect(() => {
+    setDraftValue(null);
+  }, [field.path, field.value]);
 
   return (
     <div className="schema-row">
@@ -122,41 +130,45 @@ function FieldRow({
       {field.readonly ? (
         <span className="value-control readonly-value">{resolvedValue}</span>
       ) : (
-        <div className={activeSource ? "value-editor linked" : "value-editor"}>
-          {activeSource ? (
+        <div className={activeSourceId ? "value-editor linked" : "value-editor"}>
+          {activeSourceId ? <span className="binding-badge">ref</span> : null}
+          {field.options?.length ? (
             <>
-              <span className="binding-badge">ref</span>
-              <span className="reference-token">
-                <span>{activeSource.nodeLabel}</span>
-                <strong>{activeSource.output}</strong>
-                <button
-                  aria-label={`Clear ${field.label} reference`}
-                  onClick={() => onFieldChange(field, { kind: "literal", value: parseFieldInput(resolvedValue, field.type) })}
-                >
-                  <X size={13} />
-                </button>
-              </span>
+              <input
+                className="value-control"
+                list={optionListId}
+                value={displayValue}
+                onChange={(event) => {
+                  setDraftValue(event.target.value);
+                  onFieldChange(field, { kind: "literal", value: event.target.value });
+                  onOpenSourceKeyChange(null);
+                }}
+              />
+              <datalist id={optionListId}>
+                {field.options.map((option) => (
+                  <option key={option}>{option}</option>
+                ))}
+              </datalist>
             </>
-          ) : field.options?.length ? (
-            <select
-              className="value-control"
-              value={String(resolvedValue)}
-              onChange={(event) => onFieldChange(field, { kind: "literal", value: event.target.value })}
-            >
-              {field.options.map((option) => (
-                <option key={option}>{option}</option>
-              ))}
-            </select>
           ) : (
             <input
               className="value-control"
-              value={String(resolvedValue)}
-              onChange={(event) => onFieldChange(field, { kind: "literal", value: parseFieldInput(event.target.value, field.type) })}
+              value={displayValue}
+              onChange={(event) => {
+                setDraftValue(event.target.value);
+                onFieldChange(field, { kind: "literal", value: parseFieldInput(event.target.value, field.type) });
+                onOpenSourceKeyChange(null);
+              }}
             />
           )}
           {canChooseSource ? (
-            <button className="source-picker-trigger" onClick={() => onOpenSourceKeyChange(openSourceKey === sourceKey ? null : sourceKey)}>
-              {activeSource ? "Change" : "Use ref"}
+            <button
+              aria-label={sourceLabel ? `Change reference ${sourceLabel}` : "Use reference"}
+              className={activeSourceId ? "source-picker-trigger active" : "source-picker-trigger"}
+              onClick={() => onOpenSourceKeyChange(openSourceKey === sourceKey ? null : sourceKey)}
+              title={sourceLabel ?? "Use ref"}
+            >
+              {sourceLabel ?? "Use ref"}
               <ChevronDown size={14} />
             </button>
           ) : null}
