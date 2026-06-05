@@ -5,7 +5,7 @@ import { reduceRunMessage, runWorkflowStream, type NodeRunStateMap } from "./run
 import { validateWorkflowRunInputs } from "./runInputValidation";
 import { findInvalidConditionOperatorRepairs } from "./runReadiness";
 import { buildWorkbenchModel, type InsertAnchor, type WorkbenchField, type WorkbenchNode } from "./workbenchModel";
-import { clearWorkflowDraft, loadWorkflowDraft, saveWorkflowDraft } from "./workflowDraft";
+import { clearWorkflowDraft, loadWorkflowDraft, normalizeWorkflowDraftForServerUI, saveWorkflowDraft } from "./workflowDraft";
 import { workflowSourceFromSearch } from "./workflowSource";
 import { CreateNodeModal } from "./workbench/components/CreateNodeModal";
 import { DeleteNodeModal } from "./workbench/components/DeleteNodeModal";
@@ -86,7 +86,7 @@ function App() {
 
       const draft = loadDraft(source);
       if (draft) {
-        const normalizedDraft = normalizeLoadedDraft(draft, state.ui);
+        const normalizedDraft = normalizeWorkflowDraftForServerUI(draft, state.ui);
         setUIDocument(normalizedDraft.ui);
         setDiagnostics(state.diagnostics ?? []);
         setSelectedNodeId(findNode(normalizedDraft.ui.root, normalizedDraft.selectedNodeId) ? normalizedDraft.selectedNodeId : normalizedDraft.ui.root.id);
@@ -533,35 +533,6 @@ function findNode(root: UINode, id: string): UINode | null {
     }
   }
   return null;
-}
-
-function normalizeLoadedDraft(draft: Parameters<typeof saveWorkflowDraft>[1], serverUI: UIDocument) {
-  let ui = restoreWorkflowInputDeclarations(draft.ui, serverUI);
-  const pendingOperations: EditOperation[] = [];
-  for (const operation of draft.pendingOperations) {
-    if (isWorkflowInputPath(operation.path)) {
-      const key = workflowInputKey(operation.path);
-      if (key) ui = updateWorkflowRunInputValue(ui, key, operation.payload?.value);
-      continue;
-    }
-    pendingOperations.push(operation);
-  }
-  return {
-    ...draft,
-    pendingOperations,
-    ui,
-  };
-}
-
-function restoreWorkflowInputDeclarations(draftUI: UIDocument, serverUI: UIDocument): UIDocument {
-  const serverFields = new Map((serverUI.root.inspector ?? []).filter((field) => isWorkflowInputPath(field.path)).map((field) => [field.path, field]));
-  return {
-    ...draftUI,
-    root: {
-      ...draftUI.root,
-      inspector: draftUI.root.inspector?.map((field) => serverFields.get(field.path) ?? field),
-    },
-  };
 }
 
 function preserveWorkflowRunInputs(state: EditorStateResponse, sourceDocument: UIDocument | null): EditorStateResponse {

@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import type { EditOperation, UIDocument } from "./types";
-import { clearWorkflowDraft, loadWorkflowDraft, saveWorkflowDraft } from "./workflowDraft";
+import { clearWorkflowDraft, loadWorkflowDraft, normalizeWorkflowDraftForServerUI, saveWorkflowDraft } from "./workflowDraft";
 
 describe("workflow draft persistence", () => {
   it("persists local ui state and pending edit operations by absolute ast source", () => {
@@ -64,6 +64,49 @@ describe("workflow draft persistence", () => {
         dir: "/tmp/input",
         outputPath: "/tmp/out.txt",
       },
+    });
+  });
+
+  it("restores saved run inputs onto the latest server UI when there are no pending structural edits", () => {
+    const source = "/Volumes/doc/workspace/project/helloworld/rpa-agent-workflow/examples/fs-workflow/ast.json";
+    const staleDraftUI = {
+      ...uiDocument("fs_workflow"),
+      metadata: {
+        workflowInputValues: {
+          dir: "/tmp/input",
+          outputPath: "/tmp/out.txt",
+        },
+      },
+      root: {
+        ...uiDocument("fs_workflow").root,
+        children: [{ id: "list_input_dir", kind: "callBlock" }],
+      },
+    };
+    const serverUI = {
+      ...uiDocument("fs_workflow"),
+      root: {
+        ...uiDocument("fs_workflow").root,
+        children: [
+          { id: "if_node", kind: "if" },
+          { id: "list_input_dir", kind: "callBlock" },
+        ],
+      },
+    };
+
+    const normalized = normalizeWorkflowDraftForServerUI(
+      {
+        pendingOperations: [],
+        selectedNodeId: "root",
+        source,
+        ui: staleDraftUI,
+      },
+      serverUI,
+    );
+
+    expect(normalized.ui.root.children?.map((child) => child.id)).toEqual(["if_node", "list_input_dir"]);
+    expect(normalized.ui.metadata?.workflowInputValues).toEqual({
+      dir: "/tmp/input",
+      outputPath: "/tmp/out.txt",
     });
   });
 });
