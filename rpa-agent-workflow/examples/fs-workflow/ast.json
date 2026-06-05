@@ -80,6 +80,10 @@
         "id": "return_result",
         "kind": "return",
         "returns": {
+          "bytes": {
+            "kind": "ref",
+            "ref": "node.write_summary.bytes"
+          },
           "count": {
             "kind": "ref",
             "ref": "node.list_input_dir.count"
@@ -87,10 +91,6 @@
           "outputPath": {
             "kind": "ref",
             "ref": "node.write_summary.path"
-          },
-          "bytes": {
-            "kind": "ref",
-            "ref": "node.write_summary.bytes"
           }
         }
       }

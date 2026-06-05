@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"os/exec"
+	"strings"
 	"testing"
 
 	"rpa-agent-workflow/contracts/block"
@@ -55,6 +56,36 @@ func TestPythonHostKeepsBlockStdoutOutOfProtocol(t *testing.T) {
 	}
 	if len(result.Outputs) != 0 {
 		t.Fatalf("outputs = %#v, want none", result.Outputs)
+	}
+}
+
+func TestPythonHostReturnsBlockErrorsWithoutTraceback(t *testing.T) {
+	requireUV(t)
+
+	host := NewPythonHost(PythonHostOptions{})
+	_, err := host.Call(context.Background(), BlockCall{
+		Definition: block.Definition{
+			ID: "fs.read_text",
+			Runtime: block.RuntimeBinding{
+				Target:   "python",
+				Module:   "rpa_sdk.blocks.fs.read_text",
+				Callable: "read_text",
+				Mode:     "sync",
+			},
+		},
+		Inputs: map[string]any{
+			"path": ".",
+		},
+	})
+	if err == nil {
+		t.Fatal("expected error")
+	}
+	message := err.Error()
+	if !strings.Contains(message, "python block error: IsADirectoryError: path must be a file") {
+		t.Fatalf("error = %q, want concise block error", message)
+	}
+	if strings.Contains(message, "Traceback") {
+		t.Fatalf("error includes traceback: %q", message)
 	}
 }
 

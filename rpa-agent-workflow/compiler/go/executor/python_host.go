@@ -165,8 +165,12 @@ mod = importlib.import_module(module)
 fn = getattr(mod, callable_name)
 
 inputs = payload.get("inputs") or {}
-with contextlib.redirect_stdout(sys.stderr):
-    result = fn(**inputs)
+try:
+    with contextlib.redirect_stdout(sys.stderr):
+        result = fn(**inputs)
+except Exception as exc:
+    json.dump({"error": f"{exc.__class__.__name__}: {exc}"}, sys.stdout)
+    sys.exit(0)
 
 if isinstance(result, dict):
     json.dump({"outputs": result}, sys.stdout)

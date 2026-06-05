@@ -53,6 +53,9 @@ class RuntimeTest(unittest.TestCase):
             content = read_text(path=str(source))
             self.assertEqual(content, {"path": str(source), "text": "hello", "bytes": 5})
 
+            with self.assertRaisesRegex(IsADirectoryError, "path must be a file"):
+                read_text(path=str(root))
+
             output_path = root / "out" / "result.txt"
             write_result = write_text(path=str(output_path), text="done", createDirs=True)
             self.assertEqual(write_result, {"path": str(output_path), "bytes": 4})

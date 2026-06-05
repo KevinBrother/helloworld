@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"os"
 	"os/exec"
+	"path/filepath"
 	"strings"
 	"testing"
 )
@@ -65,6 +66,62 @@ func TestExecRunsSampleWorkflowWithPythonBlocks(t *testing.T) {
 	}
 	if got := result.Returns["finally_ran"]; got != true {
 		t.Fatalf("finally_ran = %#v, want true", got)
+	}
+}
+
+func TestExecRunsFilesystemWorkflowWithInputJSON(t *testing.T) {
+	if _, err := exec.LookPath("uv"); err != nil {
+		t.Skip("uv is unavailable")
+	}
+
+	inputDir, err := filepath.Abs("../../../examples/fs-workflow/input-dir")
+	if err != nil {
+		t.Fatal(err)
+	}
+	outputPath := filepath.Join(t.TempDir(), "result.txt")
+	inputPath := filepath.Join(t.TempDir(), "input.json")
+	input := map[string]string{
+		"dir":        inputDir,
+		"outputPath": outputPath,
+	}
+	inputBytes, err := json.Marshal(input)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(inputPath, inputBytes, 0o644); err != nil {
+		t.Fatal(err)
+	}
+
+	cmd := exec.Command(
+		"go",
+		"run",
+		".",
+		"exec",
+		"../../../examples/fs-workflow/ast.json",
+		"../../../sdks/block",
+		inputPath,
+	)
+	out, err := cmd.CombinedOutput()
+	if err != nil {
+		t.Fatalf("unexpected error: %v\n%s", err, out)
+	}
+	var result struct {
+		Returns map[string]any `json:"returns"`
+	}
+	if err := json.Unmarshal(out, &result); err != nil {
+		t.Fatalf("invalid json output: %v\n%s", err, out)
+	}
+	if got := result.Returns["count"]; got != float64(1) {
+		t.Fatalf("count = %#v, want 1", got)
+	}
+	if got := result.Returns["outputPath"]; got != outputPath {
+		t.Fatalf("outputPath = %#v, want %s", got, outputPath)
+	}
+	if got := result.Returns["bytes"]; got != float64(21) {
+		t.Fatalf("bytes = %#v, want 21", got)
+	}
+	if got, err := os.ReadFile(outputPath); err != nil || string(got) != "fs workflow completed" {
+		t.Fatalf("output file = %q, err = %v; want fs workflow completed", got, err)
 	}
 }
 
