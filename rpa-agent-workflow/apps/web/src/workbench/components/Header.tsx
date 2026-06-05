@@ -7,7 +7,7 @@ type HeaderProps = {
   serverAvailable: boolean;
   status: string;
   workflowName: string;
-  onLoadJSON: () => void;
+  onLoadJSON?: () => void;
   onRun: () => void;
 };
 
@@ -26,10 +26,12 @@ export function Header({
         <p>{status}</p>
       </div>
       <div className="header-actions">
-        <button className="secondary-button" onClick={onLoadJSON}>
-          <FileUp size={17} />
-          加载 UI JSON
-        </button>
+        {onLoadJSON ? (
+          <button className="secondary-button" onClick={onLoadJSON}>
+            <FileUp size={17} />
+            加载 UI JSON
+          </button>
+        ) : null}
         <button className="secondary-button" disabled={!serverAvailable}>
           <Save size={17} />
           保存流程
