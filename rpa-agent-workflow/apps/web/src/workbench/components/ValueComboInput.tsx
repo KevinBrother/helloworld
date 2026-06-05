@@ -67,7 +67,7 @@ export function ValueComboInput({
         />
         {canOpenMenu ? (
           <button
-            aria-label={isOpen ? "Close value choices" : "Open value choices"}
+            aria-label={isOpen ? "关闭可选值" : "打开可选值"}
             className="combo-menu-button"
             type="button"
             onMouseDown={(event) => event.preventDefault()}
@@ -84,7 +84,7 @@ export function ValueComboInput({
       {canOpenMenu && isOpen ? (
         <div className="value-combo-menu" role="listbox">
           {hasLiteralOptions ? (
-            <ComboSection title="Values">
+            <ComboSection title="可选值">
               {literalOptions.map((option) => (
                 <button
                   className={!activeSourceId && String(resolvedValue) === option ? "active" : ""}
@@ -104,7 +104,7 @@ export function ValueComboInput({
           ) : null}
 
           {hasReferenceOptions ? (
-            <ComboSection title="References">
+            <ComboSection title="引用变量">
               {sourceOptions.map((source) => (
                 <button
                   className={activeSourceId === source.id ? "active" : ""}

@@ -32,17 +32,17 @@ export function TestRunModal({
       <section className="test-modal" role="dialog" aria-modal="true" aria-labelledby="test-run-title">
         <div className="modal-header">
           <div>
-            <h2 id="test-run-title">Test run workflow</h2>
-            <p>{serverAvailable ? "Run the current workflow on the server." : "Start the workflow service to run this workflow."}</p>
+            <h2 id="test-run-title">测试运行流程</h2>
+            <p>{serverAvailable ? "在服务端运行当前流程。" : "启动流程服务后才能运行。"}</p>
           </div>
-          <button className="icon-button" aria-label="Close test run" onClick={onClose}>
+          <button className="icon-button" aria-label="关闭测试运行" onClick={onClose}>
             <X size={18} />
           </button>
         </div>
         <div className="run-inputs-panel">
           <div className="modal-section-title">
-            <h3>Workflow inputs</h3>
-            <span>{workflowInputNode?.inputs.length ?? 0} inputs</span>
+            <h3>流程输入</h3>
+            <span>{workflowInputNode?.inputs.length ?? 0} 个参数</span>
           </div>
           <div className="schema-box">
             {workflowInputNode ? (
@@ -56,17 +56,17 @@ export function TestRunModal({
                 onOpenSourceKeyChange={onOpenSourceKeyChange}
               />
             ) : (
-              <div className="empty-state">No workflow inputs.</div>
+              <div className="empty-state">没有流程输入。</div>
             )}
           </div>
         </div>
         <div className="modal-actions">
           <button className="secondary-button" onClick={onClose}>
-            Cancel
+            取消
           </button>
           <button className="primary-button" onClick={onRun} disabled={pending || !serverAvailable || Object.keys(errors).length > 0}>
             <Play size={17} />
-            {pending ? "Running" : "Run test"}
+            {pending ? "运行中" : "运行测试"}
           </button>
         </div>
       </section>

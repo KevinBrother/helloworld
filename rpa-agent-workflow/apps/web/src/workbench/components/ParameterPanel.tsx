@@ -122,7 +122,14 @@ function FieldRow({
   return (
     <div className="schema-row">
       <span className="field-name">{field.label}</span>
-      <code className={`field-type ${field.type}`}>{field.type}</code>
+      <span className="field-meta">
+        <code className={`field-type ${field.type}`}>{field.type}</code>
+        {!field.readonly ? (
+          <span aria-label="必填" className="required-mark">
+            *
+          </span>
+        ) : null}
+      </span>
       {field.readonly ? (
         <span className="value-control readonly-value">{resolvedValue}</span>
       ) : (
@@ -145,7 +152,9 @@ function OutputDeclarationRow({ field }: { field: WorkbenchField }) {
   return (
     <div className="schema-row output-declaration">
       <span className="field-name">{field.label}</span>
-      <code className={`field-type ${field.type}`}>{field.type}</code>
+      <span className="field-meta">
+        <code className={`field-type ${field.type}`}>{field.type}</code>
+      </span>
     </div>
   );
 }

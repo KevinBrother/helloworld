@@ -559,6 +559,14 @@ code {
   white-space: nowrap;
 }
 
+.field-meta {
+  display: inline-flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 0.28rem;
+  min-width: 0;
+}
+
 .field-type {
   border-radius: 999px;
   background: var(--surface-3);
@@ -577,6 +585,14 @@ code {
 
 .field-type.boolean {
   color: var(--warn);
+}
+
+.required-mark {
+  min-width: 0.5rem;
+  color: var(--danger);
+  font-size: 0.95rem;
+  font-weight: 800;
+  line-height: 1;
 }
 
 .value-control {

@@ -13,15 +13,15 @@ describe("validateWorkflowRunInputs", () => {
     const result = validateWorkflowRunInputs([field("left", "number", "")]);
 
     expect(result.valid).toBe(false);
-    expect(result.errors.left).toBe("Required");
+    expect(result.errors.left).toBe("必填");
   });
 
   it("rejects manual values that do not match the workflow input type", () => {
     const result = validateWorkflowRunInputs([field("left", "number", "abc"), field("enabled", "boolean", "maybe")]);
 
     expect(result.valid).toBe(false);
-    expect(result.errors.left).toBe("Must be a number");
-    expect(result.errors.enabled).toBe("Must be true or false");
+    expect(result.errors.left).toBe("必须是数字");
+    expect(result.errors.enabled).toBe("必须是 true 或 false");
   });
 
   it("returns parsed run inputs for valid values", () => {

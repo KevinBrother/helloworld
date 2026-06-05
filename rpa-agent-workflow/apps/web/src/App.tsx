@@ -2,6 +2,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import sampleDocument from "../../../output/calculator-ui-node.json";
 import { reduceRunMessage, runWorkflowStream, type NodeRunStateMap } from "./runEvents";
 import { validateWorkflowRunInputs } from "./runInputValidation";
+import { findInvalidConditionOperatorRepairs } from "./runReadiness";
 import { buildWorkbenchModel, type WorkbenchField, type WorkbenchNode } from "./workbenchModel";
 import { Header, type SaveState } from "./workbench/components/Header";
 import { NodeLibrary } from "./workbench/components/NodeLibrary";
@@ -133,11 +134,16 @@ function App() {
   };
 
   const handleRunWorkflow = async () => {
+    const repairs = findInvalidConditionOperatorRepairs(model);
+    for (const repair of repairs) {
+      await submitFieldUpdate(repair.node, repair.field, repair.value);
+    }
+
     const validation = validateWorkflowRunInputs(workflowInputNode?.inputs);
     if (!validation.valid) {
       setOpenSourceKey(null);
       setRunModalOpen(true);
-      setStatus("Fix workflow inputs before running");
+      setStatus("请先修正流程输入");
       return;
     }
 

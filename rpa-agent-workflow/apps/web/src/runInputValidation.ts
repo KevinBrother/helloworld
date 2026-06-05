@@ -15,14 +15,14 @@ export function validateWorkflowRunInputs(fields: WorkbenchField[] | undefined):
     const normalized = typeof value === "string" ? value.trim() : value;
 
     if (normalized === "" || normalized === null || normalized === undefined) {
-      errors[field.key] = "Required";
+      errors[field.key] = "必填";
       continue;
     }
 
     if (field.type === "number") {
       const parsed = typeof normalized === "number" ? normalized : Number(normalized);
       if (!Number.isFinite(parsed)) {
-        errors[field.key] = "Must be a number";
+        errors[field.key] = "必须是数字";
         continue;
       }
       inputs[field.key] = parsed;
@@ -38,7 +38,7 @@ export function validateWorkflowRunInputs(fields: WorkbenchField[] | undefined):
         inputs[field.key] = normalized === "true";
         continue;
       }
-      errors[field.key] = "Must be true or false";
+      errors[field.key] = "必须是 true 或 false";
       continue;
     }
 
