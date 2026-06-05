@@ -23,3 +23,4 @@
 [x] 修复 filesystem workflow 测试运行失败并强化 fs.read_text 目录入参错误
 [x] 修复新建节点确认点击无可见反馈
 [x] 修复恢复过期本地草稿导致新建节点插入锚点失效
+[x] 落盘 if 和 parallel 分叉画布设计与实施计划
