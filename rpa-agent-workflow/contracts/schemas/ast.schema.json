@@ -118,6 +118,9 @@
       "required": ["id"],
       "properties": {
         "id": { "type": "string" },
+        "label": { "type": "string" },
+        "condition": { "$ref": "#/$defs/expression" },
+        "default": { "type": "boolean" },
         "body": { "type": "array", "items": { "$ref": "#/$defs/statement" } }
       },
       "additionalProperties": true

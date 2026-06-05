@@ -84,8 +84,11 @@ type Statement struct {
 }
 
 type Branch struct {
-	ID   string      `json:"id"`
-	Body []Statement `json:"body,omitempty"`
+	ID        string      `json:"id"`
+	Label     string      `json:"label,omitempty"`
+	Condition *Expression `json:"condition,omitempty"`
+	Default   bool        `json:"default,omitempty"`
+	Body      []Statement `json:"body,omitempty"`
 }
 
 type CatchClause struct {
