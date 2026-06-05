@@ -28,12 +28,12 @@ function App() {
   const [runModalOpen, setRunModalOpen] = useState(false);
   const [runLogOpen, setRunLogOpen] = useState(true);
   const [saveState, setSaveState] = useState<SaveState>("sample");
-  const [status, setStatus] = useState("Sample workflow loaded");
+  const [status, setStatus] = useState("示例流程已加载");
   const [serviceError, setServiceError] = useState("");
   const [serviceRetrying, setServiceRetrying] = useState(true);
   const [blockQuery, setBlockQuery] = useState("");
   const [openSourceKey, setOpenSourceKey] = useState<string | null>(null);
-  const [runLines, setRunLines] = useState<string[]>(["No server run yet."]);
+  const [runLines, setRunLines] = useState<string[]>(["暂无服务端运行记录。"]);
   const [nodeRunStates, setNodeRunStates] = useState<NodeRunStateMap>({});
   const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -59,7 +59,7 @@ function App() {
   const loadWorkflowService = async (options?: { cancelled?: () => boolean; retry?: boolean }) => {
     if (options?.retry) {
       setServiceRetrying(true);
-      setStatus("Checking workflow service");
+      setStatus("正在检查流程服务");
     }
 
     try {
@@ -69,14 +69,14 @@ function App() {
       setServerAvailable(true);
       setSaveState("saved");
       setServiceError("");
-      setStatus("Workflow service connected");
+      setStatus("流程服务已连接");
     } catch (error) {
       if (options?.cancelled?.()) return;
       const message = formatError(error);
       setServerAvailable(false);
       setSaveState("sample");
       setServiceError(message);
-      setStatus(`Sample workflow active: ${message}`);
+      setStatus(`使用示例流程：${message}`);
     } finally {
       if (!options?.cancelled?.()) {
         setServiceRetrying(false);
@@ -107,7 +107,7 @@ function App() {
 
     if (!serverAvailable) {
       setSaveState("sample");
-      setStatus("Change applied locally");
+      setStatus("修改已在本地应用");
       return;
     }
 
@@ -120,7 +120,7 @@ function App() {
       });
       applyServerState(state);
       setSaveState("saved");
-      setStatus("Workflow saved");
+      setStatus("流程已保存");
     } catch (error) {
       const apiError = normalizeAPIError(error);
       setSaveState("failed");
@@ -152,13 +152,13 @@ function App() {
     setRunModalOpen(false);
     setRunResult(null);
     setNodeRunStates({});
-    setRunLines((current) => appendRunLines(current, [`[${new Date().toLocaleTimeString("en-US", { hour12: false })}] test run started`], 18));
+    setRunLines((current) => appendRunLines(current, [`[${new Date().toLocaleTimeString("en-US", { hour12: false })}] 测试运行开始`], 18));
     const timestamp = new Date().toLocaleTimeString("en-US", { hour12: false });
 
     const outcome = await runWorkflowStream(validation.inputs, (message) => {
       setNodeRunStates((current) => reduceRunMessage(current, message));
       if (message.type === "trace" && message.event.statementId && message.event.name === "statement.start") {
-        setRunLines((current) => appendRunLines(current, [`[${timestamp}] running node ${message.event.statementId}`], 18));
+        setRunLines((current) => appendRunLines(current, [`[${timestamp}] 正在运行节点 ${message.event.statementId}`], 18));
       }
     });
 
@@ -166,13 +166,13 @@ function App() {
       const payload = outcome.response;
       setRunResult(payload.result ?? null);
       setDiagnostics(payload.diagnostics ?? []);
-      setRunLines((current) => appendRunLines(current, [`[${timestamp}] test run completed`, ...formatRunLines(payload.result)], 18));
-      setStatus("Test run completed");
+      setRunLines((current) => appendRunLines(current, [`[${timestamp}] 测试运行完成`, ...formatRunLines(payload.result)], 18));
+      setStatus("测试运行完成");
     } else {
       const apiError = normalizeAPIError(outcome.diagnostics[0]?.message ?? "Workflow run failed");
       setRunResult(null);
       setDiagnostics(outcome.diagnostics.length > 0 ? outcome.diagnostics : apiError.diagnostics);
-      setRunLines((current) => appendRunLines(current, [`[${timestamp}] test run failed: ${apiError.message}`], 12));
+      setRunLines((current) => appendRunLines(current, [`[${timestamp}] 测试运行失败：${apiError.message}`], 12));
       setStatus(apiError.message);
     }
 
@@ -188,9 +188,9 @@ function App() {
       setRunResult(null);
       setDiagnostics([]);
       setSaveState("sample");
-      setStatus(`Loaded ${loaded.workflowId}`);
+      setStatus(`已加载 ${loaded.workflowId}`);
     } catch (error) {
-      setStatus(`Could not load JSON: ${formatError(error)}`);
+      setStatus(`无法加载 JSON：${formatError(error)}`);
     } finally {
       if (fileInputRef.current) {
         fileInputRef.current.value = "";
@@ -213,7 +213,7 @@ function App() {
 
       <input
         ref={fileInputRef}
-        aria-label="Load workflow JSON"
+        aria-label="加载流程 JSON"
         className="visually-hidden-file"
         type="file"
         accept="application/json,.json"
@@ -344,16 +344,16 @@ function normalizeAPIError(error: unknown): { message: string; diagnostics: Diag
 }
 
 function formatRunLines(result: RunResult | null | undefined) {
-  if (!result) return ["No result payload returned"];
+  if (!result) return ["未返回结果数据"];
   const lines: string[] = [];
-  if (result.inputs) lines.push(`inputs = ${JSON.stringify(result.inputs)}`);
-  if (result.nodeOutputs) lines.push(`node outputs = ${JSON.stringify(result.nodeOutputs)}`);
-  if (result.returns) lines.push(`returns = ${JSON.stringify(result.returns)}`);
+  if (result.inputs) lines.push(`输入 = ${JSON.stringify(result.inputs)}`);
+  if (result.nodeOutputs) lines.push(`节点输出 = ${JSON.stringify(result.nodeOutputs)}`);
+  if (result.returns) lines.push(`返回 = ${JSON.stringify(result.returns)}`);
   return lines;
 }
 
 function appendRunLines(current: string[], next: string[], limit: number) {
-  return [...current.filter((line) => line !== "No server run yet."), ...next].slice(-limit);
+  return [...current.filter((line) => line !== "暂无服务端运行记录。"), ...next].slice(-limit);
 }
 
 function getWorkflowRunInputs(model: ReturnType<typeof buildWorkbenchModel>) {

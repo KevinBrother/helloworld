@@ -20,13 +20,13 @@ type ParameterPanelProps = {
 };
 
 export function ParameterPanel({ errors = {}, model, node, openSourceKey, onOpenSourceKeyChange, onFieldChange }: ParameterPanelProps) {
-  const title = node.kind === "sequence" && node.order === 0 ? "Workflow Inputs" : node.kind === "return" ? "Return result" : node.label;
+  const title = getDisplayNodeLabel(node);
   const showInputs = node.kind !== "return" && node.inputs.length > 0;
   const showOutputs = node.kind !== "sequence" && node.outputs.length > 0;
 
   return (
     <aside className="panel parameter-panel">
-      <PanelHeading title="Parameters" detail={node.path ?? node.id} />
+      <PanelHeading title="参数" detail={node.path ?? node.id} />
       <div className="selected-node-summary">
         <div>
           <h2>{title}</h2>
@@ -36,7 +36,7 @@ export function ParameterPanel({ errors = {}, model, node, openSourceKey, onOpen
       </div>
 
       {showInputs ? (
-        <SchemaSection title={node.kind === "sequence" ? "Workflow inputs" : "Inputs"}>
+        <SchemaSection title={node.kind === "sequence" ? "流程输入" : "输入"}>
           <ParameterFieldList
             fields={node.inputs}
             errors={errors}
@@ -50,14 +50,14 @@ export function ParameterPanel({ errors = {}, model, node, openSourceKey, onOpen
       ) : null}
 
       {showOutputs ? (
-        <SchemaSection title={node.kind === "return" ? "Workflow outputs" : "Outputs"}>
+        <SchemaSection title={node.kind === "return" ? "流程输出" : "输出"}>
           {node.outputs.map((field) => (
             <OutputDeclarationRow field={field} key={field.path} />
           ))}
         </SchemaSection>
       ) : null}
 
-      {!showInputs && !showOutputs ? <div className="empty-state">No configurable fields for this node.</div> : null}
+      {!showInputs && !showOutputs ? <div className="empty-state">该节点没有可配置字段。</div> : null}
     </aside>
   );
 }
@@ -170,4 +170,11 @@ function SchemaSection({ title, children }: { title: string; children: ReactNode
       </div>
     </section>
   );
+}
+
+function getDisplayNodeLabel(node: WorkbenchNode) {
+  if (node.kind === "sequence" && node.order === 0) return "流程输入";
+  if (node.kind === "return") return "返回结果";
+  if (node.label === "Branch By Threshold") return "阈值分支";
+  return node.label;
 }

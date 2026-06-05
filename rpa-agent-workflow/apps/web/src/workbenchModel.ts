@@ -70,13 +70,13 @@ const SAMPLE_INPUT_VALUES: Record<string, unknown> = {
 };
 
 const BLOCK_CATALOG: Array<Omit<BlockOption, "instances">> = [
-  { key: "math.calculate", category: "Computation", detail: "Pure numeric operation with one result" },
-  { key: "browser.click", category: "Browser", detail: "Click an element in an active browser session" },
-  { key: "file.read", category: "Filesystem", detail: "Read a file into workflow state" },
-  { key: "http.request", category: "Network", detail: "Call an HTTP endpoint and expose response data" },
-  { key: "condition", category: "Control", detail: "Split into then and else paths" },
-  { key: "loop", category: "Control", detail: "Repeat steps for each item in a list" },
-  { key: "return", category: "Control", detail: "Define workflow output values" },
+  { key: "math.calculate", category: "计算", detail: "执行数值计算并输出结果" },
+  { key: "browser.click", category: "浏览器", detail: "点击当前浏览器会话中的元素" },
+  { key: "file.read", category: "文件系统", detail: "读取文件内容并写入流程状态" },
+  { key: "http.request", category: "网络", detail: "调用 HTTP 接口并暴露响应数据" },
+  { key: "condition", category: "控制", detail: "按条件拆分为两个分支" },
+  { key: "loop", category: "控制", detail: "按列表或条件重复执行步骤" },
+  { key: "return", category: "控制", detail: "定义流程输出值" },
 ];
 
 export function buildWorkbenchModel(document: UIDocument): WorkbenchModel {
@@ -103,14 +103,14 @@ export function buildWorkbenchModel(document: UIDocument): WorkbenchModel {
 
 export function getNodeIoLabel(node: WorkbenchNode) {
   if (isWorkflowInputNode(node)) {
-    return [`${node.inputs.length} workflow ${pluralize("input", node.inputs.length)}`];
+    return [`${node.inputs.length} 个流程输入`];
   }
 
   if (node.kind === "return") {
-    return [`${node.outputs.length} workflow ${pluralize("output", node.outputs.length)}`];
+    return [`${node.outputs.length} 个流程输出`];
   }
 
-  return [`${node.inputs.length} ${pluralize("input", node.inputs.length)}`, `${node.outputs.length} ${pluralize("output", node.outputs.length)}`];
+  return [`${node.inputs.length} 个输入`, `${node.outputs.length} 个输出`];
 }
 
 export function getSourceOptions(nodes: WorkbenchNode[], currentNodeId: string, field: WorkbenchField) {
@@ -307,7 +307,7 @@ function buildSources(nodes: WorkbenchNode[]) {
         sources.push({
           id: `input.${field.key}`,
           nodeId: node.id,
-          nodeLabel: "Workflow Inputs",
+          nodeLabel: "流程输入",
           output: field.key,
           type: field.type,
           value: field.value,

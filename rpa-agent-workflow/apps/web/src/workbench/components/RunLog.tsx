@@ -52,7 +52,7 @@ export function RunLog({ lines, open, result, onOpenChange }: RunLogProps) {
     <section className={open ? "run-log open" : "run-log"}>
       {open ? (
         <div
-          aria-label="Resize run output"
+          aria-label="调整运行输出高度"
           className="run-log-resize-handle"
           role="separator"
           tabIndex={0}
@@ -64,7 +64,7 @@ export function RunLog({ lines, open, result, onOpenChange }: RunLogProps) {
         />
       ) : null}
       <button className="run-log-header" onClick={() => onOpenChange(!open)} aria-expanded={open}>
-        <span>Run output</span>
+        <span>运行输出</span>
         {result?.returns ? <strong>{JSON.stringify(result.returns)}</strong> : null}
         {open ? <ChevronDown size={18} /> : <ChevronUp size={18} />}
       </button>

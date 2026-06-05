@@ -25,15 +25,15 @@ export function Header({
       <div className="header-actions">
         <button className="secondary-button" onClick={onLoadJSON}>
           <FileUp size={17} />
-          Load JSON
+          加载 JSON
         </button>
         <button className="secondary-button" disabled={!serverAvailable}>
           <Save size={17} />
-          Save workflow
+          保存流程
         </button>
         <button className="primary-button" onClick={onRun} disabled={runPending}>
           <Play size={17} />
-          {runPending ? "Running" : "Test run"}
+          {runPending ? "运行中" : "测试运行"}
         </button>
       </div>
     </header>

@@ -14,9 +14,9 @@ export function WorkflowCanvas({ model, nodeRunStates, selectedId, onSelect }: W
 
   return (
     <section className="panel canvas-panel">
-      <PanelHeading title="Canvas" detail="Select a node to configure it" />
+      <PanelHeading title="画布" detail="选择节点后配置参数" />
       <div className="canvas-scroll">
-        <div className="workflow-diagram" aria-label="Workflow canvas">
+        <div className="workflow-diagram" aria-label="流程画布">
           <svg className="workflow-links" viewBox="0 0 980 700" preserveAspectRatio="none" aria-hidden="true">
             <path className="flow-link primary" d="M490 114 L490 190" />
             <path className="flow-link primary" d="M490 286 L490 352 L190 352 L190 410" />
@@ -70,10 +70,10 @@ function CanvasNode({ node, runState, selected, onSelect }: { node?: WorkbenchNo
   return (
     <button className={getCanvasNodeClassName(selected, runState)} onClick={() => onSelect(node.id)}>
       <span className="node-kind-row">
-        <span className="node-kind">{node.kind === "sequence" && node.order === 0 ? "Workflow Inputs" : node.kind}</span>
+        <span className="node-kind">{node.kind === "sequence" && node.order === 0 ? "流程输入" : node.kind}</span>
         {stateLabel ? <span className={`node-run-indicator ${runState}`}>{stateLabel}</span> : null}
       </span>
-      <strong>{node.kind === "return" ? "Return result" : node.label}</strong>
+      <strong>{getDisplayNodeLabel(node)}</strong>
       <div className="node-io">
         {getNodeIoLabel(node).map((label) => (
           <span key={label}>{label}</span>
@@ -88,6 +88,13 @@ function getCanvasNodeClassName(selected: boolean, runState: NodeRunState) {
 }
 
 function getRunStateLabel(runState: NodeRunState) {
-  if (runState === "running") return "Running";
+  if (runState === "running") return "运行中";
   return "";
+}
+
+function getDisplayNodeLabel(node: WorkbenchNode) {
+  if (node.kind === "sequence" && node.order === 0) return "开始";
+  if (node.kind === "return") return "返回结果";
+  if (node.label === "Branch By Threshold") return "阈值分支";
+  return node.label;
 }

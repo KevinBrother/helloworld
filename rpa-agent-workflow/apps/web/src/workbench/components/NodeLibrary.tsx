@@ -11,10 +11,10 @@ type NodeLibraryProps = {
 export function NodeLibrary({ blocks, query, onQueryChange }: NodeLibraryProps) {
   return (
     <aside className="panel node-library">
-      <PanelHeading title="Block library" detail={`${blocks.length} available`} />
+      <PanelHeading title="模块库" detail={`${blocks.length} 个可用`} />
       <label className="search-field">
         <Search size={16} />
-        <input value={query} onChange={(event) => onQueryChange(event.target.value)} placeholder="Search block or control node" />
+        <input value={query} onChange={(event) => onQueryChange(event.target.value)} placeholder="搜索模块或控制节点" />
       </label>
       <div className="block-list">
         {blocks.map((block) => (

@@ -14,12 +14,12 @@ const model = buildWorkbenchModel(sampleDocument as UIDocument);
 
 describe("workbench model", () => {
   it("uses workflow-specific labels for start, normal, and return nodes", () => {
-    expect(getNodeIoLabel(model.nodes[0])).toEqual(["3 workflow inputs"]);
+    expect(getNodeIoLabel(model.nodes[0])).toEqual(["3 个流程输入"]);
     expect(getNodeIoLabel(model.nodes.find((node) => node.id === "branch_by_threshold")!)).toEqual([
-      "3 inputs",
-      "1 output",
+      "3 个输入",
+      "1 个输出",
     ]);
-    expect(getNodeIoLabel(model.nodes.find((node) => node.id === "return_result")!)).toEqual(["1 workflow output"]);
+    expect(getNodeIoLabel(model.nodes.find((node) => node.id === "return_result")!)).toEqual(["1 个流程输出"]);
   });
 
   it("models if condition as left, operator, and right inputs", () => {
