@@ -262,6 +262,46 @@ describe("workbench model", () => {
     ]);
   });
 
+  it("lays out nested if branches inside existing branch lanes", () => {
+    const nestedModel = buildWorkbenchModel(nestedBranchDocument("if"));
+    const layout = buildCanvasLayout(nestedModel);
+    const innerBranch = layout.nodes.find((node) => node.node?.id === "inner_choice")!;
+
+    expect(layout.nodes.find((node) => node.id === "inner_choice:inner_then:header")).toEqual(
+      expect.objectContaining({ role: "branchHeader", label: "内层条件" }),
+    );
+    expect(layout.nodes.find((node) => node.id === "inner_choice:inner_else:header")).toEqual(
+      expect.objectContaining({ role: "branchHeader", label: "内层否则" }),
+    );
+    expect(layout.nodes.find((node) => node.id === "inner_choice:join")).toEqual(expect.objectContaining({ role: "join", x: innerBranch.x }));
+    expect(layout.nodes.find((node) => node.node?.id === "inner_then_step")?.x).toBeLessThan(innerBranch.x);
+    expect(layout.nodes.find((node) => node.node?.id === "inner_else_step")?.x).toBeGreaterThan(innerBranch.x);
+    expect(layout.edges.map((edge) => `${edge.from}->${edge.to}`)).toContain("inner_choice:join->outer_choice:join");
+    expect(layout.insertControls).toEqual(
+      expect.arrayContaining([expect.objectContaining({ kind: "insertBranch", nodeId: "inner_choice", branchKind: "condition" })]),
+    );
+  });
+
+  it("lays out nested parallel branches inside existing branch lanes", () => {
+    const nestedModel = buildWorkbenchModel(nestedBranchDocument("parallel"));
+    const layout = buildCanvasLayout(nestedModel);
+    const innerParallel = layout.nodes.find((node) => node.node?.id === "inner_parallel")!;
+
+    expect(layout.nodes.find((node) => node.id === "inner_parallel:parallel_left:header")).toEqual(
+      expect.objectContaining({ role: "branchHeader", label: "内层并行 1" }),
+    );
+    expect(layout.nodes.find((node) => node.id === "inner_parallel:parallel_right:header")).toEqual(
+      expect.objectContaining({ role: "branchHeader", label: "内层并行 2" }),
+    );
+    expect(layout.nodes.find((node) => node.id === "inner_parallel:join")).toEqual(expect.objectContaining({ role: "join", x: innerParallel.x }));
+    expect(layout.nodes.find((node) => node.node?.id === "parallel_left_step")?.x).toBeLessThan(innerParallel.x);
+    expect(layout.nodes.find((node) => node.node?.id === "parallel_right_step")?.x).toBeGreaterThan(innerParallel.x);
+    expect(layout.edges.map((edge) => `${edge.from}->${edge.to}`)).toContain("inner_parallel:join->outer_choice:join");
+    expect(layout.insertControls).toEqual(
+      expect.arrayContaining([expect.objectContaining({ kind: "insertBranch", nodeId: "inner_parallel", branchKind: "parallel" })]),
+    );
+  });
+
   it("marks protected and editable nodes for explicit deletion", () => {
     expect(model.nodes.find((node) => node.id === "root")).toEqual(
       expect.objectContaining({ deletable: false, deleteMessage: "开始节点不能删除" }),
@@ -333,4 +373,78 @@ function branchDocument(kind: "parallel" | "empty-if" | "non-empty-if"): UIDocum
       ],
     },
   };
+}
+
+function nestedBranchDocument(kind: "if" | "parallel"): UIDocument {
+  const nestedNode =
+    kind === "if"
+      ? {
+          id: "inner_choice",
+          kind: "if",
+          label: "Inner Choice",
+          branches: [
+            {
+              id: "inner_then",
+              label: "内层条件",
+              kind: "condition",
+              children: [{ id: "inner_then_step", kind: "callBlock", label: "Inner Then" }],
+            },
+            {
+              id: "inner_else",
+              label: "内层否则",
+              kind: "default",
+              children: [{ id: "inner_else_step", kind: "callBlock", label: "Inner Else" }],
+            },
+          ],
+        }
+      : {
+          id: "inner_parallel",
+          kind: "parallel",
+          label: "Inner Parallel",
+          branches: [
+            {
+              id: "parallel_left",
+              label: "内层并行 1",
+              kind: "parallel",
+              children: [{ id: "parallel_left_step", kind: "callBlock", label: "Inner Parallel Left" }],
+            },
+            {
+              id: "parallel_right",
+              label: "内层并行 2",
+              kind: "parallel",
+              children: [{ id: "parallel_right_step", kind: "callBlock", label: "Inner Parallel Right" }],
+            },
+          ],
+        };
+
+  return {
+    schemaVersion: "1.0.0",
+    workflowId: `${kind}_nested_layout`,
+    root: {
+      id: "root",
+      kind: "sequence",
+      label: "Start",
+      children: [
+        {
+          id: "outer_choice",
+          kind: "if",
+          label: "Outer Choice",
+          branches: [
+            {
+              id: "outer_then",
+              label: "外层条件",
+              kind: "condition",
+              children: [nestedNode],
+            },
+            {
+              id: "outer_else",
+              label: "外层否则",
+              kind: "default",
+              children: [{ id: "outer_else_step", kind: "callBlock", label: "Outer Else" }],
+            },
+          ],
+        },
+      ],
+    },
+  } as UIDocument;
 }

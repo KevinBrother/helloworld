@@ -27,6 +27,24 @@ export type WorkbenchPort = {
   };
 };
 
+export type WorkbenchParameterRow = {
+  id: string;
+  direction: "input" | "output";
+  name: string;
+  type: FieldType;
+  nameEditable: boolean;
+  typeEditable: boolean;
+  valueEditable: boolean;
+  custom: boolean;
+  value?: unknown;
+  valuePath?: string;
+  portPath?: string;
+  field?: WorkbenchField;
+  port?: WorkbenchPort;
+  allowReference: boolean;
+  allowDelete: boolean;
+};
+
 export type WorkbenchSource = {
   id: string;
   nodeId: string;
@@ -51,6 +69,10 @@ export type WorkbenchNode = {
   outputs: WorkbenchField[];
   inputPorts: WorkbenchPort[];
   outputPorts: WorkbenchPort[];
+  inputRows: WorkbenchParameterRow[];
+  outputRows: WorkbenchParameterRow[];
+  allowCustomInput: boolean;
+  allowCustomOutput: boolean;
   deletable: boolean;
   deleteMessage: string;
   hasNestedChildren: boolean;
@@ -287,6 +309,7 @@ export function buildCanvasLayout(model: WorkbenchModel): CanvasLayout {
     visualId: string;
     astAfterNodeId: string;
     position?: InsertAnchor["position"];
+    anchor?: InsertAnchor;
   };
 
   const placeStatementNode = (uiNode: UINode, x: number, y: number) => {
@@ -303,16 +326,20 @@ export function buildCanvasLayout(model: WorkbenchModel): CanvasLayout {
     edges.push({ id: `${from}->${to}`, from, to, anchor });
   };
 
-  const connectPrevious = (previous: PreviousPoint[], toNodeId: string) => {
+  const isBranchContainer = (uiNode: UINode) => (uiNode.kind === "if" || uiNode.kind === "parallel") && Boolean(uiNode.branches?.length);
+
+  const connectPrevious = (previous: PreviousPoint[], toNodeId: string, containerNodeId: string) => {
     for (const point of previous) {
-      const anchor: InsertAnchor = {
-        afterNodeId: point.astAfterNodeId,
-        beforeNodeId: toNodeId,
-        containerNodeId: model.root.id,
-      };
-      if (point.position) anchor.position = point.position;
+      const anchor: InsertAnchor = point.anchor
+        ? { ...point.anchor }
+        : {
+            afterNodeId: point.astAfterNodeId,
+            beforeNodeId: toNodeId,
+            containerNodeId,
+          };
+      if (!point.anchor && point.position) anchor.position = point.position;
       addEdge(point.visualId, toNodeId, anchor);
-      if (point.position === "afterJoin") {
+      if (anchor.position === "afterJoin") {
         const fromNode = layoutNodes.find((node) => node.id === point.visualId);
         const toNode = layoutNodes.find((node) => node.id === toNodeId);
         insertControls.push({
@@ -327,9 +354,22 @@ export function buildCanvasLayout(model: WorkbenchModel): CanvasLayout {
     }
   };
 
-  const layoutBranchNode = (uiNode: UINode, previous: PreviousPoint[], x: number, y: number) => {
+  const layoutFlowNode = (uiNode: UINode, previous: PreviousPoint[], x: number, y: number, containerNodeId: string): { previous: PreviousPoint[]; nextY: number } => {
+    if (isBranchContainer(uiNode)) {
+      return layoutBranchNode(uiNode, previous, x, y, containerNodeId);
+    }
+
     placeStatementNode(uiNode, x, y);
-    connectPrevious(previous, uiNode.id);
+    connectPrevious(previous, uiNode.id, containerNodeId);
+    return {
+      previous: [{ visualId: uiNode.id, astAfterNodeId: uiNode.id }],
+      nextY: y + CANVAS_STEP_Y,
+    };
+  };
+
+  const layoutBranchNode = (uiNode: UINode, previous: PreviousPoint[], x: number, y: number, containerNodeId: string) => {
+    placeStatementNode(uiNode, x, y);
+    connectPrevious(previous, uiNode.id, containerNodeId);
 
     const branches = uiNode.branches ?? [];
     insertControls.push({
@@ -346,7 +386,7 @@ export function buildCanvasLayout(model: WorkbenchModel): CanvasLayout {
     const firstChildY = headerY + CANVAS_BRANCH_HEADER_HEIGHT + CANVAS_BRANCH_NODE_GAP_Y;
     const laneXs = getBranchLaneCenters(branches.length, x);
     const joinId = `${uiNode.id}:join`;
-    const branchEnds: string[] = [];
+    const branchEnds: PreviousPoint[] = [];
     let branchBottom = firstChildY + CANVAS_EMPTY_BRANCH_HEIGHT;
 
     branches.forEach((branch, branchIndex) => {
@@ -386,7 +426,7 @@ export function buildCanvasLayout(model: WorkbenchModel): CanvasLayout {
           anchor: { containerNodeId: uiNode.id, branchId: branch.id, position: "branchStart" },
         });
         addEdge(headerId, emptyId, { containerNodeId: uiNode.id, branchId: branch.id, position: "branchStart" });
-        branchEnds.push(emptyId);
+        branchEnds.push({ visualId: emptyId, astAfterNodeId: uiNode.id });
         branchBottom = Math.max(branchBottom, firstChildY + CANVAS_EMPTY_BRANCH_HEIGHT);
         return;
       }
@@ -401,37 +441,48 @@ export function buildCanvasLayout(model: WorkbenchModel): CanvasLayout {
       });
 
       let cursorY = firstChildY;
-      let previousVisualId = headerId;
+      let branchPrevious: PreviousPoint[] = [{ visualId: headerId, astAfterNodeId: uiNode.id }];
       children.forEach((child, childIndex) => {
-        placeStatementNode(child, laneX, cursorY);
-        const anchor: InsertAnchor =
+        const anchorForInsert: InsertAnchor =
           childIndex === 0
             ? { containerNodeId: uiNode.id, branchId: branch.id, position: "branchStart" }
             : {
                 containerNodeId: uiNode.id,
                 branchId: branch.id,
                 position: "between",
-                afterNodeId: children[childIndex - 1].id,
+                afterNodeId: branchPrevious[0]?.astAfterNodeId,
                 beforeNodeId: child.id,
               };
-        addEdge(previousVisualId, child.id, anchor);
 
         if (childIndex > 0) {
           insertControls.push({
-            id: `insert:${children[childIndex - 1].id}->${child.id}`,
+            id: `insert:${branchPrevious[0]?.astAfterNodeId}->${child.id}`,
             kind: "insertNode",
             label: "分支中间插入",
             x: laneX,
             y: cursorY - CANVAS_STEP_GAP_Y / 2,
-            anchor,
+            anchor: anchorForInsert,
           });
         }
 
-        previousVisualId = child.id;
-        cursorY += CANVAS_STEP_Y;
+        const connectionPrevious = branchPrevious.map((point) => ({
+          ...point,
+          anchor:
+            childIndex === 0
+              ? { containerNodeId: uiNode.id, branchId: branch.id, position: "branchStart" as const }
+              : {
+                  containerNodeId: uiNode.id,
+                  branchId: branch.id,
+                  position: "between" as const,
+                  afterNodeId: point.astAfterNodeId,
+                  beforeNodeId: child.id,
+                },
+        }));
+        const result = layoutFlowNode(child, connectionPrevious, laneX, cursorY, uiNode.id);
+        branchPrevious = result.previous;
+        cursorY = result.nextY;
       });
 
-      const lastChild = children[children.length - 1];
       insertControls.push({
         id: `insert:${uiNode.id}:${branch.id}:end`,
         kind: "insertNode",
@@ -440,14 +491,14 @@ export function buildCanvasLayout(model: WorkbenchModel): CanvasLayout {
         y: cursorY - CANVAS_STEP_GAP_Y / 2,
         anchor: { containerNodeId: uiNode.id, branchId: branch.id, position: "branchEnd" },
       });
-      branchEnds.push(lastChild.id);
+      branchEnds.push(...branchPrevious);
       branchBottom = Math.max(branchBottom, cursorY - CANVAS_STEP_GAP_Y + CANVAS_BRANCH_NODE_GAP_Y);
     });
 
     const joinY = branchBottom + CANVAS_BRANCH_HEADER_GAP_Y;
     layoutNodes.push({ id: joinId, role: "join", x, y: joinY, width: 0, height: 0 });
-    for (const endId of branchEnds) {
-      addEdge(endId, joinId, { containerNodeId: uiNode.id, position: "branchEnd" });
+    for (const endPoint of branchEnds) {
+      addEdge(endPoint.visualId, joinId, { containerNodeId: uiNode.id, position: "branchEnd" });
     }
 
     return {
@@ -462,26 +513,16 @@ export function buildCanvasLayout(model: WorkbenchModel): CanvasLayout {
   let cursorY = CANVAS_START_Y + CANVAS_STEP_Y;
 
   for (const child of model.root.children ?? []) {
-    if ((child.kind === "if" || child.kind === "parallel") && child.branches?.length) {
-      const result = layoutBranchNode(child, previous, canvasCenterX, cursorY);
-      if (result) {
-        previous = result.previous;
-        cursorY = result.nextY;
-      }
-      continue;
-    }
-
-    placeStatementNode(child, canvasCenterX, cursorY);
-    connectPrevious(previous, child.id);
-    previous = [{ visualId: child.id, astAfterNodeId: child.id }];
-    cursorY += CANVAS_STEP_Y;
+    const result = layoutFlowNode(child, previous, canvasCenterX, cursorY, model.root.id);
+    previous = result.previous;
+    cursorY = result.nextY;
   }
 
   for (const node of model.nodes) {
     if (!placedStatements.has(node.id)) {
       layoutNodes.push({ id: node.id, role: "statement", node, x: canvasCenterX, y: cursorY, width: CANVAS_NODE_WIDTH, height: CANVAS_NODE_HEIGHT });
       placedStatements.add(node.id);
-      connectPrevious(previous, node.id);
+      connectPrevious(previous, node.id, model.root.id);
       previous = [{ visualId: node.id, astAfterNodeId: node.id }];
       cursorY += CANVAS_STEP_Y;
     }
@@ -540,6 +581,8 @@ function toWorkbenchNode(
     .filter(isInputField)
     .flatMap((field) => toInputFields(field, order === 0 && node.kind === "sequence", workflowInputValues));
   const outputs = fields.filter(isOutputField).map((field) => toWorkbenchField(field, false, false));
+  const allowCustomInput = metadataFlag(node.metadata, "allowCustomInput");
+  const allowCustomOutput = metadataFlag(node.metadata, "allowCustomOutput");
 
   if (node.kind === "callBlock" && outputs.length === 0) {
     outputs.push({
@@ -553,6 +596,9 @@ function toWorkbenchNode(
     });
   }
 
+  const inputRows = buildParameterRows("input", node, inputs, inputPorts, allowCustomInput);
+  const outputRows = buildParameterRows("output", node, outputs, nodeOutputPorts, allowCustomOutput);
+
   return {
     id: node.id,
     kind: node.kind,
@@ -565,10 +611,88 @@ function toWorkbenchNode(
     outputs,
     inputPorts,
     outputPorts: nodeOutputPorts,
+    inputRows,
+    outputRows,
+    allowCustomInput,
+    allowCustomOutput,
     deletable: isNodeDeletable(node, order),
     deleteMessage: getDeleteMessage(node, order),
     hasNestedChildren: hasNestedChildren(node),
   };
+}
+
+function buildParameterRows(
+  direction: "input" | "output",
+  node: UINode,
+  fields: WorkbenchField[],
+  ports: WorkbenchPort[],
+  allowCustom: boolean,
+): WorkbenchParameterRow[] {
+  const fieldsByKey = new Map(fields.map((field) => [field.key, field]));
+  const rows: WorkbenchParameterRow[] = [];
+
+  for (const port of ports) {
+    const field = fieldsByKey.get(port.key);
+    rows.push(parameterRowFromPort(direction, node, port, field, allowCustom));
+    if (field) fieldsByKey.delete(port.key);
+  }
+
+  for (const field of fieldsByKey.values()) {
+    rows.push(parameterRowFromField(direction, node, field));
+  }
+
+  return rows;
+}
+
+function parameterRowFromPort(
+  direction: "input" | "output",
+  node: UINode,
+  port: WorkbenchPort,
+  field: WorkbenchField | undefined,
+  allowCustom: boolean,
+): WorkbenchParameterRow {
+  const returnOutput = node.kind === "return" && direction === "output";
+  const workflowStartInput = node.kind === "sequence" && direction === "input";
+  return {
+    id: `${direction}:${port.path}`,
+    direction,
+    name: port.key,
+    type: port.type,
+    nameEditable: allowCustom,
+    typeEditable: allowCustom,
+    valueEditable: Boolean(field && !field.readonly),
+    custom: allowCustom,
+    value: field?.value,
+    valuePath: field?.path ?? port.path,
+    portPath: port.path,
+    field,
+    port,
+    allowReference: Boolean(field && !workflowStartInput && (returnOutput || field.control === "reference" || field.control === "expression")),
+    allowDelete: allowCustom,
+  };
+}
+
+function parameterRowFromField(direction: "input" | "output", node: UINode, field: WorkbenchField): WorkbenchParameterRow {
+  const returnOutput = node.kind === "return" && direction === "output";
+  return {
+    id: `${direction}:${field.path}`,
+    direction,
+    name: field.key,
+    type: field.type,
+    nameEditable: false,
+    typeEditable: false,
+    valueEditable: !field.readonly,
+    custom: false,
+    value: field.value,
+    valuePath: field.path,
+    field,
+    allowReference: !field.readonly && (returnOutput || field.control === "reference" || field.control === "expression"),
+    allowDelete: false,
+  };
+}
+
+function metadataFlag(metadata: UINode["metadata"], key: string) {
+  return metadata?.[key] === true;
 }
 
 function isNodeDeletable(node: UINode, order: number) {
@@ -811,6 +935,7 @@ function normalizeKey(value: string) {
 function normalizeType(value: string): FieldType {
   if (value === "number" || value === "string" || value === "boolean" || value === "path") return value;
   if (value === "object") return "object";
+  if (value === "array") return "array";
   return "unknown";
 }
 
