@@ -1,4 +1,4 @@
-import { FileUp, Play, Save } from "lucide-react";
+import { FolderOpen, Play, Save } from "lucide-react";
 
 export type SaveState = "sample" | "saved" | "saving" | "failed";
 
@@ -7,7 +7,7 @@ type HeaderProps = {
   serverAvailable: boolean;
   status: string;
   workflowName: string;
-  onLoadJSON?: () => void;
+  onOpenWorkflow: () => void;
   onRun: () => void;
 };
 
@@ -16,7 +16,7 @@ export function Header({
   serverAvailable,
   status,
   workflowName,
-  onLoadJSON,
+  onOpenWorkflow,
   onRun,
 }: HeaderProps) {
   return (
@@ -26,12 +26,10 @@ export function Header({
         <p>{status}</p>
       </div>
       <div className="header-actions">
-        {onLoadJSON ? (
-          <button className="secondary-button" onClick={onLoadJSON}>
-            <FileUp size={17} />
-            加载 UI JSON
-          </button>
-        ) : null}
+        <button className="secondary-button" onClick={onOpenWorkflow}>
+          <FolderOpen size={17} />
+          打开工作流
+        </button>
         <button className="secondary-button" disabled={!serverAvailable}>
           <Save size={17} />
           保存流程

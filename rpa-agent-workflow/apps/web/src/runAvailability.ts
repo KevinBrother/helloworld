@@ -16,7 +16,7 @@ export function getRunAvailability(serverAvailable: boolean, saveState: SaveStat
   if (saveState !== "saved") {
     return {
       available: false,
-      message: "当前 UI JSON 未同步到服务端 AST，不能测试运行。",
+      message: "当前工作流未同步到服务端，不能测试运行。",
     };
   }
 

@@ -3,6 +3,7 @@ package main
 import (
 	"bytes"
 	"encoding/json"
+	"fmt"
 	"net/http"
 	"net/http/httptest"
 	"os"
@@ -175,6 +176,71 @@ func TestEditorServerPersistsAcceptedEditToASTFile(t *testing.T) {
 	value := persisted.Body.Statements[0].Value
 	if value == nil || value.Kind != "literal" || value.Value != float64(12) {
 		t.Fatalf("persisted value = %#v, want literal 12", value)
+	}
+}
+
+func TestEditorServerOpenWorkflowSourceReplacesRunnableWorkflow(t *testing.T) {
+	server := newEditorServer(testEditorWorkflow(), nil)
+	loaded := testRunnableWorkflow()
+	source := writeWorkflowSource(t, loaded)
+
+	response := postOpenWorkflow(t, server, source)
+
+	if response.Code != http.StatusOK {
+		t.Fatalf("status = %d, want %d: %s", response.Code, http.StatusOK, response.Body.String())
+	}
+	var state testEditorStateResponse
+	decodeResponse(t, response, &state)
+	if state.AST.Workflow.ID != "runnable" || state.UI.WorkflowID != "runnable" {
+		t.Fatalf("loaded state = %#v, want runnable ast and ui projection", state)
+	}
+
+	runResponse := postRun(t, server, nil)
+	if runResponse.Code != http.StatusOK {
+		t.Fatalf("run status = %d, want %d: %s", runResponse.Code, http.StatusOK, runResponse.Body.String())
+	}
+	var result testRunResponse
+	decodeResponse(t, runResponse, &result)
+	if got := result.Result.Returns["result"]; got != float64(19) {
+		t.Fatalf("run result = %#v, want 19 from loaded workflow", got)
+	}
+}
+
+func TestEditorServerOpenWorkflowSourceSupportsRelativePaths(t *testing.T) {
+	server := newEditorServer(testRunnableWorkflow(), nil)
+	source := filepath.Join("..", "..", "..", "examples", "fs-workflow", "ast.json")
+
+	response := postOpenWorkflow(t, server, source)
+
+	if response.Code != http.StatusOK {
+		t.Fatalf("status = %d, want %d: %s", response.Code, http.StatusOK, response.Body.String())
+	}
+	var state testEditorStateResponse
+	decodeResponse(t, response, &state)
+	if state.AST.Workflow.ID != "fs_workflow" || state.UI.WorkflowID != "fs_workflow" {
+		t.Fatalf("loaded state = %#v, want fs_workflow ast and ui projection", state)
+	}
+}
+
+func TestEditorServerOpenWorkflowSourceRejectsInvalidASTWithoutChangingState(t *testing.T) {
+	server := newEditorServer(testRunnableWorkflow(), nil)
+	invalid := ast.Workflow{SchemaVersion: "1.0.0", Workflow: ast.Metadata{ID: "invalid"}}
+	source := writeWorkflowSource(t, invalid)
+
+	response := postOpenWorkflow(t, server, source)
+
+	if response.Code != http.StatusBadRequest {
+		t.Fatalf("status = %d, want %d: %s", response.Code, http.StatusBadRequest, response.Body.String())
+	}
+
+	followup := httptest.NewRecorder()
+	request := httptest.NewRequest(http.MethodGet, "/api/workflow", nil)
+	server.ServeHTTP(followup, request)
+
+	var state testEditorStateResponse
+	decodeResponse(t, followup, &state)
+	if state.AST.Workflow.ID != "runnable" {
+		t.Fatalf("workflow changed after rejected load: %#v", state.AST.Workflow)
 	}
 }
 
@@ -465,6 +531,29 @@ func postRun(t *testing.T, server http.Handler, payload any) *httptest.ResponseR
 	request.Header.Set("Content-Type", "application/json")
 	server.ServeHTTP(response, request)
 	return response
+}
+
+func postOpenWorkflow(t *testing.T, server http.Handler, source string) *httptest.ResponseRecorder {
+	t.Helper()
+	response := httptest.NewRecorder()
+	body := bytes.NewBufferString(fmt.Sprintf(`{"source":%q}`, source))
+	request := httptest.NewRequest(http.MethodPost, "/api/workflow/open", body)
+	request.Header.Set("Content-Type", "application/json")
+	server.ServeHTTP(response, request)
+	return response
+}
+
+func writeWorkflowSource(t *testing.T, workflow ast.Workflow) string {
+	t.Helper()
+	source := filepath.Join(t.TempDir(), "ast.json")
+	data, err := json.MarshalIndent(workflow, "", "  ")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(source, append(data, '\n'), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	return source
 }
 
 func decodeResponse(t *testing.T, response *httptest.ResponseRecorder, target any) {

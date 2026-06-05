@@ -1,6 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from "react";
-// import sampleDocument from "../../../output/calculator-ui-node.json";
-import sampleDocument from "../../../output/fs-ui-node.json";
+import { useEffect, useMemo, useState } from "react";
 import { buildDeleteNodeOperation, buildInsertNodeOperation, type InsertNodeSpec } from "./editOperations";
 import { getRunAvailability } from "./runAvailability";
 import { reduceRunMessage, runWorkflowStream, type NodeRunStateMap } from "./runEvents";
@@ -15,7 +13,6 @@ import { ParameterPanel } from "./workbench/components/ParameterPanel";
 import { RunLog } from "./workbench/components/RunLog";
 import { TestRunModal } from "./workbench/components/TestRunModal";
 import { WorkflowCanvas } from "./workbench/components/WorkflowCanvas";
-import { parseUIDocumentJSON } from "./workflowJson";
 import type { BlocksResponse, BlockDefinition, Diagnostic, EditOperation, EditorStateResponse, RunResult, UIDocument, UINode } from "./types";
 
 const DEFAULT_ACTOR = {
@@ -25,10 +22,10 @@ const DEFAULT_ACTOR = {
 };
 
 function App() {
-  const [uiDocument, setUIDocument] = useState<UIDocument>(() => sampleDocument as UIDocument);
+  const [uiDocument, setUIDocument] = useState<UIDocument | null>(null);
   const [diagnostics, setDiagnostics] = useState<Diagnostic[]>([]);
   const [serverAvailable, setServerAvailable] = useState(false);
-  const [selectedNodeId, setSelectedNodeId] = useState(() => (sampleDocument as UIDocument).root.id);
+  const [selectedNodeId, setSelectedNodeId] = useState("");
   const [runResult, setRunResult] = useState<RunResult | null>(null);
   const [runPending, setRunPending] = useState(false);
   const [runModalOpen, setRunModalOpen] = useState(false);
@@ -45,21 +42,21 @@ function App() {
   const [pendingInsertAnchor, setPendingInsertAnchor] = useState<InsertAnchor | null>(null);
   const [deleteModalNode, setDeleteModalNode] = useState<WorkbenchNode | null>(null);
   const [nodeEditPending, setNodeEditPending] = useState(false);
-  const fileInputRef = useRef<HTMLInputElement>(null);
 
-  const model = useMemo(() => buildWorkbenchModel(uiDocument, blockCatalog), [uiDocument, blockCatalog]);
+  const model = useMemo(() => (uiDocument ? buildWorkbenchModel(uiDocument, blockCatalog) : null), [uiDocument, blockCatalog]);
   const runAvailability = useMemo(() => getRunAvailability(serverAvailable, saveState), [serverAvailable, saveState]);
   const selectedNode = useMemo(
-    () => model.nodes.find((node) => node.id === selectedNodeId) ?? model.nodes[0],
-    [model.nodes, selectedNodeId],
+    () => model?.nodes.find((node) => node.id === selectedNodeId) ?? model?.nodes[0],
+    [model, selectedNodeId],
   );
-  const workflowInputNode = useMemo(() => model.nodes.find((node) => node.kind === "sequence" && node.order === 0), [model.nodes]);
+  const workflowInputNode = useMemo(() => model?.nodes.find((node) => node.kind === "sequence" && node.order === 0), [model]);
   const runInputValidation = useMemo(() => validateWorkflowRunInputs(workflowInputNode?.inputs), [workflowInputNode]);
   const filteredBlocks = useMemo(() => {
     const query = blockQuery.trim().toLowerCase();
-    if (!query) return model.blockOptions;
-    return model.blockOptions.filter((block) => `${block.key} ${block.category} ${block.detail}`.toLowerCase().includes(query));
-  }, [blockQuery, model.blockOptions]);
+    const blockOptions = model?.blockOptions ?? [];
+    if (!query) return blockOptions;
+    return blockOptions.filter((block) => `${block.key} ${block.category} ${block.detail}`.toLowerCase().includes(query));
+  }, [blockQuery, model]);
 
   const applyServerState = (state: EditorStateResponse) => {
     setUIDocument(state.ui);
@@ -74,14 +71,14 @@ function App() {
     }
 
     try {
-      const [state, blocks] = await Promise.all([requestJSON<EditorStateResponse>("/api/workflow"), requestJSON<BlocksResponse>("/api/blocks")]);
+      const [blocks, state] = await Promise.all([requestJSON<BlocksResponse>("/api/blocks"), loadInitialWorkflowState()]);
       if (options?.cancelled?.()) return;
       applyServerState(state);
       setBlockCatalog(blocks.blocks ?? []);
       setServerAvailable(true);
       setSaveState("saved");
       setServiceError("");
-      setStatus("流程服务已连接");
+      setStatus(sourceFromURL() ? `已打开工作流：${sourceFromURL()}` : "流程服务已连接");
     } catch (error) {
       if (options?.cancelled?.()) return;
       const message = formatError(error);
@@ -116,7 +113,7 @@ function App() {
       actor: DEFAULT_ACTOR,
     };
 
-    setUIDocument((current) => updateFieldValue(current, node.id, field.path, value));
+    setUIDocument((current) => (current ? updateFieldValue(current, node.id, field.path, value) : current));
 
     if (!serverAvailable) {
       setSaveState("sample");
@@ -220,6 +217,11 @@ function App() {
       return;
     }
 
+    if (!model) {
+      setStatus("流程服务未返回工作流，不能测试运行。");
+      return;
+    }
+
     const repairs = findInvalidConditionOperatorRepairs(model);
     for (const repair of repairs) {
       await submitFieldUpdate(repair.node, repair.field, repair.value);
@@ -265,22 +267,22 @@ function App() {
     setRunPending(false);
   };
 
-  const handleLoadJSON = async (file: File | undefined) => {
-    if (!file) return;
+  const handleOpenWorkflow = async () => {
+    const source = window.prompt("输入服务端工作流 source（相对路径或全路径）", sourceFromURL() ?? "examples/fs-workflow/ast.json");
+    if (!source?.trim()) return;
     try {
-      const loaded = parseUIDocumentJSON(await file.text());
-      setUIDocument(loaded);
-      setSelectedNodeId(loaded.root.id);
+      const state = await openWorkflowSource(source.trim());
+      applyServerState(state);
       setRunResult(null);
-      setDiagnostics([]);
       setSaveState("sample");
-      setStatus(`已加载 ${loaded.workflowId}；当前 UI JSON 未同步到服务端 AST，不能测试运行。`);
+      setServerAvailable(true);
+      setSaveState("saved");
+      setStatus(`已打开工作流：${source.trim()}`);
     } catch (error) {
-      setStatus(`无法加载 JSON：${formatError(error)}`);
-    } finally {
-      if (fileInputRef.current) {
-        fileInputRef.current.value = "";
-      }
+      const apiError = normalizeAPIError(error);
+      setSaveState("failed");
+      setDiagnostics(apiError.diagnostics);
+      setStatus(`无法打开工作流：${apiError.message}`);
     }
   };
 
@@ -290,49 +292,48 @@ function App() {
         runPending={runPending}
         serverAvailable={serverAvailable}
         status={status}
-        workflowName={model.workflowName}
-        onLoadJSON={() => fileInputRef.current?.click()}
+        workflowName={model?.workflowName ?? "Workflow Editor"}
+        onOpenWorkflow={() => void handleOpenWorkflow()}
         onRun={() => {
           setOpenSourceKey(null);
           setRunModalOpen(true);
         }}
       />
 
-      <input
-        ref={fileInputRef}
-        aria-label="加载 UI JSON"
-        className="visually-hidden-file"
-        type="file"
-        accept="application/json,.json"
-        onChange={(event) => void handleLoadJSON(event.target.files?.[0])}
-      />
-
-      <main className="workbench-grid">
-        <NodeLibrary blocks={filteredBlocks} query={blockQuery} onQueryChange={setBlockQuery} />
-        <WorkflowCanvas
-          model={model}
-          nodeRunStates={nodeRunStates}
-          selectedId={selectedNode.id}
-          onInsertAtEdge={handleInsertAtEdge}
-          onSelect={(id) => {
-            setOpenSourceKey(null);
-            setSelectedNodeId(id);
-          }}
-        />
-        <ParameterPanel
-          errors={selectedNode.id === workflowInputNode?.id ? runInputValidation.errors : {}}
-          model={model}
-          node={selectedNode}
-          openSourceKey={openSourceKey}
-          onDeleteNode={(node) => setDeleteModalNode(node)}
-          onOpenSourceKeyChange={setOpenSourceKey}
-          onFieldChange={(field, value) => void submitFieldUpdate(selectedNode, field, value)}
-        />
-      </main>
+      {model && selectedNode ? (
+        <main className="workbench-grid">
+          <NodeLibrary blocks={filteredBlocks} query={blockQuery} onQueryChange={setBlockQuery} />
+          <WorkflowCanvas
+            model={model}
+            nodeRunStates={nodeRunStates}
+            selectedId={selectedNode.id}
+            onInsertAtEdge={handleInsertAtEdge}
+            onSelect={(id) => {
+              setOpenSourceKey(null);
+              setSelectedNodeId(id);
+            }}
+          />
+          <ParameterPanel
+            errors={selectedNode.id === workflowInputNode?.id ? runInputValidation.errors : {}}
+            model={model}
+            node={selectedNode}
+            openSourceKey={openSourceKey}
+            onDeleteNode={(node) => setDeleteModalNode(node)}
+            onOpenSourceKeyChange={setOpenSourceKey}
+            onFieldChange={(field, value) => void submitFieldUpdate(selectedNode, field, value)}
+          />
+        </main>
+      ) : (
+        <main className="workbench-grid">
+          <section className="panel canvas-panel">
+            <div className="empty-state">正在连接流程服务。</div>
+          </section>
+        </main>
+      )}
 
       <RunLog lines={runLines} open={runLogOpen} result={runResult} onOpenChange={setRunLogOpen} />
 
-      {runModalOpen ? (
+      {runModalOpen && model ? (
         <TestRunModal
           errors={runInputValidation.errors}
           model={model}
@@ -439,6 +440,26 @@ async function requestJSON<T>(url: string, init?: RequestInit): Promise<T> {
     throw new Error(`Request failed with status ${response.status}`);
   }
   return (await response.json()) as T;
+}
+
+function loadInitialWorkflowState() {
+  const source = sourceFromURL();
+  if (source) {
+    return openWorkflowSource(source);
+  }
+  return requestJSON<EditorStateResponse>("/api/workflow");
+}
+
+function openWorkflowSource(source: string) {
+  return requestJSON<EditorStateResponse>("/api/workflow/open", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ source }),
+  });
+}
+
+function sourceFromURL() {
+  return new URLSearchParams(window.location.search).get("workflow")?.trim() || null;
 }
 
 function normalizeAPIError(error: unknown): { message: string; diagnostics: Diagnostic[]; network: boolean } {

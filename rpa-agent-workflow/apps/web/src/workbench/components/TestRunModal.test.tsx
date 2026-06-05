@@ -10,7 +10,7 @@ describe("TestRunModal", () => {
         errors={{ dir: "必填" }}
         model={model}
         pending={false}
-        runMessage="当前 UI JSON 未同步到服务端 AST，不能测试运行。"
+        runMessage="当前工作流未同步到服务端，不能测试运行。"
         workflowInputNode={workflowInputNode}
         openSourceKey={null}
         onClose={() => undefined}

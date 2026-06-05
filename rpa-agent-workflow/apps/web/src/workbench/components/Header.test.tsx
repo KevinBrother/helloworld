@@ -8,14 +8,16 @@ describe("Header", () => {
       <Header
         runPending={false}
         serverAvailable={true}
-        status="当前 UI JSON 未同步到服务端 AST，不能测试运行。"
+        status="当前工作流未同步到服务端，不能测试运行。"
         workflowName="Sample Workflow"
-        onLoadJSON={() => undefined}
+        onOpenWorkflow={() => undefined}
         onRun={() => undefined}
       />,
     );
 
+    expect(html).toContain("打开工作流");
     expect(html).toContain("测试运行");
+    expect(html).not.toContain("加载 UI JSON");
     expect(html).not.toContain("disabled=\"\"");
   });
 
@@ -26,7 +28,7 @@ describe("Header", () => {
         serverAvailable={true}
         status="测试运行中"
         workflowName="Filesystem Workflow"
-        onLoadJSON={() => undefined}
+        onOpenWorkflow={() => undefined}
         onRun={() => undefined}
       />,
     );

@@ -10,6 +10,7 @@ import (
 	"os"
 	"path/filepath"
 	"sort"
+	"strings"
 	"sync"
 
 	"rpa-agent-workflow/compiler/go/compiler"
@@ -34,6 +35,10 @@ type editorStateResponse struct {
 
 type editorRunRequest struct {
 	Inputs map[string]any `json:"inputs,omitempty"`
+}
+
+type editorOpenWorkflowRequest struct {
+	Source string `json:"source"`
 }
 
 type editorRunResponse struct {
@@ -71,6 +76,7 @@ func newEditorServerWithPath(workflow ast.Workflow, blocks map[string]block.Defi
 	}
 	mux := http.NewServeMux()
 	mux.HandleFunc("/api/workflow", server.handleWorkflow)
+	mux.HandleFunc("/api/workflow/open", server.handleWorkflowOpen)
 	mux.HandleFunc("/api/blocks", server.handleBlocks)
 	mux.HandleFunc("/api/edit", server.handleEdit)
 	mux.HandleFunc("/api/run", server.handleRun)
@@ -92,6 +98,80 @@ func (s *editorServer) handleWorkflow(w http.ResponseWriter, r *http.Request) {
 		AST:         workflow,
 		UI:          transform.ProjectWorkflowWithBlocks(workflow, s.blocks),
 		Diagnostics: s.validateWorkflow(workflow),
+	})
+}
+
+func (s *editorServer) handleWorkflowOpen(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodPost {
+		respondDiagnostics(w, http.StatusMethodNotAllowed, methodNotAllowedDiagnostic(r.Method))
+		return
+	}
+
+	var req editorOpenWorkflowRequest
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		respondDiagnostics(w, http.StatusBadRequest, diagnostic.Diagnostic{
+			Code:     "WORKFLOW_OPEN_JSON_INVALID",
+			Severity: diagnostic.SeverityError,
+			Message:  fmt.Sprintf("invalid workflow open json: %v", err),
+			Path:     "$",
+		})
+		return
+	}
+	source := strings.TrimSpace(req.Source)
+	if source == "" {
+		respondDiagnostics(w, http.StatusBadRequest, diagnostic.Diagnostic{
+			Code:     "WORKFLOW_SOURCE_MISSING",
+			Severity: diagnostic.SeverityError,
+			Message:  "workflow source is required",
+			Path:     "$.source",
+		})
+		return
+	}
+
+	data, err := os.ReadFile(source)
+	if err != nil {
+		respondDiagnostics(w, http.StatusBadRequest, diagnostic.Diagnostic{
+			Code:     "WORKFLOW_SOURCE_UNREADABLE",
+			Severity: diagnostic.SeverityError,
+			Message:  fmt.Sprintf("failed to read workflow source: %v", err),
+			Path:     "$.source",
+		})
+		return
+	}
+	if err := schema.ValidateAstBytes(data); err != nil {
+		respondDiagnostics(w, http.StatusBadRequest, diagnostic.Diagnostic{
+			Code:     "AST_SCHEMA_INVALID",
+			Severity: diagnostic.SeverityError,
+			Message:  err.Error(),
+			Path:     "$",
+		})
+		return
+	}
+	workflow, err := schema.LoadAst(source)
+	if err != nil {
+		respondDiagnostics(w, http.StatusBadRequest, diagnostic.Diagnostic{
+			Code:     "AST_JSON_INVALID",
+			Severity: diagnostic.SeverityError,
+			Message:  fmt.Sprintf("failed to load workflow ast: %v", err),
+			Path:     "$.source",
+		})
+		return
+	}
+
+	if diags := s.validateWorkflow(*workflow); len(diags) > 0 {
+		respondDiagnostics(w, http.StatusBadRequest, diags...)
+		return
+	}
+
+	s.mu.Lock()
+	s.workflow = *workflow
+	s.astPath = source
+	s.mu.Unlock()
+
+	respondJSON(w, http.StatusOK, editorStateResponse{
+		AST:         *workflow,
+		UI:          transform.ProjectWorkflowWithBlocks(*workflow, s.blocks),
+		Diagnostics: nil,
 	})
 }
 
