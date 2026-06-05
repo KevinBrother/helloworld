@@ -517,15 +517,86 @@ code {
   box-shadow: 0 14px 30px oklch(18% 0.02 220 / 0.07);
 }
 
+.canvas-node.canvas-node-if {
+  min-height: 120px;
+  display: grid;
+  place-items: center;
+  border: 0;
+  background: transparent;
+  padding: 0;
+  box-shadow: none;
+}
+
+.decision-node-surface {
+  width: 118px;
+  height: 118px;
+  display: grid;
+  place-items: center;
+  gap: 0.18rem;
+  border: 1px solid var(--line-strong);
+  background: color-mix(in oklab, var(--surface) 88%, var(--accent-soft));
+  color: var(--text);
+  box-shadow: 0 16px 34px oklch(18% 0.02 220 / 0.1);
+  transform: rotate(45deg);
+}
+
+.decision-node-surface > * {
+  transform: rotate(-45deg);
+}
+
+.canvas-node-if .node-kind-row,
+.canvas-node-if .node-io {
+  justify-content: center;
+  text-align: center;
+}
+
+.canvas-node-if strong {
+  max-width: 88px;
+  overflow: hidden;
+  text-align: center;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.canvas-node-if .node-io {
+  display: flex;
+}
+
+.canvas-node-if .node-io span {
+  white-space: nowrap;
+}
+
 .canvas-node.selected {
   border-color: var(--accent);
   background: color-mix(in oklab, var(--accent-soft) 34%, var(--surface));
   box-shadow: 0 0 0 2px color-mix(in oklab, var(--accent) 18%, transparent), 0 18px 42px oklch(18% 0.02 220 / 0.1);
 }
 
+.canvas-node.canvas-node-if.selected {
+  background: transparent;
+  box-shadow: none;
+}
+
+.canvas-node.canvas-node-if.selected .decision-node-surface {
+  border-color: var(--accent);
+  background: color-mix(in oklab, var(--accent-soft) 42%, var(--surface));
+  box-shadow: 0 0 0 2px color-mix(in oklab, var(--accent) 18%, transparent), 0 18px 42px oklch(18% 0.02 220 / 0.12);
+}
+
 .canvas-node.run-running {
   border-color: var(--warn);
   background: color-mix(in oklab, var(--warn-soft) 38%, var(--surface));
+  box-shadow: 0 0 0 2px color-mix(in oklab, var(--warn) 24%, transparent), 0 18px 42px oklch(18% 0.02 220 / 0.12);
+}
+
+.canvas-node.canvas-node-if.run-running {
+  background: transparent;
+  box-shadow: none;
+}
+
+.canvas-node.canvas-node-if.run-running .decision-node-surface {
+  border-color: var(--warn);
+  background: color-mix(in oklab, var(--warn-soft) 44%, var(--surface));
   box-shadow: 0 0 0 2px color-mix(in oklab, var(--warn) 24%, transparent), 0 18px 42px oklch(18% 0.02 220 / 0.12);
 }
 
@@ -617,6 +688,92 @@ code {
   margin-bottom: 0.45rem;
   font-size: 0.86rem;
   font-weight: 600;
+}
+
+.parameter-card {
+  padding: 0.85rem 0.9rem 0;
+}
+
+.parameter-card > details {
+  border: 1px solid var(--line);
+  border-radius: 7px;
+  background: var(--surface-2);
+  overflow: visible;
+}
+
+.parameter-card summary {
+  min-height: 38px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.65rem;
+  padding: 0 0.68rem;
+  cursor: pointer;
+  font-size: 0.86rem;
+  font-weight: 700;
+  list-style: none;
+}
+
+.parameter-card summary::-webkit-details-marker {
+  display: none;
+}
+
+.parameter-card summary small {
+  color: var(--muted);
+  font-size: 0.72rem;
+  font-weight: 600;
+}
+
+.parameter-row-list {
+  display: grid;
+  gap: 0.42rem;
+  border-top: 1px solid var(--line);
+  padding: 0.58rem;
+}
+
+.parameter-row-header,
+.parameter-row {
+  display: grid;
+  grid-template-columns: minmax(74px, 0.9fr) minmax(84px, 0.72fr) minmax(118px, 1.25fr) 32px;
+  gap: 0.42rem;
+  align-items: center;
+}
+
+.parameter-row-header {
+  color: var(--muted);
+  font-size: 0.7rem;
+  font-weight: 700;
+}
+
+.parameter-cell-input,
+.parameter-cell-select {
+  width: 100%;
+  min-width: 0;
+  min-height: 36px;
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  background: var(--surface);
+  color: var(--text);
+  padding: 0 0.5rem;
+  font-size: 0.82rem;
+}
+
+.parameter-cell-input:focus,
+.parameter-cell-select:focus {
+  border-color: var(--accent);
+}
+
+.parameter-cell-input:disabled,
+.parameter-cell-select:disabled {
+  background: color-mix(in oklab, var(--surface-2) 70%, var(--surface));
+  color: var(--muted);
+}
+
+.parameter-add-button {
+  width: 100%;
+  min-height: 34px;
+  justify-self: stretch;
+  font-size: 0.82rem;
 }
 
 .schema-box {

@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState, type ReactNode } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Plus, Trash2 } from "lucide-react";
 import {
   getFieldSourceId,
@@ -7,6 +7,7 @@ import {
   type WorkbenchField,
   type WorkbenchModel,
   type WorkbenchNode,
+  type WorkbenchParameterRow,
   type WorkbenchPort,
 } from "../../workbenchModel";
 import { ValueComboInput } from "./ValueComboInput";
@@ -33,10 +34,8 @@ export function ParameterPanel({
   onDeleteNode,
 }: ParameterPanelProps) {
   const title = getDisplayNodeLabel(node);
-  const showWorkflowInputs = node.kind === "sequence" && node.order === 0;
-  const showWorkflowOutputs = node.kind === "return";
-  const showInputs = node.kind !== "return" && node.inputs.length > 0;
-  const showOutputs = node.kind !== "sequence" && node.outputs.length > 0;
+  const showInputCard = node.inputRows.length > 0 || node.allowCustomInput;
+  const showOutputCard = node.outputRows.length > 0 || node.allowCustomOutput;
 
   return (
     <aside className="panel parameter-panel">
@@ -55,82 +54,78 @@ export function ParameterPanel({
         </div>
       </div>
 
-      {showWorkflowInputs ? (
-        <SchemaSection title="流程输入">
-          <WorkflowPortList
-            addLabel="添加输入"
-            direction="inputs"
-            ports={node.inputPorts}
-            onPortsChange={(ports) => onWorkflowPortsChange("inputs", ports)}
-          />
-        </SchemaSection>
+      {showInputCard ? (
+        <ParameterCard
+          addLabel="添加自定义参数"
+          allowAdd={node.allowCustomInput}
+          direction="inputs"
+          errors={errors}
+          model={model}
+          node={node}
+          openSourceKey={openSourceKey}
+          rows={node.inputRows}
+          title="输入参数"
+          onFieldChange={onFieldChange}
+          onOpenSourceKeyChange={onOpenSourceKeyChange}
+          onWorkflowPortsChange={onWorkflowPortsChange}
+        />
       ) : null}
 
-      {showInputs ? (
-        <SchemaSection title={showWorkflowInputs ? "运行输入值" : "输入"}>
-          <ParameterFieldList
-            fields={node.inputs}
-            errors={errors}
-            model={model}
-            node={node}
-            openSourceKey={openSourceKey}
-            onFieldChange={onFieldChange}
-            onOpenSourceKeyChange={onOpenSourceKeyChange}
-          />
-        </SchemaSection>
+      {showOutputCard ? (
+        <ParameterCard
+          addLabel="添加自定义输出"
+          allowAdd={node.allowCustomOutput}
+          direction="outputs"
+          errors={errors}
+          model={model}
+          node={node}
+          openSourceKey={openSourceKey}
+          rows={node.outputRows}
+          title="输出参数"
+          onFieldChange={onFieldChange}
+          onOpenSourceKeyChange={onOpenSourceKeyChange}
+          onWorkflowPortsChange={onWorkflowPortsChange}
+        />
       ) : null}
 
-      {showWorkflowOutputs ? (
-        <SchemaSection title="流程输出">
-          <WorkflowPortList
-            addLabel="添加输出"
-            direction="outputs"
-            ports={node.outputPorts}
-            onPortsChange={(ports) => onWorkflowPortsChange("outputs", ports)}
-          />
-        </SchemaSection>
-      ) : null}
-
-      {showOutputs ? (
-        <SchemaSection title={showWorkflowOutputs ? "返回值" : "输出"}>
-          {showWorkflowOutputs ? (
-            <ParameterFieldList
-              fields={node.outputs}
-              errors={errors}
-              model={model}
-              node={node}
-              openSourceKey={openSourceKey}
-              onFieldChange={onFieldChange}
-              onOpenSourceKeyChange={onOpenSourceKeyChange}
-            />
-          ) : (
-            node.outputs.map((field) => <OutputDeclarationRow field={field} key={field.path} />)
-          )}
-        </SchemaSection>
-      ) : null}
-
-      {!showWorkflowInputs && !showWorkflowOutputs && !showInputs && !showOutputs ? <div className="empty-state">该节点没有可配置字段。</div> : null}
+      {!showInputCard && !showOutputCard ? <div className="empty-state">该节点没有可配置字段。</div> : null}
     </aside>
   );
 }
 
-function WorkflowPortList({
+function ParameterCard({
   addLabel,
+  allowAdd,
   direction,
-  ports,
-  onPortsChange,
+  errors,
+  model,
+  node,
+  openSourceKey,
+  rows,
+  title,
+  onFieldChange,
+  onOpenSourceKeyChange,
+  onWorkflowPortsChange,
 }: {
   addLabel: string;
+  allowAdd: boolean;
   direction: "inputs" | "outputs";
-  ports: WorkbenchPort[];
-  onPortsChange: (ports: WorkbenchPort[]) => void;
+  errors: Record<string, string>;
+  model: WorkbenchModel;
+  node: WorkbenchNode;
+  openSourceKey: string | null;
+  rows: WorkbenchParameterRow[];
+  title: string;
+  onFieldChange: (field: WorkbenchField, value: unknown) => void;
+  onOpenSourceKeyChange: (key: string | null) => void;
+  onWorkflowPortsChange: (direction: "inputs" | "outputs", ports: WorkbenchPort[]) => void;
 }) {
-  const [draftPorts, setDraftPorts] = useState(ports);
+  const [draftPorts, setDraftPorts] = useState(() => portsFromRows(rows));
   const commitTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   useEffect(() => {
-    setDraftPorts(ports);
-  }, [ports]);
+    setDraftPorts(portsFromRows(rows));
+  }, [rows]);
 
   const commitPorts = (nextPorts: WorkbenchPort[], delay = 0) => {
     setDraftPorts(nextPorts);
@@ -140,58 +135,148 @@ function WorkflowPortList({
     }
     if (delay > 0) {
       commitTimer.current = setTimeout(() => {
-        onPortsChange(nextPorts);
+        onWorkflowPortsChange(direction, nextPorts);
         commitTimer.current = null;
       }, delay);
       return;
     }
-    onPortsChange(nextPorts);
+    onWorkflowPortsChange(direction, nextPorts);
+  };
+
+  const updateRowPort = (row: WorkbenchParameterRow, value: WorkbenchPort["value"], delay = 0) => {
+    if (!row.port) return;
+    commitPorts(
+      draftPorts.map((port) => (port.path === row.port?.path ? portFromValue(value, port.path) : port)),
+      delay,
+    );
+  };
+
+  const deleteRowPort = (row: WorkbenchParameterRow) => {
+    if (!row.port) return;
+    commitPorts(draftPorts.filter((port) => port.path !== row.port?.path));
   };
 
   return (
-    <div className="workflow-port-list">
-      {draftPorts.map((port, index) => (
-        <div className="workflow-port-row" key={`${port.path}:${index}`}>
-          <input
-            aria-label={`参数名 ${index + 1}`}
-            className="port-name-input"
-            value={port.value.name}
-            onChange={(event) => commitPorts(replacePort(draftPorts, index, { ...port.value, name: event.target.value }), 180)}
-          />
-          <select
-            aria-label={`参数类型 ${index + 1}`}
-            className="port-type-select"
-            value={port.value.type.name}
-            onChange={(event) => commitPorts(replacePort(draftPorts, index, { ...port.value, type: { name: event.target.value } }))}
-          >
-            {PORT_TYPE_OPTIONS.map((option) => (
-              <option key={option} value={option}>
-                {option}
-              </option>
-            ))}
-          </select>
-          <button
-            aria-label={`删除参数 ${port.key}`}
-            className="danger-icon-button compact"
-            onClick={() => commitPorts(draftPorts.filter((_, portIndex) => portIndex !== index))}
-            type="button"
-          >
-            <Trash2 size={15} />
-          </button>
+    <section className="parameter-card">
+      <details open>
+        <summary>
+          <span>{title}</span>
+          <small>{rows.length} 个</small>
+        </summary>
+        <div className="parameter-row-list">
+          {rows.length > 0 ? (
+            <div className="parameter-row-header" aria-hidden="true">
+              <span>名称</span>
+              <span>类型</span>
+              <span>值</span>
+              <span />
+            </div>
+          ) : null}
+          {rows.map((row) => (
+            <ParameterRow
+              errors={errors}
+              key={row.id}
+              model={model}
+              node={node}
+              openSourceKey={openSourceKey}
+              row={row}
+              onDelete={() => deleteRowPort(row)}
+              onFieldChange={onFieldChange}
+              onNameChange={(name) => row.port && updateRowPort(row, { ...row.port.value, name }, 180)}
+              onOpenSourceKeyChange={onOpenSourceKeyChange}
+              onTypeChange={(type) => row.port && updateRowPort(row, { ...row.port.value, type: { name: type } })}
+            />
+          ))}
+          {allowAdd ? (
+            <button className="secondary-button parameter-add-button" onClick={() => commitPorts([...draftPorts, newPort(direction, draftPorts.length)])} type="button">
+              <Plus size={15} />
+              {addLabel}
+            </button>
+          ) : null}
         </div>
-      ))}
-      <button className="secondary-button schema-add-button" onClick={() => commitPorts([...draftPorts, newPort(direction, draftPorts.length)])} type="button">
-        <Plus size={15} />
-        {addLabel}
-      </button>
+      </details>
+    </section>
+  );
+}
+
+function ParameterRow({
+  errors,
+  model,
+  node,
+  openSourceKey,
+  row,
+  onDelete,
+  onFieldChange,
+  onNameChange,
+  onOpenSourceKeyChange,
+  onTypeChange,
+}: {
+  errors: Record<string, string>;
+  model: WorkbenchModel;
+  node: WorkbenchNode;
+  openSourceKey: string | null;
+  row: WorkbenchParameterRow;
+  onDelete: () => void;
+  onFieldChange: (field: WorkbenchField, value: unknown) => void;
+  onNameChange: (name: string) => void;
+  onOpenSourceKeyChange: (key: string | null) => void;
+  onTypeChange: (type: string) => void;
+}) {
+  const field = row.field;
+  const sourceKey = `${node.id}:${row.valuePath ?? row.id}`;
+  const error = field ? errors[field.key] : undefined;
+
+  return (
+    <div className="parameter-row">
+      <input
+        aria-label={`参数名 ${row.name}`}
+        className="parameter-cell-input"
+        disabled={!row.nameEditable}
+        value={row.name}
+        onChange={(event) => onNameChange(event.target.value)}
+      />
+      <select
+        aria-label={`参数类型 ${row.name}`}
+        className="parameter-cell-select"
+        disabled={!row.typeEditable}
+        value={row.type}
+        onChange={(event) => onTypeChange(event.target.value)}
+      >
+        {PORT_TYPE_OPTIONS.map((option) => (
+          <option key={option} value={option}>
+            {option}
+          </option>
+        ))}
+      </select>
+      {field && row.valueEditable ? (
+        <ValueComboInput
+          activeSourceId={getFieldSourceId(field)}
+          error={error}
+          field={field}
+          isOpen={openSourceKey === sourceKey}
+          resolvedValue={getResolvedFieldValue(field, model.sourcesById)}
+          sourceOptions={row.allowReference ? getSourceOptions(model.nodes, node.id, field) : []}
+          onFieldChange={onFieldChange}
+          onOpenChange={(nextOpen) => onOpenSourceKeyChange(nextOpen ? sourceKey : null)}
+        />
+      ) : (
+        <span className="value-control readonly-value">{field ? getResolvedFieldValue(field, model.sourcesById) : ""}</span>
+      )}
+      {row.allowDelete ? (
+        <button aria-label={`删除参数 ${row.name}`} className="danger-icon-button compact" onClick={onDelete} type="button">
+          <Trash2 size={15} />
+        </button>
+      ) : (
+        <span aria-hidden="true" />
+      )}
     </div>
   );
 }
 
 const PORT_TYPE_OPTIONS = ["string", "number", "boolean", "object", "array"];
 
-function replacePort(ports: WorkbenchPort[], index: number, value: WorkbenchPort["value"]) {
-  return ports.map((port, portIndex) => (portIndex === index ? portFromValue(value, port.path) : port));
+function portsFromRows(rows: WorkbenchParameterRow[]) {
+  return rows.flatMap((row) => (row.port ? [row.port] : []));
 }
 
 function newPort(direction: "inputs" | "outputs", index: number): WorkbenchPort {
@@ -293,30 +378,6 @@ function FieldRow({
         />
       )}
     </div>
-  );
-}
-
-function OutputDeclarationRow({ field }: { field: WorkbenchField }) {
-  return (
-    <div className="schema-row output-declaration">
-      <span className="field-name">{field.label}</span>
-      <span className="field-meta">
-        <code className={`field-type ${field.type}`}>{field.type}</code>
-      </span>
-    </div>
-  );
-}
-
-function SchemaSection({ title, children }: { title: string; children: ReactNode }) {
-  return (
-    <section className="schema-section">
-      <h3>{title}</h3>
-      <div className="schema-box">
-        <span className="brace">{"{"}</span>
-        {children}
-        <span className="brace">{"}"}</span>
-      </div>
-    </section>
   );
 }
 
