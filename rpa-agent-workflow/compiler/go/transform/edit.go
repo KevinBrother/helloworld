@@ -227,6 +227,30 @@ func insertBetween(stmt *ast.Statement, afterNodeID string, beforeNodeID string,
 	if stmt == nil {
 		return false, false
 	}
+	if stmt.ID == afterNodeID {
+		if ok, foundPair := insertAtStartOfList(&stmt.Statements, beforeNodeID, inserted); ok || foundPair {
+			return ok, foundPair
+		}
+		if ok, foundPair := insertAtStartOfList(&stmt.Then, beforeNodeID, inserted); ok || foundPair {
+			return ok, foundPair
+		}
+		if ok, foundPair := insertAtStartOfList(&stmt.Else, beforeNodeID, inserted); ok || foundPair {
+			return ok, foundPair
+		}
+		for i := range stmt.Branches {
+			if ok, foundPair := insertAtStartOfList(&stmt.Branches[i].Body, beforeNodeID, inserted); ok || foundPair {
+				return ok, foundPair
+			}
+		}
+		for i := range stmt.Catches {
+			if ok, foundPair := insertAtStartOfList(&stmt.Catches[i].Body, beforeNodeID, inserted); ok || foundPair {
+				return ok, foundPair
+			}
+		}
+		if ok, foundPair := insertAtStartOfList(&stmt.Finally, beforeNodeID, inserted); ok || foundPair {
+			return ok, foundPair
+		}
+	}
 	if ok, foundPair := insertBetweenInList(&stmt.Statements, afterNodeID, beforeNodeID, inserted); ok || foundPair {
 		return ok, foundPair
 	}
@@ -298,6 +322,24 @@ func insertBetween(stmt *ast.Statement, afterNodeID string, beforeNodeID string,
 		foundAny = foundAny || foundPair
 	}
 	return false, foundAny
+}
+
+func insertAtStartOfList(stmts *[]ast.Statement, beforeNodeID string, inserted ast.Statement) (bool, bool) {
+	list := *stmts
+	if len(list) == 0 {
+		return false, false
+	}
+	if list[0].ID != beforeNodeID {
+		for _, stmt := range list {
+			if stmt.ID == beforeNodeID {
+				return false, true
+			}
+		}
+		return false, false
+	}
+	list = append([]ast.Statement{inserted}, list...)
+	*stmts = list
+	return true, true
 }
 
 func insertBetweenInList(stmts *[]ast.Statement, afterNodeID string, beforeNodeID string, inserted ast.Statement) (bool, bool) {

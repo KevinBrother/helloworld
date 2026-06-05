@@ -182,6 +182,29 @@ func TestApplyInsertNodeAddsIfBetweenAdjacentSequenceChildren(t *testing.T) {
 	}
 }
 
+func TestApplyInsertNodeAddsNodeBetweenRootAndFirstChild(t *testing.T) {
+	workflow := ast.Workflow{Body: ast.Statement{ID: "root", Kind: "sequence", Statements: []ast.Statement{
+		{ID: "first", Kind: "assign"},
+		{ID: "return_result", Kind: "return"},
+	}}}
+
+	updated, diags := ApplyEdit(workflow, editoperation.Document{
+		Type: editoperation.OperationTypeInsertNode,
+		Payload: map[string]any{
+			"anchor": map[string]any{"afterNodeId": "root", "beforeNodeId": "first"},
+			"node":   map[string]any{"kind": "parallel", "branchCount": float64(2)},
+		},
+	})
+
+	if len(diags) != 0 {
+		t.Fatalf("unexpected diagnostics: %#v", diags)
+	}
+	inserted := updated.Body.Statements[0]
+	if inserted.Kind != "parallel" || len(inserted.Branches) != 2 || updated.Body.Statements[1].ID != "first" {
+		t.Fatalf("statements after root insert = %#v", updated.Body.Statements)
+	}
+}
+
 func TestApplyInsertNodeRejectsNonAdjacentAnchor(t *testing.T) {
 	workflow := ast.Workflow{Body: ast.Statement{ID: "root", Kind: "sequence", Statements: []ast.Statement{
 		{ID: "first", Kind: "assign"},
