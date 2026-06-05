@@ -302,6 +302,7 @@ func (s *editorServer) handleEdit(w http.ResponseWriter, r *http.Request) {
 
 	s.mu.Lock()
 	current := s.workflow
+	op = hydrateInsertNodeDefaults(op, s.blocks)
 	updated, diags := transform.ApplyEdit(current, op)
 	if len(diags) > 0 {
 		s.mu.Unlock()
@@ -332,6 +333,72 @@ func (s *editorServer) handleEdit(w http.ResponseWriter, r *http.Request) {
 		Diagnostics: nil,
 		Operation:   &op,
 	})
+}
+
+func hydrateInsertNodeDefaults(op editoperation.Document, blocks map[string]block.Definition) editoperation.Document {
+	if op.Type != editoperation.OperationTypeInsertNode || len(blocks) == 0 {
+		return op
+	}
+	node, ok := op.Payload["node"].(map[string]any)
+	if !ok {
+		return op
+	}
+	if kind, _ := node["kind"].(string); kind != "callBlock" {
+		return op
+	}
+	blockID, _ := node["block"].(string)
+	definition, ok := blocks[blockID]
+	if !ok {
+		return op
+	}
+
+	inputs, _ := node["inputs"].(map[string]any)
+	if inputs == nil {
+		inputs = map[string]any{}
+	}
+	for _, input := range definition.Inputs {
+		if input.Name == "" {
+			continue
+		}
+		if _, exists := inputs[input.Name]; exists {
+			continue
+		}
+		inputs[input.Name] = map[string]any{
+			"kind":  "literal",
+			"value": defaultBlockInputValue(input.Type),
+		}
+	}
+
+	nextPayload := make(map[string]any, len(op.Payload))
+	for key, value := range op.Payload {
+		nextPayload[key] = value
+	}
+	nextNode := make(map[string]any, len(node)+1)
+	for key, value := range node {
+		nextNode[key] = value
+	}
+	nextNode["inputs"] = inputs
+	nextPayload["node"] = nextNode
+	op.Payload = nextPayload
+	return op
+}
+
+func defaultBlockInputValue(inputType block.Type) any {
+	if len(inputType.Enum) > 0 {
+		return inputType.Enum[0]
+	}
+	switch inputType.Name {
+	case "number", "integer":
+		return float64(0)
+	case "boolean":
+		return false
+	case "object":
+		return map[string]any{}
+	case "array":
+		return []any{}
+	default:
+		return ""
+	}
 }
 
 func (s *editorServer) validateWorkflow(workflow ast.Workflow) []diagnostic.Diagnostic {

@@ -176,11 +176,15 @@ func buildInsertedStatement(workflow ast.Workflow, node map[string]any) (ast.Sta
 			diag := editPayloadDiagnostic("INVALID_INSERT_PAYLOAD", "callBlock insert requires block", "$.payload.node.block")
 			return ast.Statement{}, &diag
 		}
+		inputs, diag := decodeExpressionMapFromValue(node["inputs"], "$.payload.node.inputs")
+		if diag != nil {
+			return ast.Statement{}, diag
+		}
 		return ast.Statement{
 			ID:     uniqueStatementID(workflow, slugStatementID(blockID)),
 			Kind:   "callBlock",
 			Block:  blockID,
-			Inputs: map[string]ast.Expression{},
+			Inputs: inputs,
 		}, nil
 	case "if":
 		return ast.Statement{
@@ -205,6 +209,29 @@ func buildInsertedStatement(workflow ast.Workflow, node map[string]any) (ast.Sta
 		diag := editPayloadDiagnostic("UNSUPPORTED_INSERT_NODE_KIND", fmt.Sprintf("unsupported insert node kind %q", kind), "$.payload.node.kind")
 		return ast.Statement{}, &diag
 	}
+}
+
+func decodeExpressionMapFromValue(value any, path string) (map[string]ast.Expression, *diagnostic.Diagnostic) {
+	if value == nil {
+		return map[string]ast.Expression{}, nil
+	}
+	data, err := json.Marshal(value)
+	if err != nil {
+		diag := editPayloadDiagnostic("INVALID_INSERT_PAYLOAD", fmt.Sprintf("expression map cannot be encoded: %v", err), path)
+		return nil, &diag
+	}
+	var decoded map[string]ast.Expression
+	if err := json.Unmarshal(data, &decoded); err != nil {
+		diag := editPayloadDiagnostic("INVALID_INSERT_PAYLOAD", fmt.Sprintf("expression map is invalid: %v", err), path)
+		return nil, &diag
+	}
+	for name, expr := range decoded {
+		if expr.Kind == "" {
+			diag := editPayloadDiagnostic("INVALID_INSERT_PAYLOAD", fmt.Sprintf("input %q must be an expression", name), path+"."+name)
+			return nil, &diag
+		}
+	}
+	return decoded, nil
 }
 
 func insertBranchCount(node map[string]any) int {

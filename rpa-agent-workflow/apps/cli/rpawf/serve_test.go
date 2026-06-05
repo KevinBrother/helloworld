@@ -179,13 +179,13 @@ func TestEditorServerPersistsAcceptedEditToASTFile(t *testing.T) {
 }
 
 func TestEditorServerApplyInsertNodeReturnsUpdatedProjection(t *testing.T) {
-	server := newEditorServer(testEditorWorkflow(), nil)
+	server := newEditorServer(testInsertWorkflow(), mustLoadTestBlocks(t))
 	op := editoperation.Document{
 		SchemaVersion: "1.0.0",
 		OperationID:   "insert-log",
 		Type:          editoperation.OperationTypeInsertNode,
 		Payload: map[string]any{
-			"anchor": map[string]any{"afterNodeId": "assign_count", "beforeNodeId": "return_count"},
+			"anchor": map[string]any{"afterNodeId": "root", "beforeNodeId": "return_result"},
 			"node":   map[string]any{"kind": "callBlock", "block": "core.log"},
 		},
 	}
@@ -197,11 +197,15 @@ func TestEditorServerApplyInsertNodeReturnsUpdatedProjection(t *testing.T) {
 	}
 	var state testEditorStateResponse
 	decodeResponse(t, response, &state)
-	if got := []string{state.AST.Body.Statements[0].ID, state.AST.Body.Statements[1].Kind, state.AST.Body.Statements[2].ID}; got[0] != "assign_count" || got[1] != "callBlock" || got[2] != "return_count" {
+	if got := []string{state.AST.Body.Statements[0].Kind, state.AST.Body.Statements[1].ID}; got[0] != "callBlock" || got[1] != "return_result" {
 		t.Fatalf("statement order = %#v", got)
 	}
-	if state.UI.Root.Children[1].Kind != "callBlock" {
-		t.Fatalf("projected inserted node kind = %q, want callBlock", state.UI.Root.Children[1].Kind)
+	message := state.AST.Body.Statements[0].Inputs["message"]
+	if message.Kind != "literal" || message.Value != "" {
+		t.Fatalf("inserted block input message = %#v, want empty string literal", message)
+	}
+	if state.UI.Root.Children[0].Kind != "callBlock" {
+		t.Fatalf("projected inserted node kind = %q, want callBlock", state.UI.Root.Children[0].Kind)
 	}
 }
 
@@ -408,6 +412,26 @@ func testRunnableWorkflow() ast.Workflow {
 					Kind: "return",
 					Returns: map[string]ast.Expression{
 						"result": {Kind: "ref", Ref: "var.result"},
+					},
+				},
+			},
+		},
+	}
+}
+
+func testInsertWorkflow() ast.Workflow {
+	return ast.Workflow{
+		SchemaVersion: "1.0.0",
+		Workflow:      ast.Metadata{ID: "insert_test"},
+		Body: ast.Statement{
+			ID:   "root",
+			Kind: "sequence",
+			Statements: []ast.Statement{
+				{
+					ID:   "return_result",
+					Kind: "return",
+					Returns: map[string]ast.Expression{
+						"result": {Kind: "literal", Value: "ok"},
 					},
 				},
 			},
