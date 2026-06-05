@@ -107,6 +107,7 @@ go run ./apps/cli/rpawf exec examples/calculator/ast.json sdks/python/blocks exa
 ```sh
 mkdir -p output
 go run ./apps/cli/rpawf compile examples/calculator/ast.json sdks/python/blocks > output/calculator.py
+uv --project sdks/python run python output/calculator.py examples/calculator/input-add.json
 ```
 
 投影 calculator UI Node：
@@ -116,7 +117,7 @@ mkdir -p output
 go run ./apps/cli/rpawf project-ui examples/calculator/ast.json > output/calculator-ui-node.json
 ```
 
-当前生成的 Python workflow 不接收 input JSON 参数，所以 calculator 这种依赖运行时输入的场景，用 `rpawf exec` 测完整链路。
+生成的 Python workflow 接收可选 input JSON 参数；`-` 表示从 stdin 读取同一份 inputs JSON。
 
 ## Debug
 

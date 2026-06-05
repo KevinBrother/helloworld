@@ -14,6 +14,8 @@ func Generate(workflow *ast.Workflow, blocks map[string]block.Definition) (strin
 		return "", fmt.Errorf("workflow is nil")
 	}
 	var b strings.Builder
+	b.WriteString("import json\n")
+	b.WriteString("import sys\n\n")
 	b.WriteString("from rpa_sdk.runtime import WorkflowRuntime\n\n")
 	b.WriteString("BLOCKS = ")
 	b.WriteString(renderBlockBindings(blocks))
@@ -24,12 +26,32 @@ func Generate(workflow *ast.Workflow, blocks map[string]block.Definition) (strin
 	b.WriteString("WORKFLOW = ")
 	b.WriteString(renderStatement(workflow.Body))
 	b.WriteString("\n\n")
-	b.WriteString("async def main():\n")
+	b.WriteString("def load_workflow_inputs(argv):\n")
+	b.WriteString("    if len(argv) < 2:\n")
+	b.WriteString("        return {}\n")
+	b.WriteString("    if len(argv) > 2:\n")
+	b.WriteString("        raise SystemExit(\"usage: python workflow.py [input.json|-]\")\n")
+	b.WriteString("    source = argv[1]\n")
+	b.WriteString("    if source == \"-\":\n")
+	b.WriteString("        raw = sys.stdin.read()\n")
+	b.WriteString("    else:\n")
+	b.WriteString("        with open(source, \"r\", encoding=\"utf-8\") as input_file:\n")
+	b.WriteString("            raw = input_file.read()\n")
+	b.WriteString("    if not raw.strip():\n")
+	b.WriteString("        return {}\n")
+	b.WriteString("    inputs = json.loads(raw)\n")
+	b.WriteString("    if not isinstance(inputs, dict):\n")
+	b.WriteString("        raise SystemExit(\"workflow input json must be an object\")\n")
+	b.WriteString("    return inputs\n")
+	b.WriteString("\n")
+	b.WriteString("async def main(argv=None):\n")
+	b.WriteString("    workflow_inputs = load_workflow_inputs(sys.argv if argv is None else argv)\n")
 	b.WriteString("    runtime = WorkflowRuntime(blocks=BLOCKS, workflows=WORKFLOWS)\n")
-	b.WriteString("    return await runtime.run_workflow(WORKFLOW)\n")
+	b.WriteString("    return await runtime.run_workflow(WORKFLOW, workflow_inputs)\n")
 	b.WriteString("\nif __name__ == \"__main__\":\n")
 	b.WriteString("    import asyncio\n")
-	b.WriteString("    asyncio.run(main())\n")
+	b.WriteString("    result = asyncio.run(main())\n")
+	b.WriteString("    print(json.dumps({\"returns\": result}, ensure_ascii=False, indent=2))\n")
 	return b.String(), nil
 }
 
@@ -100,6 +122,10 @@ func renderStatement(stmt ast.Statement) string {
 	if len(stmt.Inputs) > 0 {
 		b.WriteString(", \"inputs\": ")
 		b.WriteString(renderExpressionMap(stmt.Inputs))
+	}
+	if len(stmt.Outputs) > 0 {
+		b.WriteString(", \"outputs\": ")
+		b.WriteString(renderExpressionMap(stmt.Outputs))
 	}
 	if len(stmt.Returns) > 0 {
 		b.WriteString(", \"returns\": ")
@@ -199,6 +225,12 @@ func renderExpression(expr ast.Expression) string {
 	case "object":
 		var b strings.Builder
 		b.WriteString("{\"kind\": \"object\", \"fields\": ")
+		b.WriteString(renderExpressionMap(expr.Fields))
+		b.WriteString("}")
+		return b.String()
+	case "branch":
+		var b strings.Builder
+		b.WriteString("{\"kind\": \"branch\", \"fields\": ")
 		b.WriteString(renderExpressionMap(expr.Fields))
 		b.WriteString("}")
 		return b.String()

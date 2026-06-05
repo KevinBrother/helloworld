@@ -114,6 +114,55 @@ func TestExecRunsCalculatorWorkflowWithInputJSON(t *testing.T) {
 	}
 }
 
+func TestCompileGeneratedPythonRunsCalculatorWithInputJSON(t *testing.T) {
+	if _, err := exec.LookPath("uv"); err != nil {
+		t.Skip("uv is unavailable")
+	}
+
+	dir := t.TempDir()
+	workflowPath := dir + "/calculator.py"
+	compileCmd := exec.Command(
+		"go",
+		"run",
+		".",
+		"compile",
+		"../../../examples/calculator/ast.json",
+		"../../../sdks/python/blocks",
+	)
+	src, err := compileCmd.CombinedOutput()
+	if err != nil {
+		t.Fatalf("compile failed: %v\n%s", err, src)
+	}
+	if err := os.WriteFile(workflowPath, src, 0o644); err != nil {
+		t.Fatal(err)
+	}
+
+	runCmd := exec.Command(
+		"uv",
+		"--project",
+		"../../../sdks/python",
+		"run",
+		"python",
+		workflowPath,
+		"../../../examples/calculator/input-add.json",
+	)
+	out, err := runCmd.CombinedOutput()
+	if err != nil {
+		t.Fatalf("generated python failed: %v\n%s\n%s", err, out, src)
+	}
+	var result map[string]any
+	if err := json.Unmarshal(out, &result); err != nil {
+		t.Fatalf("invalid json output: %v\n%s", err, out)
+	}
+	returns, ok := result["returns"].(map[string]any)
+	if !ok {
+		t.Fatalf("missing returns in result: %#v", result)
+	}
+	if got := returns["result"]; got != float64(42) {
+		t.Fatalf("result = %#v, want 42", got)
+	}
+}
+
 func assertCalculatorASTUsesNodeOutputReference(t *testing.T) {
 	t.Helper()
 

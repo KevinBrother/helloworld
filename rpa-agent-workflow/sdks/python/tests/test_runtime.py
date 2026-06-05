@@ -180,6 +180,76 @@ class RuntimeTest(unittest.TestCase):
         result = asyncio.run(runtime.run_statement(workflow))
         self.assertEqual(result, {"branch": "then", "last": "b", "finally": True})
 
+    def test_if_outputs_expose_branch_node_output_references(self):
+        runtime = WorkflowRuntime()
+        workflow = {
+            "id": "root",
+            "kind": "sequence",
+            "statements": [
+                {
+                    "id": "branch_by_threshold",
+                    "kind": "if",
+                    "condition": {
+                        "kind": "binary",
+                        "op": ">",
+                        "left": {"kind": "ref", "ref": "input.left"},
+                        "right": {"kind": "literal", "value": 10},
+                    },
+                    "then": [
+                        {
+                            "id": "calculate_large_value",
+                            "kind": "callBlock",
+                            "block": "math.calculate",
+                            "inputs": {
+                                "left": {"kind": "ref", "ref": "input.left"},
+                                "operator": {"kind": "ref", "ref": "input.operator"},
+                                "right": {"kind": "ref", "ref": "input.right"},
+                            },
+                        }
+                    ],
+                    "else": [
+                        {
+                            "id": "calculate_small_value",
+                            "kind": "callBlock",
+                            "block": "math.calculate",
+                            "inputs": {
+                                "left": {"kind": "ref", "ref": "input.left"},
+                                "operator": {"kind": "ref", "ref": "input.operator"},
+                                "right": {"kind": "ref", "ref": "input.right"},
+                            },
+                        }
+                    ],
+                    "outputs": {
+                        "result": {
+                            "kind": "branch",
+                            "fields": {
+                                "then": {"kind": "ref", "ref": "node.calculate_large_value.result"},
+                                "else": {"kind": "ref", "ref": "node.calculate_small_value.result"},
+                            },
+                        }
+                    },
+                },
+                {
+                    "id": "return_result",
+                    "kind": "return",
+                    "returns": {"result": {"kind": "ref", "ref": "node.branch_by_threshold.result"}},
+                },
+            ],
+        }
+
+        result = asyncio.run(
+            runtime.run_workflow(
+                workflow,
+                {
+                    "left": 30,
+                    "operator": "+",
+                    "right": 12,
+                },
+            )
+        )
+
+        self.assertEqual(result, {"result": 42})
+
 
 if __name__ == "__main__":
     unittest.main()

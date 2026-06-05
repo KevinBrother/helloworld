@@ -6,6 +6,7 @@ class WorkflowRuntime:
     def __init__(self, blocks=None, workflows=None):
         self.trace_events = []
         self.variables = {}
+        self.node_outputs = {}
         self.blocks = blocks or {}
         self.workflows = workflows or {}
 
@@ -30,13 +31,15 @@ class WorkflowRuntime:
             if kind == "parallel":
                 return await self.run_parallel(statement, scope)
             if kind == "callBlock":
-                return self.call_block(
+                result = self.call_block(
                     statement["block"],
                     {
                         key: self.evaluate_expression(value, scope)
                         for key, value in statement.get("inputs", {}).items()
                     },
                 )
+                self.store_node_outputs(statement, result)
+                return result
             if kind == "assign":
                 value = self.evaluate_expression(statement.get("value"), scope)
                 self.variables[statement["target"]] = value
@@ -44,14 +47,18 @@ class WorkflowRuntime:
                 return value
             if kind == "if":
                 if self.evaluate_expression(statement.get("condition"), scope):
-                    return await self.run_statement(
+                    result = await self.run_statement(
                         {"id": statement_id + ".then", "kind": "sequence", "statements": statement.get("then", [])},
                         scope,
                     )
-                return await self.run_statement(
+                    self.store_statement_outputs(statement, scope, "then")
+                    return result
+                result = await self.run_statement(
                     {"id": statement_id + ".else", "kind": "sequence", "statements": statement.get("else", [])},
                     scope,
                 )
+                self.store_statement_outputs(statement, scope, "else")
+                return result
             if kind == "loop":
                 return await self.run_loop(statement, scope)
             if kind == "try":
@@ -175,6 +182,30 @@ class WorkflowRuntime:
             return calculate(**inputs)
         raise KeyError(name)
 
+    def store_node_outputs(self, statement, result):
+        statement_id = statement.get("id")
+        if not statement_id:
+            return
+        if isinstance(result, dict):
+            self.node_outputs[statement_id] = dict(result)
+        else:
+            self.node_outputs[statement_id] = {"result": result}
+
+    def store_statement_outputs(self, statement, scope, selected_branch=None):
+        outputs = statement.get("outputs") or {}
+        if not outputs:
+            return
+        values = {}
+        for key, expression in outputs.items():
+            values[key] = self.evaluate_output_expression(expression, scope, selected_branch)
+        self.node_outputs[statement.get("id")] = values
+
+    def evaluate_output_expression(self, expression, scope, selected_branch=None):
+        if isinstance(expression, dict) and expression.get("kind") == "branch":
+            fields = expression.get("fields") or {}
+            return self.evaluate_expression(fields.get(selected_branch), scope)
+        return self.evaluate_expression(expression, scope)
+
     def resolve_binding(self, binding):
         import importlib
 
@@ -201,6 +232,13 @@ class WorkflowRuntime:
                 return self.variables.get(ref.split(".", 1)[1])
             if ref.startswith("input."):
                 return scope.get(ref.split(".", 1)[1])
+            if ref.startswith("node."):
+                parts = ref.split(".")
+                if len(parts) < 3:
+                    return None
+                node_id = ".".join(parts[1:-1])
+                output_name = parts[-1]
+                return self.node_outputs.get(node_id, {}).get(output_name)
             return scope.get(ref)
         if kind == "binary":
             left = self.evaluate_expression(expression.get("left"), scope)
@@ -222,6 +260,14 @@ class WorkflowRuntime:
             return {
                 key: self.evaluate_expression(value, scope)
                 for key, value in expression.get("fields", {}).items()
+            }
+        if kind == "branch":
+            fields = expression.get("fields", {})
+            if len(fields) == 1:
+                return self.evaluate_expression(next(iter(fields.values())), scope)
+            return {
+                key: self.evaluate_expression(value, scope)
+                for key, value in fields.items()
             }
         if kind == "template":
             return "".join(str(self.evaluate_expression(item, scope)) for item in expression.get("items", []))
