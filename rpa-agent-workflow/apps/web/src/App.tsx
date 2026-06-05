@@ -267,25 +267,6 @@ function App() {
     setRunPending(false);
   };
 
-  const handleOpenWorkflow = async () => {
-    const source = window.prompt("输入服务端工作流 source（相对路径或全路径）", sourceFromURL() ?? "examples/fs-workflow/ast.json");
-    if (!source?.trim()) return;
-    try {
-      const state = await openWorkflowSource(source.trim());
-      applyServerState(state);
-      setRunResult(null);
-      setSaveState("sample");
-      setServerAvailable(true);
-      setSaveState("saved");
-      setStatus(`已打开工作流：${source.trim()}`);
-    } catch (error) {
-      const apiError = normalizeAPIError(error);
-      setSaveState("failed");
-      setDiagnostics(apiError.diagnostics);
-      setStatus(`无法打开工作流：${apiError.message}`);
-    }
-  };
-
   return (
     <div className="workbench-shell">
       <Header
@@ -293,7 +274,6 @@ function App() {
         serverAvailable={serverAvailable}
         status={status}
         workflowName={model?.workflowName ?? "Workflow Editor"}
-        onOpenWorkflow={() => void handleOpenWorkflow()}
         onRun={() => {
           setOpenSourceKey(null);
           setRunModalOpen(true);
