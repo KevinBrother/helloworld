@@ -11,6 +11,7 @@ import { reduceRunMessage, runWorkflowStream, type NodeRunStateMap } from "./run
 import { validateWorkflowRunInputs } from "./runInputValidation";
 import { findInvalidConditionOperatorRepairs } from "./runReadiness";
 import { buildWorkbenchModel, type InsertAnchor, type WorkbenchField, type WorkbenchNode, type WorkbenchPort } from "./workbenchModel";
+import { updateWorkflowPortsInDocument } from "./workflowBoundary";
 import { clearWorkflowDraft, loadWorkflowDraft, normalizeWorkflowDraftForServerUI, saveWorkflowDraft } from "./workflowDraft";
 import { workflowSourceFromSearch } from "./workflowSource";
 import { CreateNodeModal } from "./workbench/components/CreateNodeModal";
@@ -183,7 +184,7 @@ function App() {
       direction,
       ports.map((port) => port.value),
     );
-    const nextDocument = updateWorkflowPorts(uiDocument, direction, ports, node.id, direction === "inputs" ? node.inputPorts : node.outputPorts);
+    const nextDocument = updateWorkflowPortsInDocument(uiDocument, direction, ports, node.id, direction === "inputs" ? node.inputPorts : node.outputPorts);
     const nextOperations = [...pendingOperations, operation];
     setUIDocument(nextDocument);
     setPendingOperations(nextOperations);
@@ -534,67 +535,6 @@ function updateWorkflowRunInputValue(document: UIDocument, key: string, value: u
       },
     },
   };
-}
-
-function updateWorkflowPorts(
-  document: UIDocument,
-  direction: "inputs" | "outputs",
-  ports: WorkbenchPort[],
-  targetNodeId: string,
-  previousPorts: WorkbenchPort[],
-): UIDocument {
-  const nextRoot =
-    direction === "inputs"
-      ? {
-          ...document.root,
-          inspector: replacePortInspectorFields(document.root.inspector, direction, ports),
-        }
-      : updateNodeRecursive(document.root, targetNodeId, (node) => ({
-          ...node,
-          inspector: replacePortInspectorFields(node.inspector, direction, ports),
-        }));
-
-  const nextDocument = {
-    ...document,
-    root: nextRoot,
-  };
-
-  if (direction !== "inputs") return nextDocument;
-
-  return {
-    ...nextDocument,
-    metadata: {
-      ...nextDocument.metadata,
-      workflowInputValues: remapWorkflowInputValues(workflowInputValues(document), previousPorts, ports),
-    },
-  };
-}
-
-function replacePortInspectorFields(inspector: UINode["inspector"], direction: "inputs" | "outputs", ports: WorkbenchPort[]) {
-  const prefix = `$.${direction}.`;
-  return [
-    ...(inspector ?? []).filter((field) => !(field.control === "port" && field.path.startsWith(prefix))),
-    ...ports.map((port) => ({
-      path: `${prefix}${port.value.name}`,
-      label: `${direction === "inputs" ? "Input" : "Output"} ${port.value.name}`,
-      control: "port",
-      value: port.value,
-      readonly: true,
-    })),
-  ];
-}
-
-function remapWorkflowInputValues(values: Record<string, unknown>, previousPorts: WorkbenchPort[], nextPorts: WorkbenchPort[]) {
-  const nextValues: Record<string, unknown> = {};
-  for (const [index, port] of nextPorts.entries()) {
-    const previous = previousPorts[index];
-    if (Object.hasOwn(values, port.key)) {
-      nextValues[port.key] = values[port.key];
-    } else if (previous && Object.hasOwn(values, previous.key)) {
-      nextValues[port.key] = values[previous.key];
-    }
-  }
-  return nextValues;
 }
 
 function updateInspectorFieldValue(field: NonNullable<UINode["inspector"]>[number], path: string, value: unknown) {
