@@ -1,14 +1,16 @@
+import { Plus } from "lucide-react";
 import type { NodeRunState, NodeRunStateMap } from "../../runEvents";
-import { buildCanvasLayout, getNodeIoLabel, type CanvasLayout, type WorkbenchModel, type WorkbenchNode } from "../../workbenchModel";
+import { buildCanvasLayout, getNodeIoLabel, type CanvasLayout, type InsertAnchor, type WorkbenchModel, type WorkbenchNode } from "../../workbenchModel";
 
 type WorkflowCanvasProps = {
   model: WorkbenchModel;
   nodeRunStates: NodeRunStateMap;
   selectedId: string;
   onSelect: (id: string) => void;
+  onInsertAtEdge?: (anchor: InsertAnchor) => void;
 };
 
-export function WorkflowCanvas({ model, nodeRunStates, selectedId, onSelect }: WorkflowCanvasProps) {
+export function WorkflowCanvas({ model, nodeRunStates, selectedId, onSelect, onInsertAtEdge }: WorkflowCanvasProps) {
   const layout = buildCanvasLayout(model);
 
   return (
@@ -20,6 +22,23 @@ export function WorkflowCanvas({ model, nodeRunStates, selectedId, onSelect }: W
               <path className="flow-link primary" d={getEdgePath(layout, edge.from, edge.to)} key={edge.id} />
             ))}
           </svg>
+
+          {layout.edges.map((edge) => {
+            const point = getEdgeMidpoint(layout, edge.from, edge.to);
+            if (!point) return null;
+            return (
+              <button
+                aria-label={`在 ${edge.from} 和 ${edge.to} 之间新建节点`}
+                className="edge-insert-button"
+                key={`insert-${edge.id}`}
+                onClick={() => onInsertAtEdge?.(edge.anchor)}
+                style={{ left: point.x, top: point.y }}
+                type="button"
+              >
+                <Plus size={16} />
+              </button>
+            );
+          })}
 
           {layout.nodes.map((layoutNode) => (
             <div
@@ -61,6 +80,23 @@ function getEdgePath(layout: CanvasLayout, fromId: string, toId: string) {
 
   const midY = Math.round((startY + endY) / 2);
   return `M${startX} ${startY} L${startX} ${midY} L${endX} ${midY} L${endX} ${endY}`;
+}
+
+function getEdgeMidpoint(layout: CanvasLayout, fromId: string, toId: string) {
+  const from = layout.nodes.find((node) => node.node.id === fromId);
+  const to = layout.nodes.find((node) => node.node.id === toId);
+  if (!from || !to) return null;
+
+  const startX = from.x;
+  const startY = from.y + from.height;
+  const endX = to.x;
+  const endY = to.y;
+
+  if (startX === endX) {
+    return { x: Math.round((startX + endX) / 2), y: Math.round((startY + endY) / 2) };
+  }
+
+  return { x: Math.round((startX + endX) / 2), y: Math.round((startY + endY) / 2) };
 }
 
 function CanvasNode({ node, runState, selected, onSelect }: { node?: WorkbenchNode; runState: NodeRunState; selected: boolean; onSelect: (id: string) => void }) {

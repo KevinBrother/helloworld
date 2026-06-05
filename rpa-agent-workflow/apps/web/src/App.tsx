@@ -1,11 +1,14 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 // import sampleDocument from "../../../output/calculator-ui-node.json";
 import sampleDocument from "../../../output/fs-ui-node.json";
+import { buildDeleteNodeOperation, buildInsertNodeOperation, type InsertNodeSpec } from "./editOperations";
 import { getRunAvailability } from "./runAvailability";
 import { reduceRunMessage, runWorkflowStream, type NodeRunStateMap } from "./runEvents";
 import { validateWorkflowRunInputs } from "./runInputValidation";
 import { findInvalidConditionOperatorRepairs } from "./runReadiness";
-import { buildWorkbenchModel, type WorkbenchField, type WorkbenchNode } from "./workbenchModel";
+import { buildWorkbenchModel, type InsertAnchor, type WorkbenchField, type WorkbenchNode } from "./workbenchModel";
+import { CreateNodeModal } from "./workbench/components/CreateNodeModal";
+import { DeleteNodeModal } from "./workbench/components/DeleteNodeModal";
 import { Header, type SaveState } from "./workbench/components/Header";
 import { NodeLibrary } from "./workbench/components/NodeLibrary";
 import { ParameterPanel } from "./workbench/components/ParameterPanel";
@@ -39,6 +42,9 @@ function App() {
   const [openSourceKey, setOpenSourceKey] = useState<string | null>(null);
   const [runLines, setRunLines] = useState<string[]>(["暂无服务端运行记录。"]);
   const [nodeRunStates, setNodeRunStates] = useState<NodeRunStateMap>({});
+  const [pendingInsertAnchor, setPendingInsertAnchor] = useState<InsertAnchor | null>(null);
+  const [deleteModalNode, setDeleteModalNode] = useState<WorkbenchNode | null>(null);
+  const [nodeEditPending, setNodeEditPending] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const model = useMemo(() => buildWorkbenchModel(uiDocument, blockCatalog), [uiDocument, blockCatalog]);
@@ -137,6 +143,67 @@ function App() {
         setServerAvailable(false);
         setServiceError(apiError.message);
       }
+    }
+  };
+
+  const submitServerEdit = async (operation: EditOperation, successStatus: string) => {
+    if (!serverAvailable) {
+      setStatus("流程服务未连接，不能修改流程结构");
+      return false;
+    }
+
+    setNodeEditPending(true);
+    setSaveState("saving");
+    try {
+      const state = await requestJSON<EditorStateResponse>("/api/edit", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(operation),
+      });
+      applyServerState(state);
+      setSaveState("saved");
+      setStatus(successStatus);
+      return true;
+    } catch (error) {
+      const apiError = normalizeAPIError(error);
+      setSaveState("failed");
+      setDiagnostics(apiError.diagnostics);
+      setStatus(apiError.message);
+      if (apiError.network) {
+        setServerAvailable(false);
+        setServiceError(apiError.message);
+      }
+      return false;
+    } finally {
+      setNodeEditPending(false);
+    }
+  };
+
+  const handleInsertAtEdge = (anchor: InsertAnchor) => {
+    setOpenSourceKey(null);
+    if (!serverAvailable) {
+      setStatus("流程服务未连接，不能新增节点");
+      return;
+    }
+    setPendingInsertAnchor(anchor);
+  };
+
+  const handleCreateNode = async (node: InsertNodeSpec) => {
+    if (!pendingInsertAnchor) return;
+    const ok = await submitServerEdit(
+      buildInsertNodeOperation(makeOperationId("insert"), DEFAULT_ACTOR, pendingInsertAnchor, node),
+      "节点已新增",
+    );
+    if (ok) {
+      setPendingInsertAnchor(null);
+    }
+  };
+
+  const handleDeleteNode = async () => {
+    if (!deleteModalNode) return;
+    const ok = await submitServerEdit(buildDeleteNodeOperation(makeOperationId("delete"), DEFAULT_ACTOR, deleteModalNode), "节点已删除");
+    if (ok) {
+      setDeleteModalNode(null);
     }
   };
 
@@ -246,6 +313,7 @@ function App() {
           model={model}
           nodeRunStates={nodeRunStates}
           selectedId={selectedNode.id}
+          onInsertAtEdge={handleInsertAtEdge}
           onSelect={(id) => {
             setOpenSourceKey(null);
             setSelectedNodeId(id);
@@ -256,6 +324,7 @@ function App() {
           model={model}
           node={selectedNode}
           openSourceKey={openSourceKey}
+          onDeleteNode={(node) => setDeleteModalNode(node)}
           onOpenSourceKeyChange={setOpenSourceKey}
           onFieldChange={(field, value) => void submitFieldUpdate(selectedNode, field, value)}
         />
@@ -279,6 +348,24 @@ function App() {
           }}
           onOpenSourceKeyChange={setOpenSourceKey}
           onRun={() => void handleRunWorkflow()}
+        />
+      ) : null}
+
+      {pendingInsertAnchor ? (
+        <CreateNodeModal
+          blocks={model.blockOptions}
+          pending={nodeEditPending}
+          onClose={() => setPendingInsertAnchor(null)}
+          onConfirm={(node) => void handleCreateNode(node)}
+        />
+      ) : null}
+
+      {deleteModalNode ? (
+        <DeleteNodeModal
+          node={deleteModalNode}
+          pending={nodeEditPending}
+          onClose={() => setDeleteModalNode(null)}
+          onConfirm={() => void handleDeleteNode()}
         />
       ) : null}
     </div>

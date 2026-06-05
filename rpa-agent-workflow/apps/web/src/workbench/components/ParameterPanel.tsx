@@ -1,4 +1,5 @@
 import { type ReactNode } from "react";
+import { Trash2 } from "lucide-react";
 import {
   getFieldSourceId,
   getResolvedFieldValue,
@@ -16,9 +17,10 @@ type ParameterPanelProps = {
   openSourceKey: string | null;
   onOpenSourceKeyChange: (key: string | null) => void;
   onFieldChange: (field: WorkbenchField, value: unknown) => void;
+  onDeleteNode?: (node: WorkbenchNode) => void;
 };
 
-export function ParameterPanel({ errors = {}, model, node, openSourceKey, onOpenSourceKeyChange, onFieldChange }: ParameterPanelProps) {
+export function ParameterPanel({ errors = {}, model, node, openSourceKey, onOpenSourceKeyChange, onFieldChange, onDeleteNode }: ParameterPanelProps) {
   const title = getDisplayNodeLabel(node);
   const showInputs = node.kind !== "return" && node.inputs.length > 0;
   const showOutputs = node.kind !== "sequence" && node.outputs.length > 0;
@@ -30,7 +32,14 @@ export function ParameterPanel({ errors = {}, model, node, openSourceKey, onOpen
           <h2>{title}</h2>
           <span>{node.kind}</span>
         </div>
-        {node.branch ? <b>{node.branch}</b> : null}
+        <div className="selected-node-actions">
+          {node.branch ? <b>{node.branch}</b> : null}
+          {node.deletable ? (
+            <button className="danger-icon-button" onClick={() => onDeleteNode?.(node)} title="删除节点" type="button">
+              <Trash2 size={16} />
+            </button>
+          ) : null}
+        </div>
       </div>
 
       {showInputs ? (
