@@ -63,11 +63,43 @@ export type CanvasTopology = {
   returnNode?: WorkbenchNode;
 };
 
+export type CanvasLayoutNode = {
+  node: WorkbenchNode;
+  x: number;
+  y: number;
+  width: number;
+  height: number;
+};
+
+export type CanvasLayoutEdge = {
+  id: string;
+  from: string;
+  to: string;
+};
+
+export type CanvasLayout = {
+  width: number;
+  height: number;
+  nodes: CanvasLayoutNode[];
+  edges: CanvasLayoutEdge[];
+};
+
 const SAMPLE_INPUT_VALUES: Record<string, unknown> = {
   left: 12,
   operator: "+",
   right: 7,
 };
+
+const CANVAS_LINEAR_WIDTH = 560;
+const CANVAS_BRANCH_WIDTH = 980;
+const CANVAS_MIN_HEIGHT = 700;
+const CANVAS_NODE_WIDTH = 300;
+const CANVAS_NODE_HEIGHT = 96;
+const CANVAS_START_Y = 18;
+const CANVAS_STEP_GAP_Y = 76;
+const CANVAS_STEP_Y = CANVAS_NODE_HEIGHT + CANVAS_STEP_GAP_Y;
+const CANVAS_BRANCH_START_GAP_Y = 124;
+const CANVAS_BRANCH_LANE_GAP_X = 320;
 
 export function buildWorkbenchModel(document: UIDocument, blockCatalog: BlockDefinition[] = []): WorkbenchModel {
   const nodes = flattenWorkbenchNodes(document.root);
@@ -187,6 +219,103 @@ export function buildCanvasTopology(model: WorkbenchModel): CanvasTopology {
     elseNodes,
     returnNode,
   };
+}
+
+export function buildCanvasLayout(model: WorkbenchModel): CanvasLayout {
+  const nodeById = new Map(model.nodes.map((node) => [node.id, node]));
+  const layoutNodes: CanvasLayoutNode[] = [];
+  const edges: CanvasLayoutEdge[] = [];
+  const placed = new Set<string>();
+  const hasBranches = model.nodes.some((node) => node.kind === "if" && node.raw.branches?.length);
+  const canvasWidth = hasBranches ? CANVAS_BRANCH_WIDTH : CANVAS_LINEAR_WIDTH;
+  const canvasCenterX = canvasWidth / 2;
+
+  const placeNode = (nodeId: string, x: number, y: number) => {
+    const node = nodeById.get(nodeId);
+    if (!node || placed.has(nodeId)) return;
+    placed.add(nodeId);
+    layoutNodes.push({ node, x, y, width: CANVAS_NODE_WIDTH, height: CANVAS_NODE_HEIGHT });
+  };
+
+  const connect = (fromIds: string[], toId: string) => {
+    for (const fromId of fromIds) {
+      if (fromId !== toId) {
+        edges.push({ id: `${fromId}->${toId}`, from: fromId, to: toId });
+      }
+    }
+  };
+
+  placeNode(model.root.id, canvasCenterX, CANVAS_START_Y);
+
+  let previousIds = [model.root.id];
+  let cursorY = CANVAS_START_Y + CANVAS_STEP_Y;
+
+  for (const child of model.root.children ?? []) {
+    if (child.kind === "if" && child.branches?.length) {
+      placeNode(child.id, canvasCenterX, cursorY);
+      connect(previousIds, child.id);
+
+      const branchStartY = cursorY + CANVAS_NODE_HEIGHT + CANVAS_BRANCH_START_GAP_Y;
+      const laneXs = getBranchLaneCenters(child.branches.length, canvasCenterX);
+      const branchEndIds: string[] = [];
+      let branchBottomY = branchStartY;
+
+      child.branches.forEach((branch, branchIndex) => {
+        let branchPreviousIds = [child.id];
+        let branchCursorY = branchStartY;
+        const branchChildren = branch.children ?? [];
+
+        for (const branchChild of branchChildren) {
+          placeNode(branchChild.id, laneXs[branchIndex], branchCursorY);
+          connect(branchPreviousIds, branchChild.id);
+          branchPreviousIds = [branchChild.id];
+          branchCursorY += CANVAS_STEP_Y;
+        }
+
+        branchEndIds.push(...branchPreviousIds);
+        branchBottomY = Math.max(branchBottomY, branchCursorY - CANVAS_STEP_GAP_Y);
+      });
+
+      previousIds = unique(branchEndIds);
+      cursorY = branchBottomY + CANVAS_BRANCH_START_GAP_Y;
+      continue;
+    }
+
+    placeNode(child.id, canvasCenterX, cursorY);
+    connect(previousIds, child.id);
+    previousIds = [child.id];
+    cursorY += CANVAS_STEP_Y;
+  }
+
+  for (const node of model.nodes) {
+    if (!placed.has(node.id)) {
+      placeNode(node.id, canvasCenterX, cursorY);
+      connect(previousIds, node.id);
+      previousIds = [node.id];
+      cursorY += CANVAS_STEP_Y;
+    }
+  }
+
+  const maxNodeX = Math.max(...layoutNodes.map((node) => node.x + CANVAS_NODE_WIDTH / 2), canvasWidth);
+  const minNodeX = Math.min(...layoutNodes.map((node) => node.x - CANVAS_NODE_WIDTH / 2), 0);
+  const maxNodeY = Math.max(...layoutNodes.map((node) => node.y + node.height), CANVAS_MIN_HEIGHT);
+
+  return {
+    width: Math.max(canvasWidth, maxNodeX - minNodeX),
+    height: Math.max(CANVAS_MIN_HEIGHT, maxNodeY + CANVAS_STEP_GAP_Y),
+    nodes: layoutNodes,
+    edges,
+  };
+}
+
+function getBranchLaneCenters(count: number, centerX: number) {
+  if (count <= 1) return [centerX];
+  const firstLaneX = centerX - ((count - 1) * CANVAS_BRANCH_LANE_GAP_X) / 2;
+  return Array.from({ length: count }, (_, index) => firstLaneX + index * CANVAS_BRANCH_LANE_GAP_X);
+}
+
+function unique(values: string[]) {
+  return [...new Set(values)];
 }
 
 function flattenWorkbenchNodes(root: UINode) {

@@ -1,6 +1,8 @@
 import { describe, expect, it } from "vitest";
 import sampleDocument from "../../../output/calculator-ui-node.json";
+import fsDocument from "../../../output/fs-ui-node.json";
 import {
+  buildCanvasLayout,
   buildWorkbenchModel,
   buildCanvasTopology,
   getNodeIoLabel,
@@ -11,6 +13,7 @@ import {
 import type { UIDocument } from "./types";
 
 const model = buildWorkbenchModel(sampleDocument as UIDocument);
+const fsModel = buildWorkbenchModel(fsDocument as UIDocument);
 
 describe("workbench model", () => {
   it("uses workflow-specific labels for start, normal, and return nodes", () => {
@@ -168,5 +171,38 @@ describe("workbench model", () => {
     expect(topology.thenNodes.map((node) => node.id)).toEqual(["calculate_large_value"]);
     expect(topology.elseNodes.map((node) => node.id)).toEqual(["calculate_small_value"]);
     expect(topology.returnNode?.id).toBe("return_result");
+  });
+
+  it("lays out plain sequence workflows as connected vertical steps", () => {
+    const layout = buildCanvasLayout(fsModel);
+
+    expect(layout.nodes.map((node) => node.node.id)).toEqual(["root", "list_input_dir", "write_summary", "return_result"]);
+    expect(layout.edges.map((edge) => `${edge.from}->${edge.to}`)).toEqual([
+      "root->list_input_dir",
+      "list_input_dir->write_summary",
+      "write_summary->return_result",
+    ]);
+    expect(layout.nodes.map((node) => node.x)).toEqual([280, 280, 280, 280]);
+    expect(layout.nodes.map((node) => node.y)).toEqual([18, 190, 362, 534]);
+    expect(layout.width).toBe(560);
+    expect(layout.height).toBeGreaterThanOrEqual(680);
+  });
+
+  it("preserves readable branch lanes for conditional workflows", () => {
+    const layout = buildCanvasLayout(model);
+
+    expect(layout.edges.map((edge) => `${edge.from}->${edge.to}`)).toEqual([
+      "root->branch_by_threshold",
+      "branch_by_threshold->calculate_large_value",
+      "branch_by_threshold->calculate_small_value",
+      "calculate_large_value->return_result",
+      "calculate_small_value->return_result",
+    ]);
+    expect(layout.nodes.find((node) => node.node.id === "calculate_large_value")?.x).toBeLessThan(
+      layout.nodes.find((node) => node.node.id === "branch_by_threshold")!.x,
+    );
+    expect(layout.nodes.find((node) => node.node.id === "calculate_small_value")?.x).toBeGreaterThan(
+      layout.nodes.find((node) => node.node.id === "branch_by_threshold")!.x,
+    );
   });
 });

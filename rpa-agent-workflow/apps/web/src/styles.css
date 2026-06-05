@@ -359,7 +359,6 @@ code {
 
 .workflow-diagram {
   position: relative;
-  width: 980px;
   min-height: 700px;
   margin: 0 auto;
 }
@@ -380,44 +379,13 @@ code {
   vector-effect: non-scaling-stroke;
 }
 
-.diagram-slot {
+.canvas-node-position {
   position: absolute;
   z-index: 1;
-  display: grid;
-  gap: 0.7rem;
-}
-
-.start-slot,
-.decision-slot,
-.return-slot {
-  left: 50%;
-  transform: translateX(-50%);
-}
-
-.start-slot {
-  top: 18px;
-}
-
-.decision-slot {
-  top: 190px;
-}
-
-.then-slot {
-  top: 410px;
-  left: 40px;
-}
-
-.else-slot {
-  top: 410px;
-  right: 40px;
-}
-
-.return-slot {
-  top: 620px;
 }
 
 .canvas-node {
-  width: 300px;
+  width: 100%;
   min-height: 96px;
   display: grid;
   gap: 0.32rem;

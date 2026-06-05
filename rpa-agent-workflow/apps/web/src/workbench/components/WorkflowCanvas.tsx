@@ -1,5 +1,5 @@
 import type { NodeRunState, NodeRunStateMap } from "../../runEvents";
-import { buildCanvasTopology, getNodeIoLabel, type WorkbenchModel, type WorkbenchNode } from "../../workbenchModel";
+import { buildCanvasLayout, getNodeIoLabel, type CanvasLayout, type WorkbenchModel, type WorkbenchNode } from "../../workbenchModel";
 
 type WorkflowCanvasProps = {
   model: WorkbenchModel;
@@ -9,56 +9,58 @@ type WorkflowCanvasProps = {
 };
 
 export function WorkflowCanvas({ model, nodeRunStates, selectedId, onSelect }: WorkflowCanvasProps) {
-  const topology = buildCanvasTopology(model);
+  const layout = buildCanvasLayout(model);
 
   return (
     <section className="panel canvas-panel">
       <div className="canvas-scroll">
-        <div className="workflow-diagram" aria-label="流程画布">
-          <svg className="workflow-links" viewBox="0 0 980 700" preserveAspectRatio="none" aria-hidden="true">
-            <path className="flow-link primary" d="M490 114 L490 190" />
-            <path className="flow-link primary" d="M490 286 L490 352 L190 352 L190 410" />
-            <path className="flow-link primary" d="M490 286 L490 352 L790 352 L790 410" />
-            <path className="flow-link primary" d="M190 506 L190 574 L490 574 L490 620" />
-            <path className="flow-link primary" d="M790 506 L790 574 L490 574 L490 620" />
+        <div className="workflow-diagram" style={{ width: layout.width, minHeight: layout.height }} aria-label="流程画布">
+          <svg className="workflow-links" viewBox={`0 0 ${layout.width} ${layout.height}`} preserveAspectRatio="none" aria-hidden="true">
+            {layout.edges.map((edge) => (
+              <path className="flow-link primary" d={getEdgePath(layout, edge.from, edge.to)} key={edge.id} />
+            ))}
           </svg>
 
-          <div className="diagram-slot start-slot">
-            {topology.start ? (
-              <CanvasNode node={topology.start} runState={nodeRunStates[topology.start.id] ?? "idle"} selected={selectedId === topology.start.id} onSelect={onSelect} />
-            ) : null}
-          </div>
-          <div className="diagram-slot decision-slot">
-            {topology.decision ? (
-              <CanvasNode node={topology.decision} runState={nodeRunStates[topology.decision.id] ?? "idle"} selected={selectedId === topology.decision.id} onSelect={onSelect} />
-            ) : null}
-          </div>
-
-          <div className="diagram-slot then-slot">
-            {topology.thenNodes.map((node) => (
-              <CanvasNode node={node} key={node.id} runState={nodeRunStates[node.id] ?? "idle"} selected={selectedId === node.id} onSelect={onSelect} />
-            ))}
-          </div>
-          <div className="diagram-slot else-slot">
-            {topology.elseNodes.map((node) => (
-              <CanvasNode node={node} key={node.id} runState={nodeRunStates[node.id] ?? "idle"} selected={selectedId === node.id} onSelect={onSelect} />
-            ))}
-          </div>
-
-          <div className="diagram-slot return-slot">
-            {topology.returnNode ? (
+          {layout.nodes.map((layoutNode) => (
+            <div
+              className="canvas-node-position"
+              key={layoutNode.node.id}
+              style={{
+                left: layoutNode.x - layoutNode.width / 2,
+                top: layoutNode.y,
+                width: layoutNode.width,
+              }}
+            >
               <CanvasNode
-                node={topology.returnNode}
-                runState={nodeRunStates[topology.returnNode.id] ?? "idle"}
-                selected={selectedId === topology.returnNode.id}
+                node={layoutNode.node}
+                runState={nodeRunStates[layoutNode.node.id] ?? "idle"}
+                selected={selectedId === layoutNode.node.id}
                 onSelect={onSelect}
               />
-            ) : null}
-          </div>
+            </div>
+          ))}
         </div>
       </div>
     </section>
   );
+}
+
+function getEdgePath(layout: CanvasLayout, fromId: string, toId: string) {
+  const from = layout.nodes.find((node) => node.node.id === fromId);
+  const to = layout.nodes.find((node) => node.node.id === toId);
+  if (!from || !to) return "";
+
+  const startX = from.x;
+  const startY = from.y + from.height;
+  const endX = to.x;
+  const endY = to.y;
+
+  if (startX === endX) {
+    return `M${startX} ${startY} L${endX} ${endY}`;
+  }
+
+  const midY = Math.round((startY + endY) / 2);
+  return `M${startX} ${startY} L${startX} ${midY} L${endX} ${midY} L${endX} ${endY}`;
 }
 
 function CanvasNode({ node, runState, selected, onSelect }: { node?: WorkbenchNode; runState: NodeRunState; selected: boolean; onSelect: (id: string) => void }) {
