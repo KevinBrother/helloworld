@@ -13,6 +13,7 @@ import { findInvalidConditionOperatorRepairs } from "./runReadiness";
 import { buildWorkbenchModel, type InsertAnchor, type WorkbenchField, type WorkbenchNode, type WorkbenchPort } from "./workbenchModel";
 import { updateWorkflowPortsInDocument } from "./workflowBoundary";
 import { clearWorkflowDraft, loadWorkflowDraft, normalizeWorkflowDraftForServerUI, saveWorkflowDraft } from "./workflowDraft";
+import { commitPendingEditOperations } from "./workflowEditCommit";
 import { workflowSourceFromSearch } from "./workflowSource";
 import { CreateNodeModal } from "./workbench/components/CreateNodeModal";
 import { DeleteNodeModal } from "./workbench/components/DeleteNodeModal";
@@ -202,6 +203,70 @@ function App() {
     setStatus(workflowSource ? "参数声明已保存到本地草稿" : "URL 缺少 workflow 的 ast.json 绝对路径，不能保存草稿。");
   };
 
+  const commitWorkflowEdit = (operation: EditOperation) =>
+    requestJSON<EditorStateResponse>("/api/edit", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(operation),
+    });
+
+  const finishPendingDraftCommit = (latestState: EditorStateResponse | null) => {
+    const savedState = latestState ? preserveWorkflowRunInputs(latestState, uiDocument) : null;
+    if (savedState) applyServerState(savedState);
+    setPendingOperations([]);
+    if (workflowSource) {
+      if (savedState) {
+        saveDraft({
+          pendingOperations: [],
+          selectedNodeId,
+          source: workflowSource,
+          ui: savedState.ui,
+        });
+      } else {
+        clearDraft(workflowSource);
+      }
+    }
+    setSaveState("saved");
+  };
+
+  const handleEditCommitError = (error: unknown) => {
+    const apiError = normalizeAPIError(error);
+    setSaveState("failed");
+    setDiagnostics(apiError.diagnostics);
+    setStatus(apiError.message);
+    if (apiError.network) {
+      setServerAvailable(false);
+      setServiceError(apiError.message);
+    }
+  };
+
+  const commitPendingDraftToServer = async (successStatus: string) => {
+    if (pendingOperations.length === 0) return true;
+    if (!workflowSource) {
+      setStatus("URL 缺少 workflow 的 ast.json 绝对路径，不能保存草稿。");
+      return false;
+    }
+    if (!serverAvailable) {
+      setStatus("流程服务未连接，不能保存草稿。");
+      return false;
+    }
+
+    setNodeEditPending(true);
+    setSaveState("saving");
+    setStatus("正在保存本地草稿");
+    try {
+      const latestState = await commitPendingEditOperations(pendingOperations, commitWorkflowEdit);
+      finishPendingDraftCommit(latestState);
+      setStatus(successStatus);
+      return true;
+    } catch (error) {
+      handleEditCommitError(error);
+      return false;
+    } finally {
+      setNodeEditPending(false);
+    }
+  };
+
   const submitServerEdit = async (operation: EditOperation, successStatus: string) => {
     if (!serverAvailable) {
       setStatus("流程服务未连接，不能修改流程结构");
@@ -211,40 +276,26 @@ function App() {
     setNodeEditPending(true);
     setSaveState("saving");
     try {
-      const state = await requestJSON<EditorStateResponse>("/api/edit", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(operation),
-      });
+      const state = await commitWorkflowEdit(operation);
       applyServerState(state);
       setSaveState("saved");
       setStatus(successStatus);
       return true;
     } catch (error) {
-      const apiError = normalizeAPIError(error);
-      setSaveState("failed");
-      setDiagnostics(apiError.diagnostics);
-      setStatus(apiError.message);
-      if (apiError.network) {
-        setServerAvailable(false);
-        setServiceError(apiError.message);
-      }
+      handleEditCommitError(error);
       return false;
     } finally {
       setNodeEditPending(false);
     }
   };
 
-  const handleInsertAtEdge = (anchor: InsertAnchor) => {
+  const handleInsertAtEdge = async (anchor: InsertAnchor) => {
     setOpenSourceKey(null);
-    if (pendingOperations.length > 0) {
-      setStatus("先保存本地草稿，再修改流程结构。");
-      return;
-    }
     if (!serverAvailable) {
       setStatus("流程服务未连接，不能新增节点");
       return;
     }
+    if (!(await commitPendingDraftToServer("本地草稿已保存"))) return;
     setCreateNodeFeedback("");
     setPendingInsertAnchor(anchor);
   };
@@ -255,7 +306,14 @@ function App() {
       return;
     }
     if (pendingOperations.length > 0) {
-      const message = "先保存本地草稿，再新增节点。";
+      setCreateNodeFeedback("正在保存本地草稿...");
+      if (!(await commitPendingDraftToServer("本地草稿已保存"))) {
+        setCreateNodeFeedback("保存本地草稿失败，请查看顶部状态和诊断信息。");
+        return;
+      }
+    }
+    if (!serverAvailable) {
+      const message = "流程服务未连接，不能新增节点";
       setCreateNodeFeedback(message);
       setStatus(message);
       return;
@@ -275,23 +333,17 @@ function App() {
 
   const handleInsertBranch = async (nodeId: string, branchKind: "condition" | "parallel") => {
     setOpenSourceKey(null);
-    if (pendingOperations.length > 0) {
-      setStatus("先保存本地草稿，再新增分支。");
-      return;
-    }
     if (!serverAvailable) {
       setStatus("流程服务未连接，不能新增分支");
       return;
     }
+    if (!(await commitPendingDraftToServer("本地草稿已保存"))) return;
     await submitServerEdit(buildInsertBranchOperation(makeOperationId("branch"), DEFAULT_ACTOR, nodeId, branchKind), "分支已新增");
   };
 
   const handleDeleteNode = async () => {
     if (!deleteModalNode) return;
-    if (pendingOperations.length > 0) {
-      setStatus("先保存本地草稿，再删除节点。");
-      return;
-    }
+    if (!(await commitPendingDraftToServer("本地草稿已保存"))) return;
     const ok = await submitServerEdit(buildDeleteNodeOperation(makeOperationId("delete"), DEFAULT_ACTOR, deleteModalNode), "节点已删除");
     if (ok) {
       setDeleteModalNode(null);
@@ -317,41 +369,7 @@ function App() {
       return;
     }
 
-    setSaveState("saving");
-    try {
-      let latestState: EditorStateResponse | null = null;
-      for (const operation of pendingOperations) {
-        latestState = await requestJSON<EditorStateResponse>("/api/edit", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify(operation),
-        });
-      }
-      const savedState = latestState ? preserveWorkflowRunInputs(latestState, uiDocument) : null;
-      if (savedState) applyServerState(savedState);
-      setPendingOperations([]);
-      if (savedState) {
-        saveDraft({
-          pendingOperations: [],
-          selectedNodeId,
-          source: workflowSource,
-          ui: savedState.ui,
-        });
-      } else {
-        clearDraft(workflowSource);
-      }
-      setSaveState("saved");
-      setStatus("流程已保存到服务端");
-    } catch (error) {
-      const apiError = normalizeAPIError(error);
-      setSaveState("failed");
-      setDiagnostics(apiError.diagnostics);
-      setStatus(apiError.message);
-      if (apiError.network) {
-        setServerAvailable(false);
-        setServiceError(apiError.message);
-      }
-    }
+    await commitPendingDraftToServer("流程已保存到服务端");
   };
 
   const handleRunWorkflow = async () => {
