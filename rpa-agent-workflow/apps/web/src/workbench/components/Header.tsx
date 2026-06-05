@@ -5,6 +5,7 @@ export type SaveState = "sample" | "saved" | "saving" | "failed";
 type HeaderProps = {
   runPending: boolean;
   serverAvailable: boolean;
+  status: string;
   workflowName: string;
   onLoadJSON: () => void;
   onRun: () => void;
@@ -13,6 +14,7 @@ type HeaderProps = {
 export function Header({
   runPending,
   serverAvailable,
+  status,
   workflowName,
   onLoadJSON,
   onRun,
@@ -21,11 +23,12 @@ export function Header({
     <header className="workbench-header">
       <div className="product-title">
         <h1>{workflowName}</h1>
+        <p>{status}</p>
       </div>
       <div className="header-actions">
         <button className="secondary-button" onClick={onLoadJSON}>
           <FileUp size={17} />
-          加载 JSON
+          加载 UI JSON
         </button>
         <button className="secondary-button" disabled={!serverAvailable}>
           <Save size={17} />

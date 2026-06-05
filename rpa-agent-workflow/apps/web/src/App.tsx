@@ -10,6 +10,7 @@ import { ParameterPanel } from "./workbench/components/ParameterPanel";
 import { RunLog } from "./workbench/components/RunLog";
 import { TestRunModal } from "./workbench/components/TestRunModal";
 import { WorkflowCanvas } from "./workbench/components/WorkflowCanvas";
+import { parseUIDocumentJSON } from "./workflowJson";
 import type { BlocksResponse, BlockDefinition, Diagnostic, EditOperation, EditorStateResponse, RunResult, UIDocument, UINode } from "./types";
 
 const DEFAULT_ACTOR = {
@@ -185,7 +186,7 @@ function App() {
   const handleLoadJSON = async (file: File | undefined) => {
     if (!file) return;
     try {
-      const loaded = JSON.parse(await file.text()) as UIDocument;
+      const loaded = parseUIDocumentJSON(await file.text());
       setUIDocument(loaded);
       setSelectedNodeId(loaded.root.id);
       setRunResult(null);
@@ -206,6 +207,7 @@ function App() {
       <Header
         runPending={runPending}
         serverAvailable={serverAvailable}
+        status={status}
         workflowName={model.workflowName}
         onLoadJSON={() => fileInputRef.current?.click()}
         onRun={() => {
@@ -216,7 +218,7 @@ function App() {
 
       <input
         ref={fileInputRef}
-        aria-label="加载流程 JSON"
+        aria-label="加载 UI JSON"
         className="visually-hidden-file"
         type="file"
         accept="application/json,.json"

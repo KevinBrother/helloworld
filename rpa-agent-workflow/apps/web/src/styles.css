@@ -114,6 +114,16 @@ code {
   font-weight: 600;
 }
 
+.product-title p {
+  max-width: 72ch;
+  margin: 0.16rem 0 0;
+  overflow: hidden;
+  color: var(--muted);
+  font-size: 0.82rem;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
 .header-status {
   min-width: 0;
   display: flex;
