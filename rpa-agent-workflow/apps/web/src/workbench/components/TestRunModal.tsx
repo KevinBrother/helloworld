@@ -6,7 +6,6 @@ type TestRunModalProps = {
   errors?: Record<string, string>;
   model: WorkbenchModel;
   pending: boolean;
-  runAvailable: boolean;
   runMessage: string;
   workflowInputNode?: WorkbenchNode;
   openSourceKey: string | null;
@@ -20,7 +19,6 @@ export function TestRunModal({
   errors = {},
   model,
   pending,
-  runAvailable,
   runMessage,
   workflowInputNode,
   openSourceKey,
@@ -66,7 +64,7 @@ export function TestRunModal({
           <button className="secondary-button" onClick={onClose}>
             取消
           </button>
-          <button className="primary-button" onClick={onRun} disabled={pending || !runAvailable || Object.keys(errors).length > 0}>
+          <button className="primary-button" onClick={onRun} disabled={pending}>
             <Play size={17} />
             {pending ? "运行中" : "运行测试"}
           </button>

@@ -214,7 +214,6 @@ function App() {
   return (
     <div className="workbench-shell">
       <Header
-        runAvailable={runAvailability.available}
         runPending={runPending}
         serverAvailable={serverAvailable}
         status={status}
@@ -263,7 +262,6 @@ function App() {
           errors={runInputValidation.errors}
           model={model}
           pending={runPending}
-          runAvailable={runAvailability.available}
           runMessage={runAvailability.message}
           workflowInputNode={workflowInputNode}
           openSourceKey={openSourceKey}
