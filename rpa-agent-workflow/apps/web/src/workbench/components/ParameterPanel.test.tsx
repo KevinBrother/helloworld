@@ -60,7 +60,7 @@ describe("ParameterPanel", () => {
   it("keeps return value expressions editable on the return node", () => {
     const html = renderToStaticMarkup(
       <ParameterPanel
-        model={{ ...model, nodes: [returnNode] }}
+        model={{ ...model, nodes: [branchNode, returnNode] }}
         node={returnNode}
         openSourceKey={null}
         onFieldChange={() => undefined}
@@ -71,6 +71,8 @@ describe("ParameterPanel", () => {
 
     expect(html).toContain("返回值");
     expect(html).toContain("aria-label=\"result value\"");
+    expect(html).toContain("aria-label=\"引用 result\"");
+    expect(html).toContain("{{node.branch_by_threshold.result}}");
   });
 });
 
@@ -84,7 +86,30 @@ const startNode: WorkbenchNode = {
   outputs: [{ key: "result", label: "result", type: "number", control: "input", path: "$.body.statements[0].returns.result", value: { kind: "literal", value: 0 } }],
   inputPorts: [{ key: "dir", label: "dir", type: "string", path: "$.inputs.dir", value: { name: "dir", type: { name: "string" } } }],
   outputPorts: [],
+  inputRows: [],
+  outputRows: [],
+  allowCustomInput: true,
+  allowCustomOutput: false,
   deletable: false,
+  deleteMessage: "",
+  hasNestedChildren: false,
+};
+
+const branchNode: WorkbenchNode = {
+  id: "branch_by_threshold",
+  kind: "if",
+  label: "Branch By Threshold",
+  order: 1,
+  raw: { id: "branch_by_threshold", kind: "if" },
+  inputs: [],
+  outputs: [{ key: "result", label: "result", type: "number", control: "readonly", path: "$.body.statements[0].outputs.result", value: undefined, readonly: true }],
+  inputPorts: [],
+  outputPorts: [],
+  inputRows: [],
+  outputRows: [],
+  allowCustomInput: false,
+  allowCustomOutput: false,
+  deletable: true,
   deleteMessage: "",
   hasNestedChildren: false,
 };
@@ -93,12 +118,25 @@ const returnNode: WorkbenchNode = {
   id: "return_result",
   kind: "return",
   label: "Return",
-  order: 1,
+  order: 2,
   raw: { id: "return_result", kind: "return" },
   inputs: [],
-  outputs: [{ key: "result", label: "result", type: "number", control: "input", path: "$.body.statements[0].returns.result", value: { kind: "literal", value: 0 } }],
+  outputs: [
+    {
+      key: "result",
+      label: "result",
+      type: "number",
+      control: "reference",
+      path: "$.body.statements[0].returns.result",
+      value: { kind: "ref", ref: "node.branch_by_threshold.result" },
+    },
+  ],
   inputPorts: [],
   outputPorts: [{ key: "result", label: "result", type: "number", path: "$.outputs.result", value: { name: "result", type: { name: "number" } } }],
+  inputRows: [],
+  outputRows: [],
+  allowCustomInput: false,
+  allowCustomOutput: true,
   deletable: false,
   deleteMessage: "",
   hasNestedChildren: false,
@@ -108,7 +146,7 @@ const model: WorkbenchModel = {
   workflowId: "wf",
   workflowName: "Workflow",
   root: startNode.raw,
-  nodes: [startNode, returnNode],
+  nodes: [startNode, branchNode, returnNode],
   sources: [],
   sourcesById: new Map(),
   blockOptions: [],

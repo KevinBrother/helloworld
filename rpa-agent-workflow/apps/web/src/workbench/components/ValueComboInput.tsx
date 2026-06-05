@@ -1,4 +1,4 @@
-import { ChevronDown } from "lucide-react";
+import { ChevronDown, Link2 } from "lucide-react";
 import { useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import {
   makeFieldValueFromSource,
@@ -29,12 +29,12 @@ export function ValueComboInput({
 }: ValueComboInputProps) {
   const inputRef = useRef<HTMLInputElement>(null);
   const activeSource = activeSourceId ? sourceOptions.find((source) => source.id === activeSourceId) : undefined;
-  const activeSourceLabel = activeSource ? `${activeSource.nodeLabel}.${activeSource.output}` : activeSourceId;
+  const activeSourceLabel = activeSource ? activeSource.id : activeSourceId;
   const hasLiteralOptions = Boolean(field.options?.length);
   const hasReferenceOptions = field.type !== "unknown" && sourceOptions.length > 0;
   const canOpenMenu = hasLiteralOptions || hasReferenceOptions;
   const [draftValue, setDraftValue] = useState<string | null>(null);
-  const displayValue = draftValue ?? String(activeSourceLabel ?? resolvedValue);
+  const displayValue = draftValue ?? String(activeSourceLabel ? `{{${activeSourceLabel}}}` : resolvedValue);
 
   const literalOptions = useMemo(() => field.options ?? [], [field.options]);
 
@@ -45,7 +45,6 @@ export function ValueComboInput({
   return (
     <div className={activeSourceId ? "value-combo linked" : "value-combo"}>
       <div className={error ? "value-combo-control invalid" : "value-combo-control"}>
-        {activeSourceId ? <span className="combo-ref-chip">ref</span> : null}
         <input
           aria-invalid={Boolean(error)}
           aria-describedby={error ? `${field.key}-error` : undefined}
@@ -55,7 +54,9 @@ export function ValueComboInput({
           onChange={(event) => {
             setDraftValue(event.target.value);
             onFieldChange(field, { kind: "literal", value: parseFieldInput(event.target.value, field.type) });
-            if (canOpenMenu) onOpenChange(true);
+            if (canOpenMenu && event.target.value.includes("{{")) {
+              onOpenChange(true);
+            }
           }}
           onFocus={(event) => {
             if (activeSourceId) event.currentTarget.select();
@@ -65,6 +66,20 @@ export function ValueComboInput({
             if (activeSourceId) event.currentTarget.select();
           }}
         />
+        {activeSourceId || hasReferenceOptions ? (
+          <button
+            aria-label={`引用 ${field.label}`}
+            className={activeSourceId ? "combo-link-button active" : "combo-link-button"}
+            type="button"
+            onMouseDown={(event) => event.preventDefault()}
+            onClick={() => {
+              inputRef.current?.focus();
+              onOpenChange(hasReferenceOptions ? !isOpen : false);
+            }}
+          >
+            <Link2 size={15} />
+          </button>
+        ) : null}
         {canOpenMenu ? (
           <button
             aria-label={isOpen ? "关闭可选值" : "打开可选值"}
