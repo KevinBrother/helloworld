@@ -201,6 +201,62 @@ func TestApplyInsertNodeRejectsNonAdjacentAnchor(t *testing.T) {
 	}
 }
 
+func TestApplyDeleteNodeRemovesSequenceChild(t *testing.T) {
+	workflow := ast.Workflow{Body: ast.Statement{ID: "root", Kind: "sequence", Statements: []ast.Statement{
+		{ID: "first", Kind: "assign"},
+		{ID: "remove_me", Kind: "callBlock", Block: "core.log"},
+		{ID: "return_result", Kind: "return"},
+	}}}
+
+	updated, diags := ApplyEdit(workflow, editoperation.Document{
+		Type:         editoperation.OperationTypeDeleteNode,
+		TargetNodeID: "remove_me",
+		Payload:      map[string]any{"nodeId": "remove_me"},
+	})
+	if len(diags) != 0 {
+		t.Fatalf("unexpected diagnostics: %#v", diags)
+	}
+	if got := []string{updated.Body.Statements[0].ID, updated.Body.Statements[1].ID}; got[0] != "first" || got[1] != "return_result" {
+		t.Fatalf("remaining statements = %#v", got)
+	}
+}
+
+func TestApplyDeleteNodeRemovesControlFlowSubtree(t *testing.T) {
+	workflow := ast.Workflow{Body: ast.Statement{ID: "root", Kind: "sequence", Statements: []ast.Statement{
+		{
+			ID:        "remove_if",
+			Kind:      "if",
+			Condition: &ast.Expression{Kind: "literal", Value: true},
+			Then:      []ast.Statement{{ID: "nested", Kind: "callBlock", Block: "core.log"}},
+		},
+		{ID: "return_result", Kind: "return"},
+	}}}
+
+	updated, diags := ApplyEdit(workflow, editoperation.Document{
+		Type:         editoperation.OperationTypeDeleteNode,
+		TargetNodeID: "remove_if",
+		Payload:      map[string]any{"nodeId": "remove_if"},
+	})
+	if len(diags) != 0 {
+		t.Fatalf("unexpected diagnostics: %#v", diags)
+	}
+	if len(updated.Body.Statements) != 1 || updated.Body.Statements[0].ID != "return_result" {
+		t.Fatalf("remaining statements = %#v", updated.Body.Statements)
+	}
+}
+
+func TestApplyDeleteNodeRejectsProtectedReturn(t *testing.T) {
+	workflow := ast.Workflow{Body: ast.Statement{ID: "root", Kind: "sequence", Statements: []ast.Statement{{ID: "return_result", Kind: "return"}}}}
+	_, diags := ApplyEdit(workflow, editoperation.Document{
+		Type:         editoperation.OperationTypeDeleteNode,
+		TargetNodeID: "return_result",
+		Payload:      map[string]any{"nodeId": "return_result"},
+	})
+	if len(diags) == 0 || diags[0].Code != "DELETE_NODE_PROTECTED" {
+		t.Fatalf("expected DELETE_NODE_PROTECTED diagnostic, got %#v", diags)
+	}
+}
+
 func TestApplyUnsupportedOperation(t *testing.T) {
 	_, diags := ApplyEdit(ast.Workflow{}, editoperation.Document{Type: "connectNodes"})
 	if len(diags) == 0 || diags[0].Code != "UNSUPPORTED_EDIT_OPERATION" {

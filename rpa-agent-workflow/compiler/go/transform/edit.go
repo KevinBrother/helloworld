@@ -19,6 +19,8 @@ func ApplyEdit(workflow ast.Workflow, op editoperation.Document) (ast.Workflow, 
 		return applyUpdateField(workflow, op)
 	case editoperation.OperationTypeInsertNode:
 		return applyInsertNode(workflow, op)
+	case editoperation.OperationTypeDeleteNode:
+		return applyDeleteNode(workflow, op)
 	default:
 		return workflow, []diagnostic.Diagnostic{{
 			Code:     "UNSUPPORTED_EDIT_OPERATION",
@@ -27,6 +29,109 @@ func ApplyEdit(workflow ast.Workflow, op editoperation.Document) (ast.Workflow, 
 			Path:     "$.type",
 		}}
 	}
+}
+
+func applyDeleteNode(workflow ast.Workflow, op editoperation.Document) (ast.Workflow, []diagnostic.Diagnostic) {
+	nodeID, _ := op.Payload["nodeId"].(string)
+	if nodeID == "" {
+		return workflow, []diagnostic.Diagnostic{editPayloadDiagnostic("INVALID_DELETE_PAYLOAD", "deleteNode payload requires nodeId", "$.payload.nodeId")}
+	}
+	if op.TargetNodeID != "" && op.TargetNodeID != nodeID {
+		return workflow, []diagnostic.Diagnostic{editPayloadDiagnostic("DELETE_TARGET_MISMATCH", "deleteNode targetNodeId must match payload nodeId", "$.targetNodeId")}
+	}
+	if nodeID == workflow.Body.ID {
+		return workflow, []diagnostic.Diagnostic{editPayloadDiagnostic("DELETE_NODE_PROTECTED", "workflow root node cannot be deleted", "$.payload.nodeId")}
+	}
+
+	deleted, protected := deleteStatementByID(&workflow.Body, nodeID)
+	if protected {
+		return workflow, []diagnostic.Diagnostic{editPayloadDiagnostic("DELETE_NODE_PROTECTED", fmt.Sprintf("node %q cannot be deleted", nodeID), "$.payload.nodeId")}
+	}
+	if !deleted {
+		return workflow, []diagnostic.Diagnostic{editPayloadDiagnostic("DELETE_NODE_NOT_FOUND", fmt.Sprintf("delete target %q was not found", nodeID), "$.payload.nodeId")}
+	}
+	return workflow, nil
+}
+
+func deleteStatementByID(stmt *ast.Statement, nodeID string) (bool, bool) {
+	if stmt == nil {
+		return false, false
+	}
+	if deleted, protected := deleteStatementFromList(&stmt.Statements, nodeID); deleted || protected {
+		return deleted, protected
+	}
+	if deleted, protected := deleteStatementFromList(&stmt.Then, nodeID); deleted || protected {
+		return deleted, protected
+	}
+	if deleted, protected := deleteStatementFromList(&stmt.Else, nodeID); deleted || protected {
+		return deleted, protected
+	}
+	for i := range stmt.Branches {
+		if deleted, protected := deleteStatementFromList(&stmt.Branches[i].Body, nodeID); deleted || protected {
+			return deleted, protected
+		}
+	}
+	for i := range stmt.Catches {
+		if deleted, protected := deleteStatementFromList(&stmt.Catches[i].Body, nodeID); deleted || protected {
+			return deleted, protected
+		}
+	}
+	if deleted, protected := deleteStatementFromList(&stmt.Finally, nodeID); deleted || protected {
+		return deleted, protected
+	}
+
+	for i := range stmt.Statements {
+		if deleted, protected := deleteStatementByID(&stmt.Statements[i], nodeID); deleted || protected {
+			return deleted, protected
+		}
+	}
+	for i := range stmt.Then {
+		if deleted, protected := deleteStatementByID(&stmt.Then[i], nodeID); deleted || protected {
+			return deleted, protected
+		}
+	}
+	for i := range stmt.Else {
+		if deleted, protected := deleteStatementByID(&stmt.Else[i], nodeID); deleted || protected {
+			return deleted, protected
+		}
+	}
+	for i := range stmt.Branches {
+		for j := range stmt.Branches[i].Body {
+			if deleted, protected := deleteStatementByID(&stmt.Branches[i].Body[j], nodeID); deleted || protected {
+				return deleted, protected
+			}
+		}
+	}
+	for i := range stmt.Catches {
+		for j := range stmt.Catches[i].Body {
+			if deleted, protected := deleteStatementByID(&stmt.Catches[i].Body[j], nodeID); deleted || protected {
+				return deleted, protected
+			}
+		}
+	}
+	for i := range stmt.Finally {
+		if deleted, protected := deleteStatementByID(&stmt.Finally[i], nodeID); deleted || protected {
+			return deleted, protected
+		}
+	}
+	return false, false
+}
+
+func deleteStatementFromList(stmts *[]ast.Statement, nodeID string) (bool, bool) {
+	list := *stmts
+	for i, stmt := range list {
+		if stmt.ID != nodeID {
+			continue
+		}
+		if stmt.Kind == "return" {
+			return false, true
+		}
+		copy(list[i:], list[i+1:])
+		list = list[:len(list)-1]
+		*stmts = list
+		return true, false
+	}
+	return false, false
 }
 
 func applyInsertNode(workflow ast.Workflow, op editoperation.Document) (ast.Workflow, []diagnostic.Diagnostic) {
