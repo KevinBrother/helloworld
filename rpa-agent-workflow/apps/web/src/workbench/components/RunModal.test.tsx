@@ -64,6 +64,8 @@ const workflowInputNode: WorkbenchNode = {
     },
   ],
   outputs: [],
+  inputPorts: [{ key: "dir", label: "dir", type: "path", path: "$.inputs.dir", value: { name: "dir", type: { name: "path" } } }],
+  outputPorts: [],
 };
 
 const model: WorkbenchModel = {

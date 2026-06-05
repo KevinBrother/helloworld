@@ -18,13 +18,13 @@ func ProjectWorkflow(workflow ast.Workflow) uinode.Document {
 
 func ProjectWorkflowWithBlocks(workflow ast.Workflow, blocks map[string]block.Definition) uinode.Document {
 	ctx := projectionContext{
-		blocks: blocks,
-		tokens: workflowTokens(workflow),
+		blocks:          blocks,
+		tokens:          workflowTokens(workflow),
+		workflowOutputs: workflow.Outputs,
 	}
 	root := projectStatement(workflow.Body, "$.body", 0)
 	root.Label = "Start"
 	root.Inspector = append(root.Inspector, workflowPortInspectorFields("$.inputs", "Input", workflow.Inputs)...)
-	root.Inspector = append(root.Inspector, workflowPortInspectorFields("$.outputs", "Output", workflow.Outputs)...)
 	root.Children = projectStatementsWithContext(workflow.Body.Statements, "$.body.statements", 0, ctx)
 	return uinode.Document{
 		SchemaVersion: uiNodeSchemaVersion,
@@ -37,8 +37,9 @@ func ProjectWorkflowWithBlocks(workflow ast.Workflow, blocks map[string]block.De
 }
 
 type projectionContext struct {
-	blocks map[string]block.Definition
-	tokens []map[string]any
+	blocks          map[string]block.Definition
+	tokens          []map[string]any
+	workflowOutputs []ast.Port
 }
 
 func workflowTokens(workflow ast.Workflow) []map[string]any {
@@ -96,7 +97,7 @@ func projectStatementWithContext(stmt ast.Statement, path string, lane int, ctx 
 		Collapsed:    metadataCollapsed(stmt.Metadata),
 		Editable:     true,
 		Capabilities: capabilitiesForStatement(stmt, path),
-		Inspector:    inspectorForStatement(stmt, path, ctx.tokens),
+		Inspector:    inspectorForStatement(stmt, path, ctx),
 		Metadata:     nodeMetadataWithOutputs(stmt, outputs, ctx.blocks),
 	}
 
@@ -165,8 +166,9 @@ func projectStatementWithContext(stmt ast.Statement, path string, lane int, ctx 
 
 func (ctx projectionContext) withTokens(tokens []map[string]any) projectionContext {
 	next := projectionContext{
-		blocks: ctx.blocks,
-		tokens: append([]map[string]any{}, ctx.tokens...),
+		blocks:          ctx.blocks,
+		tokens:          append([]map[string]any{}, ctx.tokens...),
+		workflowOutputs: ctx.workflowOutputs,
 	}
 	next.tokens = append(next.tokens, tokens...)
 	return next
@@ -259,7 +261,7 @@ func insertionMetadata(kind string, path string) map[string]any {
 	}
 }
 
-func inspectorForStatement(stmt ast.Statement, path string, tokens []map[string]any) []uinode.InspectorField {
+func inspectorForStatement(stmt ast.Statement, path string, ctx projectionContext) []uinode.InspectorField {
 	fields := []uinode.InspectorField{
 		{Path: path + ".id", Label: "ID", Control: "text", Value: stmt.ID, Readonly: true},
 		{Path: path + ".kind", Label: "Kind", Control: "text", Value: stmt.Kind, Readonly: true},
@@ -279,18 +281,21 @@ func inspectorForStatement(stmt ast.Statement, path string, tokens []map[string]
 	if stmt.ItemVar != "" {
 		fields = append(fields, uinode.InspectorField{Path: path + ".itemVar", Label: "Item Variable", Control: "text", Value: stmt.ItemVar, Readonly: true})
 	}
-	fields = append(fields, expressionMapInspectorFields(path+".inputs", "Input", stmt.Inputs, tokens)...)
-	fields = append(fields, expressionMapInspectorFields(path+".outputs", "Output", stmt.Outputs, tokens)...)
+	fields = append(fields, expressionMapInspectorFields(path+".inputs", "Input", stmt.Inputs, ctx.tokens)...)
+	fields = append(fields, expressionMapInspectorFields(path+".outputs", "Output", stmt.Outputs, ctx.tokens)...)
 	if stmt.Value != nil {
-		fields = append(fields, expressionInspectorField(path+".value", "Value", *stmt.Value, tokens))
+		fields = append(fields, expressionInspectorField(path+".value", "Value", *stmt.Value, ctx.tokens))
 	}
 	if stmt.Condition != nil {
-		fields = append(fields, expressionInspectorField(path+".condition", "Condition", *stmt.Condition, tokens))
+		fields = append(fields, expressionInspectorField(path+".condition", "Condition", *stmt.Condition, ctx.tokens))
 	}
 	if stmt.Iterable != nil {
-		fields = append(fields, expressionInspectorField(path+".iterable", "Iterable", *stmt.Iterable, tokens))
+		fields = append(fields, expressionInspectorField(path+".iterable", "Iterable", *stmt.Iterable, ctx.tokens))
 	}
-	fields = append(fields, expressionMapInspectorFields(path+".returns", "Return", stmt.Returns, tokens)...)
+	if stmt.Kind == "return" {
+		fields = append(fields, workflowPortInspectorFields("$.outputs", "Output", ctx.workflowOutputs)...)
+	}
+	fields = append(fields, expressionMapInspectorFields(path+".returns", "Return", stmt.Returns, ctx.tokens)...)
 	return fields
 }
 

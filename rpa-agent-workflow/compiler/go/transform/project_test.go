@@ -86,7 +86,7 @@ func TestProjectSampleWorkflow(t *testing.T) {
 	}
 }
 
-func TestProjectWorkflowRootShowsStartInputsAndOutputs(t *testing.T) {
+func TestProjectWorkflowShowsStartInputsAndReturnOutputs(t *testing.T) {
 	workflow := ast.Workflow{
 		SchemaVersion: "1.0.0",
 		Workflow:      ast.Metadata{ID: "calculator"},
@@ -97,7 +97,9 @@ func TestProjectWorkflowRootShowsStartInputsAndOutputs(t *testing.T) {
 		Outputs: []ast.Port{
 			{Name: "result", Type: ast.Type{Name: "number"}},
 		},
-		Body: ast.Statement{ID: "root", Kind: "sequence"},
+		Body: ast.Statement{ID: "root", Kind: "sequence", Statements: []ast.Statement{
+			{ID: "return_result", Kind: "return", Returns: map[string]ast.Expression{"result": {Kind: "literal", Value: float64(0)}}},
+		}},
 	}
 
 	doc := ProjectWorkflow(workflow)
@@ -110,8 +112,12 @@ func TestProjectWorkflowRootShowsStartInputsAndOutputs(t *testing.T) {
 	if !hasInspectorField(doc.Root.Inspector, "$.inputs.operator", "port") {
 		t.Fatalf("root inspector missing input operator: %#v", doc.Root.Inspector)
 	}
-	if !hasInspectorField(doc.Root.Inspector, "$.outputs.result", "port") {
-		t.Fatalf("root inspector missing output result: %#v", doc.Root.Inspector)
+	returnNode := findProjectedNode(doc.Root, "return_result")
+	if returnNode == nil {
+		t.Fatal("missing return node")
+	}
+	if !hasInspectorField(returnNode.Inspector, "$.outputs.result", "port") {
+		t.Fatalf("return inspector missing output result: %#v", returnNode.Inspector)
 	}
 }
 

@@ -111,6 +111,103 @@ func TestApplyUpdateFieldUpdatesReturnExpression(t *testing.T) {
 	}
 }
 
+func TestApplyUpdateFieldUpdatesWorkflowInputsAndRenamesReferences(t *testing.T) {
+	workflow := ast.Workflow{
+		Inputs: []ast.Port{
+			{Name: "dir", Type: ast.Type{Name: "string"}},
+			{Name: "outputPath", Type: ast.Type{Name: "string"}},
+		},
+		Body: ast.Statement{
+			ID:   "root",
+			Kind: "sequence",
+			Statements: []ast.Statement{
+				{
+					ID:    "list",
+					Kind:  "callBlock",
+					Block: "fs.list",
+					Inputs: map[string]ast.Expression{
+						"path": {Kind: "ref", Ref: "input.dir"},
+					},
+				},
+			},
+		},
+	}
+
+	updated, diags := ApplyEdit(workflow, editoperation.Document{
+		Type:         editoperation.OperationTypeUpdateField,
+		TargetNodeID: "root",
+		Path:         "$.inputs",
+		Payload: map[string]any{
+			"value": []map[string]any{
+				{"name": "sourceDir", "type": map[string]any{"name": "string"}},
+				{"name": "outputPath", "type": map[string]any{"name": "string"}},
+			},
+		},
+	})
+	if len(diags) != 0 {
+		t.Fatalf("unexpected diagnostics: %#v", diags)
+	}
+	if updated.Inputs[0].Name != "sourceDir" {
+		t.Fatalf("input was not renamed: %#v", updated.Inputs)
+	}
+	path := updated.Body.Statements[0].Inputs["path"]
+	if path.Ref != "input.sourceDir" {
+		t.Fatalf("input reference = %q, want input.sourceDir", path.Ref)
+	}
+}
+
+func TestApplyUpdateFieldUpdatesWorkflowOutputsAndReturnMapByPosition(t *testing.T) {
+	workflow := ast.Workflow{
+		Outputs: []ast.Port{
+			{Name: "count", Type: ast.Type{Name: "number"}},
+			{Name: "outputPath", Type: ast.Type{Name: "string"}},
+		},
+		Body: ast.Statement{
+			ID:   "root",
+			Kind: "sequence",
+			Statements: []ast.Statement{
+				{
+					ID:   "return_result",
+					Kind: "return",
+					Returns: map[string]ast.Expression{
+						"count":      {Kind: "ref", Ref: "node.list.count"},
+						"outputPath": {Kind: "ref", Ref: "input.outputPath"},
+					},
+				},
+			},
+		},
+	}
+
+	updated, diags := ApplyEdit(workflow, editoperation.Document{
+		Type:         editoperation.OperationTypeUpdateField,
+		TargetNodeID: "return_result",
+		Path:         "$.outputs",
+		Payload: map[string]any{
+			"value": []map[string]any{
+				{"name": "total", "type": map[string]any{"name": "number"}},
+				{"name": "outputPath", "type": map[string]any{"name": "string"}},
+				{"name": "bytes", "type": map[string]any{"name": "number"}},
+			},
+		},
+	})
+	if len(diags) != 0 {
+		t.Fatalf("unexpected diagnostics: %#v", diags)
+	}
+	if got := []string{updated.Outputs[0].Name, updated.Outputs[1].Name, updated.Outputs[2].Name}; got[0] != "total" || got[1] != "outputPath" || got[2] != "bytes" {
+		t.Fatalf("outputs = %#v", updated.Outputs)
+	}
+	returns := updated.Body.Statements[0].Returns
+	if returns["total"].Ref != "node.list.count" {
+		t.Fatalf("renamed return expression not preserved: %#v", returns)
+	}
+	if returns["bytes"].Kind != "literal" {
+		t.Fatalf("new return expression should have a default literal: %#v", returns["bytes"])
+	}
+	if _, ok := returns["count"]; ok {
+		t.Fatalf("old return name should be removed: %#v", returns)
+	}
+}
+
 func TestApplyUpdateFieldRejectsTargetPathMismatch(t *testing.T) {
 	workflow := ast.Workflow{
 		Body: ast.Statement{

@@ -1,5 +1,5 @@
-import { type ReactNode } from "react";
-import { Trash2 } from "lucide-react";
+import { useEffect, useRef, useState, type ReactNode } from "react";
+import { Plus, Trash2 } from "lucide-react";
 import {
   getFieldSourceId,
   getResolvedFieldValue,
@@ -7,6 +7,7 @@ import {
   type WorkbenchField,
   type WorkbenchModel,
   type WorkbenchNode,
+  type WorkbenchPort,
 } from "../../workbenchModel";
 import { ValueComboInput } from "./ValueComboInput";
 
@@ -17,13 +18,25 @@ type ParameterPanelProps = {
   openSourceKey: string | null;
   onOpenSourceKeyChange: (key: string | null) => void;
   onFieldChange: (field: WorkbenchField, value: unknown) => void;
+  onWorkflowPortsChange: (direction: "inputs" | "outputs", ports: WorkbenchPort[]) => void;
   onDeleteNode?: (node: WorkbenchNode) => void;
 };
 
-export function ParameterPanel({ errors = {}, model, node, openSourceKey, onOpenSourceKeyChange, onFieldChange, onDeleteNode }: ParameterPanelProps) {
+export function ParameterPanel({
+  errors = {},
+  model,
+  node,
+  openSourceKey,
+  onOpenSourceKeyChange,
+  onFieldChange,
+  onWorkflowPortsChange,
+  onDeleteNode,
+}: ParameterPanelProps) {
   const title = getDisplayNodeLabel(node);
-  const showInputs = node.kind !== "return" && node.inputs.length > 0;
-  const showOutputs = node.kind !== "sequence" && node.outputs.length > 0;
+  const showWorkflowInputs = node.kind === "sequence" && node.order === 0;
+  const showWorkflowOutputs = node.kind === "return";
+  const showInputs = !showWorkflowInputs && node.kind !== "return" && node.inputs.length > 0;
+  const showOutputs = !showWorkflowOutputs && node.kind !== "sequence" && node.outputs.length > 0;
 
   return (
     <aside className="panel parameter-panel">
@@ -42,6 +55,17 @@ export function ParameterPanel({ errors = {}, model, node, openSourceKey, onOpen
         </div>
       </div>
 
+      {showWorkflowInputs ? (
+        <SchemaSection title="流程输入">
+          <WorkflowPortList
+            addLabel="添加输入"
+            direction="inputs"
+            ports={node.inputPorts}
+            onPortsChange={(ports) => onWorkflowPortsChange("inputs", ports)}
+          />
+        </SchemaSection>
+      ) : null}
+
       {showInputs ? (
         <SchemaSection title={node.kind === "sequence" ? "流程输入" : "输入"}>
           <ParameterFieldList
@@ -56,6 +80,17 @@ export function ParameterPanel({ errors = {}, model, node, openSourceKey, onOpen
         </SchemaSection>
       ) : null}
 
+      {showWorkflowOutputs ? (
+        <SchemaSection title="流程输出">
+          <WorkflowPortList
+            addLabel="添加输出"
+            direction="outputs"
+            ports={node.outputPorts}
+            onPortsChange={(ports) => onWorkflowPortsChange("outputs", ports)}
+          />
+        </SchemaSection>
+      ) : null}
+
       {showOutputs ? (
         <SchemaSection title={node.kind === "return" ? "流程输出" : "输出"}>
           {node.outputs.map((field) => (
@@ -64,9 +99,105 @@ export function ParameterPanel({ errors = {}, model, node, openSourceKey, onOpen
         </SchemaSection>
       ) : null}
 
-      {!showInputs && !showOutputs ? <div className="empty-state">该节点没有可配置字段。</div> : null}
+      {!showWorkflowInputs && !showWorkflowOutputs && !showInputs && !showOutputs ? <div className="empty-state">该节点没有可配置字段。</div> : null}
     </aside>
   );
+}
+
+function WorkflowPortList({
+  addLabel,
+  direction,
+  ports,
+  onPortsChange,
+}: {
+  addLabel: string;
+  direction: "inputs" | "outputs";
+  ports: WorkbenchPort[];
+  onPortsChange: (ports: WorkbenchPort[]) => void;
+}) {
+  const [draftPorts, setDraftPorts] = useState(ports);
+  const commitTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  useEffect(() => {
+    setDraftPorts(ports);
+  }, [ports]);
+
+  const commitPorts = (nextPorts: WorkbenchPort[], delay = 0) => {
+    setDraftPorts(nextPorts);
+    if (commitTimer.current) {
+      clearTimeout(commitTimer.current);
+      commitTimer.current = null;
+    }
+    if (delay > 0) {
+      commitTimer.current = setTimeout(() => {
+        onPortsChange(nextPorts);
+        commitTimer.current = null;
+      }, delay);
+      return;
+    }
+    onPortsChange(nextPorts);
+  };
+
+  return (
+    <div className="workflow-port-list">
+      {draftPorts.map((port, index) => (
+        <div className="workflow-port-row" key={`${port.path}:${index}`}>
+          <input
+            aria-label={`参数名 ${index + 1}`}
+            className="port-name-input"
+            value={port.value.name}
+            onChange={(event) => commitPorts(replacePort(draftPorts, index, { ...port.value, name: event.target.value }), 180)}
+          />
+          <select
+            aria-label={`参数类型 ${index + 1}`}
+            className="port-type-select"
+            value={port.value.type.name}
+            onChange={(event) => commitPorts(replacePort(draftPorts, index, { ...port.value, type: { name: event.target.value } }))}
+          >
+            {PORT_TYPE_OPTIONS.map((option) => (
+              <option key={option} value={option}>
+                {option}
+              </option>
+            ))}
+          </select>
+          <button
+            aria-label={`删除参数 ${port.key}`}
+            className="danger-icon-button compact"
+            onClick={() => commitPorts(draftPorts.filter((_, portIndex) => portIndex !== index))}
+            type="button"
+          >
+            <Trash2 size={15} />
+          </button>
+        </div>
+      ))}
+      <button className="secondary-button schema-add-button" onClick={() => commitPorts([...draftPorts, newPort(direction, draftPorts.length)])} type="button">
+        <Plus size={15} />
+        {addLabel}
+      </button>
+    </div>
+  );
+}
+
+const PORT_TYPE_OPTIONS = ["string", "number", "boolean", "object", "array"];
+
+function replacePort(ports: WorkbenchPort[], index: number, value: WorkbenchPort["value"]) {
+  return ports.map((port, portIndex) => (portIndex === index ? portFromValue(value, port.path) : port));
+}
+
+function newPort(direction: "inputs" | "outputs", index: number): WorkbenchPort {
+  const name = `${direction === "inputs" ? "input" : "output"}${index + 1}`;
+  return portFromValue({ name, type: { name: "string" } }, `$.${direction}.${name}`);
+}
+
+function portFromValue(value: WorkbenchPort["value"], fallbackPath: string): WorkbenchPort {
+  const type = value.type.name as WorkbenchPort["type"];
+  return {
+    key: value.name,
+    label: value.name,
+    type,
+    path: fallbackPath,
+    value,
+  };
 }
 
 export function ParameterFieldList({

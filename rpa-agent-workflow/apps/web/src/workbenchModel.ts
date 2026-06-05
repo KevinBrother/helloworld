@@ -1,6 +1,6 @@
 import type { BlockDefinition, InspectorField, UIDocument, UINode } from "./types";
 
-export type FieldType = "number" | "string" | "boolean" | "path" | "object" | "unknown";
+export type FieldType = "number" | "string" | "boolean" | "path" | "object" | "array" | "unknown";
 export type FieldControl = "input" | "select" | "reference" | "expression" | "readonly";
 
 export type WorkbenchField = {
@@ -12,6 +12,19 @@ export type WorkbenchField = {
   value: unknown;
   readonly?: boolean;
   options?: string[];
+};
+
+export type WorkbenchPort = {
+  key: string;
+  label: string;
+  type: FieldType;
+  path: string;
+  value: {
+    name: string;
+    type: {
+      name: string;
+    };
+  };
 };
 
 export type WorkbenchSource = {
@@ -36,6 +49,8 @@ export type WorkbenchNode = {
   raw: UINode;
   inputs: WorkbenchField[];
   outputs: WorkbenchField[];
+  inputPorts: WorkbenchPort[];
+  outputPorts: WorkbenchPort[];
   deletable: boolean;
   deleteMessage: string;
   hasNestedChildren: boolean;
@@ -115,7 +130,7 @@ const CANVAS_BRANCH_START_GAP_Y = 124;
 const CANVAS_BRANCH_LANE_GAP_X = 320;
 
 export function buildWorkbenchModel(document: UIDocument, blockCatalog: BlockDefinition[] = []): WorkbenchModel {
-  const nodes = flattenWorkbenchNodes(document.root, workflowInputValuesFromDocument(document));
+  const nodes = flattenWorkbenchNodes(document.root, workflowInputValuesFromDocument(document), rootWorkflowOutputPorts(document.root));
   const sources = buildSources(nodes);
   const instances = new Map<string, number>();
 
@@ -151,11 +166,11 @@ function formatPortSummary(inputCount: number, outputCount: number) {
 
 export function getNodeIoLabel(node: WorkbenchNode) {
   if (isWorkflowInputNode(node)) {
-    return [`${node.inputs.length} 个流程输入`];
+    return [`${node.inputPorts.length} 个流程输入`];
   }
 
   if (node.kind === "return") {
-    return [`${node.outputs.length} 个流程输出`];
+    return [`${node.outputPorts.length || node.outputs.length} 个流程输出`];
   }
 
   return [`${node.inputs.length} 个输入`, `${node.outputs.length} 个输出`];
@@ -340,11 +355,11 @@ function unique(values: string[]) {
   return [...new Set(values)];
 }
 
-function flattenWorkbenchNodes(root: UINode, workflowInputValues: WorkflowInputValues) {
+function flattenWorkbenchNodes(root: UINode, workflowInputValues: WorkflowInputValues, workflowOutputPorts: WorkbenchPort[]) {
   const nodes: WorkbenchNode[] = [];
 
   const visit = (node: UINode, branch?: string) => {
-    nodes.push(toWorkbenchNode(node, nodes.length, branch, workflowInputValues));
+    nodes.push(toWorkbenchNode(node, nodes.length, branch, workflowInputValues, workflowOutputPorts));
     for (const child of node.children ?? []) {
       visit(child, branch);
     }
@@ -359,8 +374,17 @@ function flattenWorkbenchNodes(root: UINode, workflowInputValues: WorkflowInputV
   return nodes;
 }
 
-function toWorkbenchNode(node: UINode, order: number, branch: string | undefined, workflowInputValues: WorkflowInputValues): WorkbenchNode {
+function toWorkbenchNode(
+  node: UINode,
+  order: number,
+  branch: string | undefined,
+  workflowInputValues: WorkflowInputValues,
+  workflowOutputPorts: WorkbenchPort[],
+): WorkbenchNode {
   const fields = node.inspector ?? [];
+  const inputPorts = fields.filter(isWorkflowInputPortField).map(toWorkbenchPort);
+  const outputPorts = fields.filter(isWorkflowOutputPortField).map(toWorkbenchPort);
+  const nodeOutputPorts = node.kind === "return" && outputPorts.length === 0 ? workflowOutputPorts : outputPorts;
   const inputs = fields
     .filter(isInputField)
     .flatMap((field) => toInputFields(field, order === 0 && node.kind === "sequence", workflowInputValues));
@@ -388,6 +412,8 @@ function toWorkbenchNode(node: UINode, order: number, branch: string | undefined
     raw: node,
     inputs,
     outputs,
+    inputPorts,
+    outputPorts: nodeOutputPorts,
     deletable: isNodeDeletable(node, order),
     deleteMessage: getDeleteMessage(node, order),
     hasNestedChildren: hasNestedChildren(node),
@@ -415,14 +441,43 @@ function hasNestedChildren(node: UINode) {
 
 function isInputField(field: InspectorField) {
   if (field.control === "port") {
-    return field.path.includes("$.inputs.");
+    return isWorkflowInputPortField(field);
   }
 
   return field.path.includes(".inputs.") || field.label === "Condition";
 }
 
 function isOutputField(field: InspectorField) {
+  if (field.control === "port") return false;
   return field.path.includes(".outputs.") || field.path.includes(".returns.");
+}
+
+function isWorkflowInputPortField(field: InspectorField) {
+  return field.control === "port" && field.path.startsWith("$.inputs.");
+}
+
+function isWorkflowOutputPortField(field: InspectorField) {
+  return field.control === "port" && field.path.startsWith("$.outputs.");
+}
+
+function toWorkbenchPort(field: InspectorField): WorkbenchPort {
+  const key = fieldKey(field);
+  return {
+    key,
+    label: key,
+    type: inferFieldType(field),
+    path: field.path,
+    value: {
+      name: key,
+      type: {
+        name: inferFieldType(field) === "unknown" ? "string" : inferFieldType(field),
+      },
+    },
+  };
+}
+
+function rootWorkflowOutputPorts(root: UINode) {
+  return (root.inspector ?? []).filter(isWorkflowOutputPortField).map(toWorkbenchPort);
 }
 
 function toWorkbenchField(

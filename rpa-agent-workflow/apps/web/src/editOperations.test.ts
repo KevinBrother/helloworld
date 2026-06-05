@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { buildDeleteNodeOperation, buildInsertNodeOperation } from "./editOperations";
+import { buildDeleteNodeOperation, buildInsertNodeOperation, buildUpdateWorkflowPortsOperation } from "./editOperations";
 import type { InsertAnchor, WorkbenchNode } from "./workbenchModel";
 
 const actor = {
@@ -53,6 +53,28 @@ describe("edit operation builders", () => {
       type: "deleteNode",
       targetNodeId: "calculate",
       payload: { nodeId: "calculate" },
+      actor,
+    });
+  });
+
+  it("builds updateField for workflow port declarations", () => {
+    expect(
+      buildUpdateWorkflowPortsOperation("ports-1", actor, "root", "inputs", [
+        { name: "dir", type: { name: "string" } },
+        { name: "recursive", type: { name: "boolean" } },
+      ]),
+    ).toEqual({
+      schemaVersion: "1.0.0",
+      operationId: "ports-1",
+      type: "updateField",
+      targetNodeId: "root",
+      path: "$.inputs",
+      payload: {
+        value: [
+          { name: "dir", type: { name: "string" } },
+          { name: "recursive", type: { name: "boolean" } },
+        ],
+      },
       actor,
     });
   });

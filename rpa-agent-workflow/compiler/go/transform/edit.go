@@ -454,6 +454,12 @@ func applyUpdateField(workflow ast.Workflow, op editoperation.Document) (ast.Wor
 	if strings.HasPrefix(op.Path, "$.body") {
 		return applyASTPathUpdate(workflow, op, value)
 	}
+	if op.Path == "$.inputs" {
+		return applyWorkflowInputsUpdate(workflow, value)
+	}
+	if op.Path == "$.outputs" {
+		return applyWorkflowOutputsUpdate(workflow, op, value)
+	}
 	if !strings.HasPrefix(op.Path, "metadata.") {
 		return workflow, []diagnostic.Diagnostic{unsafeEditPathDiagnostic("updateField path is not editable")}
 	}
@@ -469,6 +475,216 @@ func applyUpdateField(workflow ast.Workflow, op editoperation.Document) (ast.Wor
 	}
 	stmt.Metadata = setMetadataPath(stmt.Metadata, strings.TrimPrefix(op.Path, "metadata."), value)
 	return workflow, nil
+}
+
+func applyWorkflowInputsUpdate(workflow ast.Workflow, value any) (ast.Workflow, []diagnostic.Diagnostic) {
+	ports, diag := decodePorts(value, "$.payload.value")
+	if diag != nil {
+		return workflow, []diagnostic.Diagnostic{*diag}
+	}
+	renames := portRenamesByPosition(workflow.Inputs, ports, "input.")
+	workflow.Inputs = ports
+	if len(renames) > 0 {
+		rewriteStatementRefs(&workflow.Body, renames)
+		for i := range workflow.Workflows {
+			rewriteStatementRefs(&workflow.Workflows[i].Body, renames)
+		}
+	}
+	return workflow, nil
+}
+
+func applyWorkflowOutputsUpdate(workflow ast.Workflow, op editoperation.Document, value any) (ast.Workflow, []diagnostic.Diagnostic) {
+	ports, diag := decodePorts(value, "$.payload.value")
+	if diag != nil {
+		return workflow, []diagnostic.Diagnostic{*diag}
+	}
+	oldPorts := workflow.Outputs
+	workflow.Outputs = ports
+
+	if op.TargetNodeID == "" || op.TargetNodeID == workflow.Body.ID {
+		syncReturnMapsByOutputPorts(&workflow.Body, oldPorts, ports, nil)
+		return workflow, nil
+	}
+
+	stmt := findStatementByID(&workflow.Body, op.TargetNodeID)
+	if stmt == nil {
+		return workflow, []diagnostic.Diagnostic{notFoundDiagnostic(op.TargetNodeID)}
+	}
+	if stmt.Kind != "return" {
+		return workflow, []diagnostic.Diagnostic{unsafeEditPathDiagnostic("workflow outputs target must be a return node")}
+	}
+	syncReturnMap(stmt, oldPorts, ports)
+	return workflow, nil
+}
+
+func decodePorts(value any, path string) ([]ast.Port, *diagnostic.Diagnostic) {
+	data, err := json.Marshal(value)
+	if err != nil {
+		diag := editPayloadDiagnostic("INVALID_PORTS_VALUE", fmt.Sprintf("ports value cannot be encoded: %v", err), path)
+		return nil, &diag
+	}
+	var ports []ast.Port
+	if err := json.Unmarshal(data, &ports); err != nil {
+		diag := editPayloadDiagnostic("INVALID_PORTS_VALUE", fmt.Sprintf("ports value must be an array of ports: %v", err), path)
+		return nil, &diag
+	}
+	return ports, nil
+}
+
+func portRenamesByPosition(oldPorts []ast.Port, newPorts []ast.Port, prefix string) map[string]string {
+	renames := map[string]string{}
+	for i := range oldPorts {
+		if i >= len(newPorts) {
+			continue
+		}
+		oldName := oldPorts[i].Name
+		newName := newPorts[i].Name
+		if oldName != "" && newName != "" && oldName != newName {
+			renames[prefix+oldName] = prefix + newName
+		}
+	}
+	return renames
+}
+
+func rewriteStatementRefs(stmt *ast.Statement, renames map[string]string) {
+	if stmt == nil {
+		return
+	}
+	rewriteExpressionMapRefs(stmt.Inputs, renames)
+	rewriteExpressionMapRefs(stmt.Outputs, renames)
+	rewriteExpressionMapRefs(stmt.Returns, renames)
+	if stmt.Value != nil {
+		rewriteExpressionRefs(stmt.Value, renames)
+	}
+	if stmt.Condition != nil {
+		rewriteExpressionRefs(stmt.Condition, renames)
+	}
+	if stmt.Iterable != nil {
+		rewriteExpressionRefs(stmt.Iterable, renames)
+	}
+	for i := range stmt.Statements {
+		rewriteStatementRefs(&stmt.Statements[i], renames)
+	}
+	for i := range stmt.Then {
+		rewriteStatementRefs(&stmt.Then[i], renames)
+	}
+	for i := range stmt.Else {
+		rewriteStatementRefs(&stmt.Else[i], renames)
+	}
+	for i := range stmt.Branches {
+		for j := range stmt.Branches[i].Body {
+			rewriteStatementRefs(&stmt.Branches[i].Body[j], renames)
+		}
+	}
+	for i := range stmt.Catches {
+		for j := range stmt.Catches[i].Body {
+			rewriteStatementRefs(&stmt.Catches[i].Body[j], renames)
+		}
+	}
+	for i := range stmt.Finally {
+		rewriteStatementRefs(&stmt.Finally[i], renames)
+	}
+}
+
+func rewriteExpressionMapRefs(expressions map[string]ast.Expression, renames map[string]string) {
+	for key, expr := range expressions {
+		rewriteExpressionRefs(&expr, renames)
+		expressions[key] = expr
+	}
+}
+
+func rewriteExpressionRefs(expr *ast.Expression, renames map[string]string) {
+	if expr == nil {
+		return
+	}
+	if expr.Kind == "ref" {
+		if next, ok := renames[expr.Ref]; ok {
+			expr.Ref = next
+		}
+	}
+	if expr.Operator != nil {
+		rewriteExpressionRefs(expr.Operator, renames)
+	}
+	if expr.Left != nil {
+		rewriteExpressionRefs(expr.Left, renames)
+	}
+	if expr.Right != nil {
+		rewriteExpressionRefs(expr.Right, renames)
+	}
+	for i := range expr.Args {
+		rewriteExpressionRefs(&expr.Args[i], renames)
+	}
+	for i := range expr.Items {
+		rewriteExpressionRefs(&expr.Items[i], renames)
+	}
+	for key, field := range expr.Fields {
+		rewriteExpressionRefs(&field, renames)
+		expr.Fields[key] = field
+	}
+}
+
+func syncReturnMapsByOutputPorts(stmt *ast.Statement, oldPorts []ast.Port, newPorts []ast.Port, onlyID *string) {
+	if stmt == nil {
+		return
+	}
+	if stmt.Kind == "return" && (onlyID == nil || stmt.ID == *onlyID) {
+		syncReturnMap(stmt, oldPorts, newPorts)
+	}
+	for i := range stmt.Statements {
+		syncReturnMapsByOutputPorts(&stmt.Statements[i], oldPorts, newPorts, onlyID)
+	}
+	for i := range stmt.Then {
+		syncReturnMapsByOutputPorts(&stmt.Then[i], oldPorts, newPorts, onlyID)
+	}
+	for i := range stmt.Else {
+		syncReturnMapsByOutputPorts(&stmt.Else[i], oldPorts, newPorts, onlyID)
+	}
+	for i := range stmt.Branches {
+		for j := range stmt.Branches[i].Body {
+			syncReturnMapsByOutputPorts(&stmt.Branches[i].Body[j], oldPorts, newPorts, onlyID)
+		}
+	}
+	for i := range stmt.Catches {
+		for j := range stmt.Catches[i].Body {
+			syncReturnMapsByOutputPorts(&stmt.Catches[i].Body[j], oldPorts, newPorts, onlyID)
+		}
+	}
+	for i := range stmt.Finally {
+		syncReturnMapsByOutputPorts(&stmt.Finally[i], oldPorts, newPorts, onlyID)
+	}
+}
+
+func syncReturnMap(stmt *ast.Statement, oldPorts []ast.Port, newPorts []ast.Port) {
+	next := make(map[string]ast.Expression, len(newPorts))
+	for i, port := range newPorts {
+		if existing, ok := stmt.Returns[port.Name]; ok {
+			next[port.Name] = existing
+			continue
+		}
+		if i < len(oldPorts) {
+			if existing, ok := stmt.Returns[oldPorts[i].Name]; ok {
+				next[port.Name] = existing
+				continue
+			}
+		}
+		next[port.Name] = defaultExpressionForType(port.Type)
+	}
+	stmt.Returns = next
+}
+
+func defaultExpressionForType(typ ast.Type) ast.Expression {
+	switch typ.Name {
+	case "number", "integer":
+		return ast.Expression{Kind: "literal", Value: float64(0)}
+	case "boolean":
+		return ast.Expression{Kind: "literal", Value: false}
+	case "object":
+		return ast.Expression{Kind: "literal", Value: map[string]any{}}
+	case "array":
+		return ast.Expression{Kind: "literal", Value: []any{}}
+	default:
+		return ast.Expression{Kind: "literal", Value: ""}
+	}
 }
 
 func applyASTPathUpdate(workflow ast.Workflow, op editoperation.Document, value any) (ast.Workflow, []diagnostic.Diagnostic) {

@@ -531,6 +531,48 @@ code {
   justify-self: end;
 }
 
+.workflow-port-list {
+  display: grid;
+  gap: 0.34rem;
+}
+
+.workflow-port-row {
+  display: grid;
+  grid-template-columns: minmax(78px, 1fr) minmax(86px, 0.74fr) 32px;
+  gap: 0.34rem;
+  align-items: center;
+}
+
+.port-name-input,
+.port-type-select {
+  width: 100%;
+  min-width: 0;
+  min-height: 34px;
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  background: var(--surface);
+  color: var(--text);
+  padding: 0 0.48rem;
+  font-size: 0.82rem;
+}
+
+.port-name-input:focus,
+.port-type-select:focus {
+  border-color: var(--accent);
+}
+
+.danger-icon-button.compact {
+  width: 32px;
+  min-height: 32px;
+}
+
+.schema-add-button {
+  width: 100%;
+  min-height: 34px;
+  justify-self: stretch;
+  font-size: 0.82rem;
+}
+
 .field-name {
   overflow: hidden;
   text-overflow: ellipsis;

@@ -38,3 +38,23 @@ export function buildDeleteNodeOperation(operationId: string, actor: Actor, node
     actor,
   };
 }
+
+export function buildUpdateWorkflowPortsOperation(
+  operationId: string,
+  actor: Actor,
+  targetNodeId: string,
+  direction: "inputs" | "outputs",
+  ports: Array<{ name: string; type: { name: string } }>,
+): EditOperation {
+  return {
+    schemaVersion: "1.0.0",
+    operationId,
+    type: "updateField",
+    targetNodeId,
+    path: `$.${direction}`,
+    payload: {
+      value: ports,
+    },
+    actor,
+  };
+}

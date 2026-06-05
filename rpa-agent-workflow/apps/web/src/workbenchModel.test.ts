@@ -25,6 +25,15 @@ describe("workbench model", () => {
     expect(getNodeIoLabel(model.nodes.find((node) => node.id === "return_result")!)).toEqual(["1 个流程输出"]);
   });
 
+  it("separates editable workflow port declarations from run input values", () => {
+    const startNode = model.nodes[0];
+    const returnNode = model.nodes.find((node) => node.id === "return_result")!;
+
+    expect(startNode.inputPorts.map((field) => `${field.key}:${field.type}`)).toEqual(["left:number", "operator:string", "right:number"]);
+    expect(startNode.inputs.map((field) => field.key)).toEqual(["left", "operator", "right"]);
+    expect(returnNode.outputPorts.map((field) => `${field.key}:${field.type}`)).toEqual(["result:number"]);
+  });
+
   it("models if condition as left, operator, and right inputs", () => {
     const branchNode = model.nodes.find((node) => node.id === "branch_by_threshold")!;
 
