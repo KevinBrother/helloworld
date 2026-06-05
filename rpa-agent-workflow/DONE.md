@@ -25,3 +25,4 @@
 [x] 修复恢复过期本地草稿导致新建节点插入锚点失效
 [x] 落盘 if 和 parallel 分叉画布设计与实施计划
 [ ] 实现 if 和 parallel 分叉画布与分支编辑
+[x] 修复 Workflow Editor 代理服务未启动导致 500
