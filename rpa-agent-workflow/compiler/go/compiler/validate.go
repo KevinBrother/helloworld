@@ -187,6 +187,9 @@ func validateCallBlock(stmt ast.Statement, workflow ast.Workflow, blocks map[str
 		knownInputs[port.Name] = true
 		expr, ok := stmt.Inputs[port.Name]
 		if !ok {
+			if port.Type.Optional {
+				continue
+			}
 			diags = append(diags, diagnosticError("MISSING_INPUT", fmt.Sprintf("missing input %q", port.Name), path+".inputs."+port.Name))
 			continue
 		}

@@ -36,6 +36,36 @@ func TestRejectsMissingRequiredBlockInput(t *testing.T) {
 	assertDiagnostic(t, diags, "MISSING_INPUT")
 }
 
+func TestAcceptsMissingOptionalBlockInput(t *testing.T) {
+	blocks := map[string]block.Definition{
+		"fs.write_text": {
+			ID:      "fs.write_text",
+			Runtime: block.RuntimeBinding{Target: "python", Mode: "sync"},
+			Inputs: []block.Port{
+				{Name: "path", Type: block.Type{Name: "string"}},
+				{Name: "text", Type: block.Type{Name: "string"}},
+				{Name: "encoding", Type: block.Type{Name: "string", Optional: true}},
+			},
+		},
+	}
+	_, diags := ValidateWorkflow([]byte(`{
+		"schemaVersion":"1.0.0",
+		"workflow":{"id":"wf"},
+		"body":{
+			"id":"s1",
+			"kind":"callBlock",
+			"block":"fs.write_text",
+			"inputs":{
+				"path":{"kind":"literal","value":"out.txt"},
+				"text":{"kind":"literal","value":"ok"}
+			}
+		}
+	}`), blocks)
+	if len(diags) != 0 {
+		t.Fatalf("unexpected diagnostics: %#v", diags)
+	}
+}
+
 func TestRejectsTypeMismatchForLiteralInput(t *testing.T) {
 	blocks := map[string]block.Definition{
 		"core.log": {
