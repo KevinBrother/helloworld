@@ -6,7 +6,8 @@ type TestRunModalProps = {
   errors?: Record<string, string>;
   model: WorkbenchModel;
   pending: boolean;
-  serverAvailable: boolean;
+  runAvailable: boolean;
+  runMessage: string;
   workflowInputNode?: WorkbenchNode;
   openSourceKey: string | null;
   onClose: () => void;
@@ -19,7 +20,8 @@ export function TestRunModal({
   errors = {},
   model,
   pending,
-  serverAvailable,
+  runAvailable,
+  runMessage,
   workflowInputNode,
   openSourceKey,
   onClose,
@@ -33,7 +35,7 @@ export function TestRunModal({
         <div className="modal-header">
           <div>
             <h2 id="test-run-title">测试运行流程</h2>
-            <p>{serverAvailable ? "在服务端运行当前流程。" : "启动流程服务后才能运行。"}</p>
+            <p>{runMessage}</p>
           </div>
           <button className="icon-button" aria-label="关闭测试运行" onClick={onClose}>
             <X size={18} />
@@ -64,7 +66,7 @@ export function TestRunModal({
           <button className="secondary-button" onClick={onClose}>
             取消
           </button>
-          <button className="primary-button" onClick={onRun} disabled={pending || !serverAvailable || Object.keys(errors).length > 0}>
+          <button className="primary-button" onClick={onRun} disabled={pending || !runAvailable || Object.keys(errors).length > 0}>
             <Play size={17} />
             {pending ? "运行中" : "运行测试"}
           </button>

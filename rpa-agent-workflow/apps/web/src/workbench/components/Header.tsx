@@ -3,6 +3,7 @@ import { FileUp, Play, Save } from "lucide-react";
 export type SaveState = "sample" | "saved" | "saving" | "failed";
 
 type HeaderProps = {
+  runAvailable: boolean;
   runPending: boolean;
   serverAvailable: boolean;
   status: string;
@@ -12,6 +13,7 @@ type HeaderProps = {
 };
 
 export function Header({
+  runAvailable,
   runPending,
   serverAvailable,
   status,
@@ -34,7 +36,7 @@ export function Header({
           <Save size={17} />
           保存流程
         </button>
-        <button className="primary-button" onClick={onRun} disabled={runPending}>
+        <button className="primary-button" onClick={onRun} disabled={runPending || !runAvailable}>
           <Play size={17} />
           {runPending ? "运行中" : "测试运行"}
         </button>

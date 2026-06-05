@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import sampleDocument from "../../../output/calculator-ui-node.json";
+import { getRunAvailability } from "./runAvailability";
 import { reduceRunMessage, runWorkflowStream, type NodeRunStateMap } from "./runEvents";
 import { validateWorkflowRunInputs } from "./runInputValidation";
 import { findInvalidConditionOperatorRepairs } from "./runReadiness";
@@ -40,6 +41,7 @@ function App() {
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const model = useMemo(() => buildWorkbenchModel(uiDocument, blockCatalog), [uiDocument, blockCatalog]);
+  const runAvailability = useMemo(() => getRunAvailability(serverAvailable, saveState), [serverAvailable, saveState]);
   const selectedNode = useMemo(
     () => model.nodes.find((node) => node.id === selectedNodeId) ?? model.nodes[0],
     [model.nodes, selectedNodeId],
@@ -138,6 +140,13 @@ function App() {
   };
 
   const handleRunWorkflow = async () => {
+    if (!runAvailability.available) {
+      setOpenSourceKey(null);
+      setRunModalOpen(true);
+      setStatus(runAvailability.message);
+      return;
+    }
+
     const repairs = findInvalidConditionOperatorRepairs(model);
     for (const repair of repairs) {
       await submitFieldUpdate(repair.node, repair.field, repair.value);
@@ -192,7 +201,7 @@ function App() {
       setRunResult(null);
       setDiagnostics([]);
       setSaveState("sample");
-      setStatus(`已加载 ${loaded.workflowId}`);
+      setStatus(`已加载 ${loaded.workflowId}；当前 UI JSON 未同步到服务端 AST，不能测试运行。`);
     } catch (error) {
       setStatus(`无法加载 JSON：${formatError(error)}`);
     } finally {
@@ -205,6 +214,7 @@ function App() {
   return (
     <div className="workbench-shell">
       <Header
+        runAvailable={runAvailability.available}
         runPending={runPending}
         serverAvailable={serverAvailable}
         status={status}
@@ -253,7 +263,8 @@ function App() {
           errors={runInputValidation.errors}
           model={model}
           pending={runPending}
-          serverAvailable={serverAvailable}
+          runAvailable={runAvailability.available}
+          runMessage={runAvailability.message}
           workflowInputNode={workflowInputNode}
           openSourceKey={openSourceKey}
           onClose={() => setRunModalOpen(false)}
