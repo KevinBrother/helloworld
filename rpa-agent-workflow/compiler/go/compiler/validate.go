@@ -105,13 +105,7 @@ func validateStatement(stmt ast.Statement, workflow ast.Workflow, blocks map[str
 			diags = append(diags, diagnosticError("UNKNOWN_STATE", fmt.Sprintf("unknown state %q", stmt.Target), path+".target"))
 		}
 	case "if":
-		diags = append(diags, validateExpression(stmt.Condition, workflow, blocks, path+".condition")...)
-		for i, child := range stmt.Then {
-			diags = append(diags, validateStatement(child, workflow, blocks, fmt.Sprintf("%s.then[%d]", path, i))...)
-		}
-		for i, child := range stmt.Else {
-			diags = append(diags, validateStatement(child, workflow, blocks, fmt.Sprintf("%s.else[%d]", path, i))...)
-		}
+		diags = append(diags, validateIf(stmt, workflow, blocks, path)...)
 	case "loop":
 		if stmt.LoopKind == "foreach" {
 			diags = append(diags, validateExpression(stmt.Iterable, workflow, blocks, path+".iterable")...)
@@ -148,6 +142,48 @@ func validateStatement(stmt ast.Statement, workflow ast.Workflow, blocks map[str
 		}
 	default:
 		diags = append(diags, diagnosticError("UNSUPPORTED_STATEMENT", fmt.Sprintf("unsupported statement kind %q", stmt.Kind), path+".kind"))
+	}
+	return diags
+}
+
+func validateIf(stmt ast.Statement, workflow ast.Workflow, blocks map[string]block.Definition, path string) []diagnostic.Diagnostic {
+	var diags []diagnostic.Diagnostic
+	if len(stmt.Branches) > 0 {
+		if len(stmt.Branches) < 2 {
+			diags = append(diags, diagnosticError("IF_BRANCH_MIN_COUNT", "if branches must include at least two branches", path+".branches"))
+		}
+
+		defaultCount := 0
+		for i, branch := range stmt.Branches {
+			branchPath := fmt.Sprintf("%s.branches[%d]", path, i)
+			if branch.Default {
+				defaultCount++
+				if i != len(stmt.Branches)-1 {
+					diags = append(diags, diagnosticError("IF_BRANCH_DEFAULT_LAST", "default if branch must be the last branch", branchPath+".default"))
+				}
+			} else if branch.Condition == nil {
+				diags = append(diags, diagnosticError("IF_BRANCH_CONDITION_REQUIRED", "non-default if branch must define a condition", branchPath+".condition"))
+			} else {
+				diags = append(diags, validateExpression(branch.Condition, workflow, blocks, branchPath+".condition")...)
+			}
+
+			for j, child := range branch.Body {
+				diags = append(diags, validateStatement(child, workflow, blocks, fmt.Sprintf("%s.body[%d]", branchPath, j))...)
+			}
+		}
+
+		if defaultCount != 1 {
+			diags = append(diags, diagnosticError("IF_BRANCH_DEFAULT_COUNT", "if branches must include exactly one default branch", path+".branches"))
+		}
+		return diags
+	}
+
+	diags = append(diags, validateExpression(stmt.Condition, workflow, blocks, path+".condition")...)
+	for i, child := range stmt.Then {
+		diags = append(diags, validateStatement(child, workflow, blocks, fmt.Sprintf("%s.then[%d]", path, i))...)
+	}
+	for i, child := range stmt.Else {
+		diags = append(diags, validateStatement(child, workflow, blocks, fmt.Sprintf("%s.else[%d]", path, i))...)
 	}
 	return diags
 }

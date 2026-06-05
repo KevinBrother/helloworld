@@ -133,6 +133,94 @@ func TestAcceptsIfLoopTryAssignReturnAndWorkflowCall(t *testing.T) {
 	}
 }
 
+func TestAcceptsIfCanonicalBranchConditionsAndDefault(t *testing.T) {
+	doc := []byte(`{
+		"schemaVersion":"1.0.0",
+		"workflow":{"id":"wf"},
+		"body":{
+			"id":"choose_path",
+			"kind":"if",
+			"branches":[
+				{"id":"condition_1","label":"条件 1","condition":{"kind":"literal","value":false},"body":[]},
+				{"id":"condition_2","label":"条件 2","condition":{"kind":"literal","value":true},"body":[]},
+				{"id":"else","label":"否则","default":true,"body":[]}
+			]
+		}
+	}`)
+	_, diags := ValidateWorkflow(doc, nil)
+	if len(diags) != 0 {
+		t.Fatalf("unexpected diagnostics: %#v", diags)
+	}
+}
+
+func TestRejectsIfCanonicalBranchWithTwoDefaults(t *testing.T) {
+	doc := []byte(`{
+		"schemaVersion":"1.0.0",
+		"workflow":{"id":"wf"},
+		"body":{
+			"id":"choose_path",
+			"kind":"if",
+			"branches":[
+				{"id":"condition_1","label":"条件 1","condition":{"kind":"literal","value":false},"body":[]},
+				{"id":"else_1","label":"否则 1","default":true,"body":[]},
+				{"id":"else_2","label":"否则 2","default":true,"body":[]}
+			]
+		}
+	}`)
+	_, diags := ValidateWorkflow(doc, nil)
+	assertDiagnostic(t, diags, "IF_BRANCH_DEFAULT_COUNT")
+}
+
+func TestRejectsIfCanonicalBranchMissingCondition(t *testing.T) {
+	doc := []byte(`{
+		"schemaVersion":"1.0.0",
+		"workflow":{"id":"wf"},
+		"body":{
+			"id":"choose_path",
+			"kind":"if",
+			"branches":[
+				{"id":"condition_1","label":"条件 1","body":[]},
+				{"id":"else","label":"否则","default":true,"body":[]}
+			]
+		}
+	}`)
+	_, diags := ValidateWorkflow(doc, nil)
+	assertDiagnostic(t, diags, "IF_BRANCH_CONDITION_REQUIRED")
+}
+
+func TestRejectsIfCanonicalBranchDefaultBeforeLastBranch(t *testing.T) {
+	doc := []byte(`{
+		"schemaVersion":"1.0.0",
+		"workflow":{"id":"wf"},
+		"body":{
+			"id":"choose_path",
+			"kind":"if",
+			"branches":[
+				{"id":"else","label":"否则","default":true,"body":[]},
+				{"id":"condition_1","label":"条件 1","condition":{"kind":"literal","value":true},"body":[]}
+			]
+		}
+	}`)
+	_, diags := ValidateWorkflow(doc, nil)
+	assertDiagnostic(t, diags, "IF_BRANCH_DEFAULT_LAST")
+}
+
+func TestRejectsIfCanonicalBranchBelowMinimumCount(t *testing.T) {
+	doc := []byte(`{
+		"schemaVersion":"1.0.0",
+		"workflow":{"id":"wf"},
+		"body":{
+			"id":"choose_path",
+			"kind":"if",
+			"branches":[
+				{"id":"else","label":"否则","default":true,"body":[]}
+			]
+		}
+	}`)
+	_, diags := ValidateWorkflow(doc, nil)
+	assertDiagnostic(t, diags, "IF_BRANCH_MIN_COUNT")
+}
+
 func TestRejectsParallelSharedWrite(t *testing.T) {
 	doc := []byte(`{
 		"schemaVersion":"1.0.0",
