@@ -22,6 +22,21 @@ func TestDebugHelpOutput(t *testing.T) {
 	}
 }
 
+func TestDebugCommandRejectsRemovedDAPFlag(t *testing.T) {
+	var stdout, stderr bytes.Buffer
+	status := runDebugCommand([]string{"--dap"}, strings.NewReader(""), &stdout, &stderr)
+
+	if status != 2 {
+		t.Fatalf("status = %d, want 2", status)
+	}
+	if strings.Contains(stderr.String(), "not implemented") {
+		t.Fatalf("stderr still references unimplemented dap support:\n%s", stderr.String())
+	}
+	if !strings.Contains(stderr.String(), "Usage: rpawf debug") {
+		t.Fatalf("stderr missing debug usage:\n%s", stderr.String())
+	}
+}
+
 func TestDebugCommandRunsAScriptedSession(t *testing.T) {
 	input, err := os.ReadFile("testdata/debug-session-input.txt")
 	if err != nil {

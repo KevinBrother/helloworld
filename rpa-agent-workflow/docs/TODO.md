@@ -58,7 +58,6 @@ IBlock v1 fields:
 - React workflow editor
 - `ast.json -> ui-node.json`
 - Agent 自然语言生成 AST
-- 完整 DAP adapter
 - 强 sandbox 隔离
 - 任意 DAG 执行模型
 
@@ -67,7 +66,6 @@ IBlock v1 fields:
 - `ast.json -> ui-node.json`
 - React workflow editor
 - Agent + 自然语言 + IAST + IBlock -> `ast.json`
-- DAP adapter
 - 更强 sandbox runtime
 
 ## 验证链路

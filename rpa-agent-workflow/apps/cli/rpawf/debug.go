@@ -23,9 +23,9 @@ func runDebugCommand(args []string, stdin io.Reader, stdout, stderr io.Writer) i
 		printDebugUsage(stdout)
 		return 0
 	}
-	if args[0] == "--dap" {
-		fmt.Fprintln(stderr, "debug --dap is not implemented yet")
-		return 1
+	if strings.HasPrefix(args[0], "-") {
+		printDebugUsage(stderr)
+		return 2
 	}
 	if len(args) > 2 {
 		printDebugUsage(stderr)
