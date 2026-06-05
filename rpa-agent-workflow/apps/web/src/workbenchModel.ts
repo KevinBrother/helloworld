@@ -150,7 +150,6 @@ const CANVAS_BRANCH_HEADER_WIDTH = 180;
 const CANVAS_BRANCH_HEADER_HEIGHT = 42;
 const CANVAS_EMPTY_BRANCH_WIDTH = 220;
 const CANVAS_EMPTY_BRANCH_HEIGHT = 74;
-const CANVAS_JOIN_SIZE = 34;
 const CANVAS_BRANCH_HEADER_GAP_Y = 62;
 const CANVAS_BRANCH_NODE_GAP_Y = 54;
 
@@ -446,14 +445,14 @@ export function buildCanvasLayout(model: WorkbenchModel): CanvasLayout {
     });
 
     const joinY = branchBottom + CANVAS_BRANCH_HEADER_GAP_Y;
-    layoutNodes.push({ id: joinId, role: "join", x, y: joinY, width: CANVAS_JOIN_SIZE, height: CANVAS_JOIN_SIZE });
+    layoutNodes.push({ id: joinId, role: "join", x, y: joinY, width: 0, height: 0 });
     for (const endId of branchEnds) {
       addEdge(endId, joinId, { containerNodeId: uiNode.id, position: "branchEnd" });
     }
 
     return {
       previous: [{ visualId: joinId, astAfterNodeId: uiNode.id, position: "afterJoin" as const }],
-      nextY: joinY + CANVAS_JOIN_SIZE + CANVAS_STEP_GAP_Y,
+      nextY: joinY + CANVAS_STEP_GAP_Y,
     };
   };
 

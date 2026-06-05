@@ -65,6 +65,7 @@ export function WorkflowCanvas({ model, nodeRunStates, selectedId, onSelect, onI
           ))}
 
           {layout.nodes.map((layoutNode) => (
+            layoutNode.role === "join" ? null :
             <div
               className={`canvas-node-position role-${layoutNode.role}`}
               key={layoutNode.id}
@@ -106,6 +107,10 @@ function getEdgePath(layout: CanvasLayout, fromId: string, toId: string) {
     return `M${startX} ${startY} L${endX} ${endY}`;
   }
 
+  if (to.role === "join") {
+    return `M${startX} ${startY} L${startX} ${endY} L${endX} ${endY}`;
+  }
+
   const midY = Math.round((startY + endY) / 2);
   return `M${startX} ${startY} L${startX} ${midY} L${endX} ${midY} L${endX} ${endY}`;
 }
@@ -129,7 +134,7 @@ function getEdgeMidpoint(layout: CanvasLayout, fromId: string, toId: string) {
 
 function CanvasLayoutMarker({ role, label }: { role: "branchHeader" | "join" | "emptyBranch"; label?: string }) {
   if (role === "join") {
-    return <div className="canvas-join-node" aria-hidden="true" />;
+    return null;
   }
   if (role === "emptyBranch") {
     return <div className="canvas-empty-branch">{label ?? "空分支"}</div>;

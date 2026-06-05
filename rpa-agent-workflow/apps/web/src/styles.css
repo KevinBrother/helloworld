@@ -385,8 +385,7 @@ code {
 }
 
 .canvas-node-position.role-branchHeader,
-.canvas-node-position.role-emptyBranch,
-.canvas-node-position.role-join {
+.canvas-node-position.role-emptyBranch {
   z-index: 1;
   display: grid;
   place-items: center;
@@ -417,20 +416,6 @@ code {
   color: var(--muted);
   font-size: 0.82rem;
   font-weight: 600;
-}
-
-.canvas-join-node {
-  width: 34px;
-  height: 34px;
-  display: grid;
-  place-items: center;
-  border: 2px solid var(--line-strong);
-  border-radius: 50%;
-  background: var(--surface);
-  color: var(--muted);
-  font-size: 0.62rem;
-  font-weight: 800;
-  box-shadow: 0 8px 20px var(--shadow);
 }
 
 .canvas-node {

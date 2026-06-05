@@ -17,6 +17,8 @@ describe("WorkflowCanvas", () => {
     expect(html).toContain("分支末尾追加");
     expect(html).toContain("继续追加");
     expect(html).not.toContain("汇合");
+    expect(html).not.toContain("canvas-join-node");
+    expect(html).toContain('d="M650 518 L650 656 L490 656"');
   });
 });
 
