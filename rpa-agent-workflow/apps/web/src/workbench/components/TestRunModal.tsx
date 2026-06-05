@@ -3,6 +3,7 @@ import type { WorkbenchField, WorkbenchModel, WorkbenchNode } from "../../workbe
 import { ParameterFieldList } from "./ParameterPanel";
 
 type TestRunModalProps = {
+  errors?: Record<string, string>;
   model: WorkbenchModel;
   pending: boolean;
   serverAvailable: boolean;
@@ -15,6 +16,7 @@ type TestRunModalProps = {
 };
 
 export function TestRunModal({
+  errors = {},
   model,
   pending,
   serverAvailable,
@@ -44,7 +46,8 @@ export function TestRunModal({
           </div>
           <div className="schema-box">
             {workflowInputNode ? (
-              <ParameterFieldList
+            <ParameterFieldList
+                errors={errors}
                 fields={workflowInputNode.inputs}
                 model={model}
                 node={workflowInputNode}
@@ -61,7 +64,7 @@ export function TestRunModal({
           <button className="secondary-button" onClick={onClose}>
             Cancel
           </button>
-          <button className="primary-button" onClick={onRun} disabled={pending || !serverAvailable}>
+          <button className="primary-button" onClick={onRun} disabled={pending || !serverAvailable || Object.keys(errors).length > 0}>
             <Play size={17} />
             {pending ? "Running" : "Run test"}
           </button>

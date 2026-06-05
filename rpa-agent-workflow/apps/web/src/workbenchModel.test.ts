@@ -39,7 +39,7 @@ describe("workbench model", () => {
     expect(operatorField.options).toEqual(["+", "-", "*", "/"]);
   });
 
-  it("keeps operator fields bindable even when they expose manual choices", () => {
+  it("keeps compatible operator fields bindable even when they expose manual choices", () => {
     const calculateNode = model.nodes.find((node) => node.id === "calculate_large_value")!;
     const operatorField = calculateNode.inputs.find((field) => field.key === "operator")!;
     const branchNode = model.nodes.find((node) => node.id === "branch_by_threshold")!;
@@ -48,7 +48,20 @@ describe("workbench model", () => {
     expect(operatorField.control).toBe("reference");
     expect(getSourceOptions(model.nodes, calculateNode.id, operatorField).map((source) => source.id)).toEqual(["input.operator"]);
     expect(conditionOperator.control).toBe("input");
-    expect(getSourceOptions(model.nodes, branchNode.id, conditionOperator).map((source) => source.id)).toEqual(["input.operator"]);
+    expect(getSourceOptions(model.nodes, branchNode.id, conditionOperator).map((source) => source.id)).toEqual([]);
+  });
+
+  it("uses edited workflow input values instead of falling back to samples", () => {
+    const editedDocument = structuredClone(sampleDocument) as UIDocument;
+    const operatorPort = editedDocument.root.inspector!.find((field) => field.path === "$.inputs.operator")!;
+    operatorPort.value = { kind: "literal", value: "-" };
+
+    const editedModel = buildWorkbenchModel(editedDocument);
+    const startNode = editedModel.nodes.find((node) => node.id === "root")!;
+    const operatorField = startNode.inputs.find((field) => field.key === "operator")!;
+
+    expect(getResolvedFieldValue(operatorField, editedModel.sourcesById)).toBe("-");
+    expect(editedModel.sourcesById.get("input.operator")?.displayValue).toBe("-");
   });
 
   it("filters source choices by expected field type", () => {

@@ -1,17 +1,17 @@
-import { ChevronDown } from "lucide-react";
-import { useEffect, useState, type ReactNode } from "react";
+import { type ReactNode } from "react";
 import {
   getFieldSourceId,
   getResolvedFieldValue,
   getSourceOptions,
-  makeFieldValueFromSource,
   type WorkbenchField,
   type WorkbenchModel,
   type WorkbenchNode,
 } from "../../workbenchModel";
 import { PanelHeading } from "./PanelHeading";
+import { ValueComboInput } from "./ValueComboInput";
 
 type ParameterPanelProps = {
+  errors?: Record<string, string>;
   model: WorkbenchModel;
   node: WorkbenchNode;
   openSourceKey: string | null;
@@ -19,7 +19,7 @@ type ParameterPanelProps = {
   onFieldChange: (field: WorkbenchField, value: unknown) => void;
 };
 
-export function ParameterPanel({ model, node, openSourceKey, onOpenSourceKeyChange, onFieldChange }: ParameterPanelProps) {
+export function ParameterPanel({ errors = {}, model, node, openSourceKey, onOpenSourceKeyChange, onFieldChange }: ParameterPanelProps) {
   const title = node.kind === "sequence" && node.order === 0 ? "Workflow Inputs" : node.kind === "return" ? "Return result" : node.label;
   const showInputs = node.kind !== "return" && node.inputs.length > 0;
   const showOutputs = node.kind !== "sequence" && node.outputs.length > 0;
@@ -39,6 +39,7 @@ export function ParameterPanel({ model, node, openSourceKey, onOpenSourceKeyChan
         <SchemaSection title={node.kind === "sequence" ? "Workflow inputs" : "Inputs"}>
           <ParameterFieldList
             fields={node.inputs}
+            errors={errors}
             model={model}
             node={node}
             openSourceKey={openSourceKey}
@@ -63,6 +64,7 @@ export function ParameterPanel({ model, node, openSourceKey, onOpenSourceKeyChan
 
 export function ParameterFieldList({
   fields,
+  errors = {},
   model,
   node,
   openSourceKey,
@@ -70,6 +72,7 @@ export function ParameterFieldList({
   onOpenSourceKeyChange,
 }: {
   fields: WorkbenchField[];
+  errors?: Record<string, string>;
   model: WorkbenchModel;
   node: WorkbenchNode;
   openSourceKey: string | null;
@@ -81,6 +84,7 @@ export function ParameterFieldList({
       {fields.map((field) => (
         <FieldRow
           field={field}
+          error={errors[field.key]}
           key={field.path}
           model={model}
           node={node}
@@ -95,6 +99,7 @@ export function ParameterFieldList({
 
 function FieldRow({
   field,
+  error,
   model,
   node,
   openSourceKey,
@@ -102,6 +107,7 @@ function FieldRow({
   onOpenSourceKeyChange,
 }: {
   field: WorkbenchField;
+  error?: string;
   model: WorkbenchModel;
   node: WorkbenchNode;
   openSourceKey: string | null;
@@ -110,18 +116,8 @@ function FieldRow({
 }) {
   const sourceKey = `${node.id}:${field.path}`;
   const sourceOptions = getSourceOptions(model.nodes, node.id, field);
-  const canChooseSource = !field.readonly && field.type !== "unknown" && sourceOptions.length > 0;
   const resolvedValue = getResolvedFieldValue(field, model.sourcesById);
   const activeSourceId = getFieldSourceId(field);
-  const activeSource = activeSourceId ? sourceOptions.find((source) => source.id === activeSourceId) : undefined;
-  const sourceLabel = activeSource ? `${activeSource.nodeLabel}.${activeSource.output}` : activeSourceId;
-  const optionListId = field.options?.length ? `field-options-${sourceKey.replace(/[^a-zA-Z0-9_-]/g, "-")}` : undefined;
-  const [draftValue, setDraftValue] = useState<string | null>(null);
-  const displayValue = draftValue ?? String(resolvedValue);
-
-  useEffect(() => {
-    setDraftValue(null);
-  }, [field.path, field.value]);
 
   return (
     <div className="schema-row">
@@ -130,70 +126,17 @@ function FieldRow({
       {field.readonly ? (
         <span className="value-control readonly-value">{resolvedValue}</span>
       ) : (
-        <div className={activeSourceId ? "value-editor linked" : "value-editor"}>
-          {activeSourceId ? <span className="binding-badge">ref</span> : null}
-          {field.options?.length ? (
-            <>
-              <input
-                className="value-control"
-                list={optionListId}
-                value={displayValue}
-                onChange={(event) => {
-                  setDraftValue(event.target.value);
-                  onFieldChange(field, { kind: "literal", value: event.target.value });
-                  onOpenSourceKeyChange(null);
-                }}
-              />
-              <datalist id={optionListId}>
-                {field.options.map((option) => (
-                  <option key={option}>{option}</option>
-                ))}
-              </datalist>
-            </>
-          ) : (
-            <input
-              className="value-control"
-              value={displayValue}
-              onChange={(event) => {
-                setDraftValue(event.target.value);
-                onFieldChange(field, { kind: "literal", value: parseFieldInput(event.target.value, field.type) });
-                onOpenSourceKeyChange(null);
-              }}
-            />
-          )}
-          {canChooseSource ? (
-            <button
-              aria-label={sourceLabel ? `Change reference ${sourceLabel}` : "Use reference"}
-              className={activeSourceId ? "source-picker-trigger active" : "source-picker-trigger"}
-              onClick={() => onOpenSourceKeyChange(openSourceKey === sourceKey ? null : sourceKey)}
-              title={sourceLabel ?? "Use ref"}
-            >
-              {sourceLabel ?? "Use ref"}
-              <ChevronDown size={14} />
-            </button>
-          ) : null}
-        </div>
+        <ValueComboInput
+          activeSourceId={activeSourceId}
+          error={error}
+          field={field}
+          isOpen={openSourceKey === sourceKey}
+          resolvedValue={resolvedValue}
+          sourceOptions={sourceOptions}
+          onFieldChange={onFieldChange}
+          onOpenChange={(nextOpen) => onOpenSourceKeyChange(nextOpen ? sourceKey : null)}
+        />
       )}
-
-      {canChooseSource && openSourceKey === sourceKey ? (
-        <div className="source-picker">
-          {sourceOptions.map((source) => (
-            <button
-              className={activeSourceId === source.id ? "active" : ""}
-              key={source.id}
-              onClick={() => {
-                onFieldChange(field, makeFieldValueFromSource(source.id));
-                onOpenSourceKeyChange(null);
-              }}
-            >
-              <span>{source.nodeLabel}</span>
-              <strong>{source.output}</strong>
-              <code>{source.type}</code>
-              <em>{source.displayValue}</em>
-            </button>
-          ))}
-        </div>
-      ) : null}
     </div>
   );
 }
@@ -218,13 +161,4 @@ function SchemaSection({ title, children }: { title: string; children: ReactNode
       </div>
     </section>
   );
-}
-
-function parseFieldInput(value: string, type: WorkbenchField["type"]) {
-  if (type === "number") {
-    const parsed = Number(value);
-    return Number.isFinite(parsed) ? parsed : value;
-  }
-  if (type === "boolean") return value === "true";
-  return value;
 }

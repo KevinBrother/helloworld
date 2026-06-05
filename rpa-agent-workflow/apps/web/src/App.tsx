@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import sampleDocument from "../../../output/calculator-ui-node.json";
 import { reduceRunMessage, runWorkflowStream, type NodeRunStateMap } from "./runEvents";
+import { validateWorkflowRunInputs } from "./runInputValidation";
 import { buildWorkbenchModel, type WorkbenchField, type WorkbenchNode } from "./workbenchModel";
 import { Header, type SaveState } from "./workbench/components/Header";
 import { NodeLibrary } from "./workbench/components/NodeLibrary";
@@ -41,6 +42,7 @@ function App() {
     [model.nodes, selectedNodeId],
   );
   const workflowInputNode = useMemo(() => model.nodes.find((node) => node.kind === "sequence" && node.order === 0), [model.nodes]);
+  const runInputValidation = useMemo(() => validateWorkflowRunInputs(workflowInputNode?.inputs), [workflowInputNode]);
   const filteredBlocks = useMemo(() => {
     const query = blockQuery.trim().toLowerCase();
     if (!query) return model.blockOptions;
@@ -131,6 +133,14 @@ function App() {
   };
 
   const handleRunWorkflow = async () => {
+    const validation = validateWorkflowRunInputs(workflowInputNode?.inputs);
+    if (!validation.valid) {
+      setOpenSourceKey(null);
+      setRunModalOpen(true);
+      setStatus("Fix workflow inputs before running");
+      return;
+    }
+
     setOpenSourceKey(null);
     setRunPending(true);
     setRunModalOpen(false);
@@ -139,7 +149,7 @@ function App() {
     setRunLines((current) => appendRunLines(current, [`[${new Date().toLocaleTimeString("en-US", { hour12: false })}] test run started`], 18));
     const timestamp = new Date().toLocaleTimeString("en-US", { hour12: false });
 
-    const outcome = await runWorkflowStream(getWorkflowRunInputs(model), (message) => {
+    const outcome = await runWorkflowStream(validation.inputs, (message) => {
       setNodeRunStates((current) => reduceRunMessage(current, message));
       if (message.type === "trace" && message.event.statementId && message.event.name === "statement.start") {
         setRunLines((current) => appendRunLines(current, [`[${timestamp}] running node ${message.event.statementId}`], 18));
@@ -216,6 +226,7 @@ function App() {
           }}
         />
         <ParameterPanel
+          errors={selectedNode.id === workflowInputNode?.id ? runInputValidation.errors : {}}
           model={model}
           node={selectedNode}
           openSourceKey={openSourceKey}
@@ -228,6 +239,7 @@ function App() {
 
       {runModalOpen ? (
         <TestRunModal
+          errors={runInputValidation.errors}
           model={model}
           pending={runPending}
           serverAvailable={serverAvailable}

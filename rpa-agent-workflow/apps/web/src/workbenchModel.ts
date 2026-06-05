@@ -22,6 +22,7 @@ export type WorkbenchSource = {
   type: FieldType;
   value: unknown;
   displayValue: string;
+  options?: string[];
   order: number;
 };
 
@@ -121,7 +122,7 @@ export function getSourceOptions(nodes: WorkbenchNode[], currentNodeId: string, 
   }
 
   return sources.filter((source) => {
-    if (source.order >= current.order || source.type !== field.type) {
+    if (source.order >= current.order || source.type !== field.type || !isCompatibleSource(field, source)) {
       return false;
     }
 
@@ -254,7 +255,7 @@ function toWorkbenchField(field: InspectorField, editableWorkflowInput = false, 
     type: inferFieldType(field),
     control: declarationOnly ? "readonly" : editableWorkflowInput ? "input" : inferControl(field),
     path: field.path,
-    value: declarationOnly ? undefined : field.control === "port" ? SAMPLE_INPUT_VALUES[key] : field.value,
+    value: declarationOnly ? undefined : field.control === "port" ? workflowInputValue(field, key) : field.value,
     readonly: declarationOnly ? true : editableWorkflowInput ? false : field.readonly,
     options: inferOptions(key, field.path),
   };
@@ -310,7 +311,8 @@ function buildSources(nodes: WorkbenchNode[]) {
           output: field.key,
           type: field.type,
           value: field.value,
-          displayValue: formatDisplayValue(field.value),
+          displayValue: String(getResolvedFieldValue(field, new Map())),
+          options: field.options,
           order: node.order,
         });
       }
@@ -327,12 +329,28 @@ function buildSources(nodes: WorkbenchNode[]) {
         type: field.type,
         value: field.value,
         displayValue: estimateNodeOutputValue(node, field),
+        options: field.options,
         order: node.order,
       });
     }
   }
 
   return sources;
+}
+
+function isCompatibleSource(field: WorkbenchField, source: WorkbenchSource) {
+  if (field.key !== "operator" || !field.options?.length || !source.options?.length) {
+    return true;
+  }
+  const allowed = new Set(field.options);
+  return source.options.every((option) => allowed.has(option));
+}
+
+function workflowInputValue(field: InspectorField, key: string) {
+  if (isExpressionRecord(field.value)) {
+    return field.value;
+  }
+  return SAMPLE_INPUT_VALUES[key] ?? "";
 }
 
 function isWorkflowInputNode(node: WorkbenchNode) {
