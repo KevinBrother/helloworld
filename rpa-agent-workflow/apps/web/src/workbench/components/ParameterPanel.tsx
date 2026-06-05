@@ -7,7 +7,6 @@ import {
   type WorkbenchModel,
   type WorkbenchNode,
 } from "../../workbenchModel";
-import { PanelHeading } from "./PanelHeading";
 import { ValueComboInput } from "./ValueComboInput";
 
 type ParameterPanelProps = {
@@ -26,7 +25,6 @@ export function ParameterPanel({ errors = {}, model, node, openSourceKey, onOpen
 
   return (
     <aside className="panel parameter-panel">
-      <PanelHeading title="参数" />
       <div className="selected-node-summary">
         <div>
           <h2>{title}</h2>

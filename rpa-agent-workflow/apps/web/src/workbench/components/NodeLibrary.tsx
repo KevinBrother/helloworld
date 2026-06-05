@@ -1,6 +1,5 @@
 import { Search } from "lucide-react";
 import type { WorkbenchModel } from "../../workbenchModel";
-import { PanelHeading } from "./PanelHeading";
 
 type NodeLibraryProps = {
   blocks: WorkbenchModel["blockOptions"];
@@ -11,7 +10,6 @@ type NodeLibraryProps = {
 export function NodeLibrary({ blocks, query, onQueryChange }: NodeLibraryProps) {
   return (
     <aside className="panel node-library">
-      <PanelHeading title="模块库" />
       <label className="search-field">
         <Search size={16} />
         <input value={query} onChange={(event) => onQueryChange(event.target.value)} placeholder="搜索模块或控制节点" />

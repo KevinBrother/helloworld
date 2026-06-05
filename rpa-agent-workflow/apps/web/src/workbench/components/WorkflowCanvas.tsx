@@ -1,6 +1,5 @@
 import type { NodeRunState, NodeRunStateMap } from "../../runEvents";
 import { buildCanvasTopology, getNodeIoLabel, type WorkbenchModel, type WorkbenchNode } from "../../workbenchModel";
-import { PanelHeading } from "./PanelHeading";
 
 type WorkflowCanvasProps = {
   model: WorkbenchModel;
@@ -14,7 +13,6 @@ export function WorkflowCanvas({ model, nodeRunStates, selectedId, onSelect }: W
 
   return (
     <section className="panel canvas-panel">
-      <PanelHeading title="画布" />
       <div className="canvas-scroll">
         <div className="workflow-diagram" aria-label="流程画布">
           <svg className="workflow-links" viewBox="0 0 980 700" preserveAspectRatio="none" aria-hidden="true">
