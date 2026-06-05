@@ -1,5 +1,7 @@
 import asyncio
 import importlib
+import tempfile
+from pathlib import Path
 import unittest
 
 from rpa_sdk.runtime import WorkflowRuntime
@@ -8,6 +10,9 @@ from rpa_sdk.runtime import WorkflowRuntime
 class RuntimeTest(unittest.TestCase):
     def test_block_implementations_use_namespace_directories(self):
         self.assertTrue(hasattr(importlib.import_module("rpa_sdk.blocks.core.log"), "log"))
+        self.assertTrue(hasattr(importlib.import_module("rpa_sdk.blocks.fs.list"), "list_entries"))
+        self.assertTrue(hasattr(importlib.import_module("rpa_sdk.blocks.fs.read_text"), "read_text"))
+        self.assertTrue(hasattr(importlib.import_module("rpa_sdk.blocks.fs.write_text"), "write_text"))
         self.assertTrue(hasattr(importlib.import_module("rpa_sdk.blocks.math.calculate"), "calculate"))
         self.assertTrue(hasattr(importlib.import_module("rpa_sdk.blocks.system.get_os_info"), "get_os_info"))
 
@@ -24,6 +29,89 @@ class RuntimeTest(unittest.TestCase):
 
         with self.assertRaisesRegex(ZeroDivisionError, "division by zero"):
             runtime.call_block("math.calculate", {"left": 7, "operator": "/", "right": 0})
+
+    def test_fs_blocks_list_read_and_write_text(self):
+        list_entries = importlib.import_module("rpa_sdk.blocks.fs.list").list_entries
+        read_text = importlib.import_module("rpa_sdk.blocks.fs.read_text").read_text
+        write_text = importlib.import_module("rpa_sdk.blocks.fs.write_text").write_text
+
+        with tempfile.TemporaryDirectory() as temp_dir:
+            root = Path(temp_dir)
+            source = root / "source.txt"
+            nested = root / "nested"
+            nested.mkdir()
+            source.write_text("hello", encoding="utf-8")
+            (nested / "ignored.txt").write_text("nested", encoding="utf-8")
+
+            entries = list_entries(path=str(root), recursive=False)
+            self.assertEqual(entries["count"], 2)
+            self.assertEqual(
+                sorted((entry["name"], entry["type"]) for entry in entries["entries"]),
+                [("nested", "directory"), ("source.txt", "file")],
+            )
+
+            content = read_text(path=str(source))
+            self.assertEqual(content, {"path": str(source), "text": "hello", "bytes": 5})
+
+            output_path = root / "out" / "result.txt"
+            write_result = write_text(path=str(output_path), text="done", createDirs=True)
+            self.assertEqual(write_result, {"path": str(output_path), "bytes": 4})
+            self.assertEqual(output_path.read_text(encoding="utf-8"), "done")
+
+    def test_workflow_can_call_fs_blocks_through_runtime_bindings(self):
+        with tempfile.TemporaryDirectory() as temp_dir:
+            output_path = str(Path(temp_dir) / "result.txt")
+            runtime = WorkflowRuntime(
+                blocks={
+                    "fs.write_text": {
+                        "target": "python",
+                        "module": "rpa_sdk.blocks.fs.write_text",
+                        "callable": "write_text",
+                        "mode": "sync",
+                    },
+                    "fs.read_text": {
+                        "target": "python",
+                        "module": "rpa_sdk.blocks.fs.read_text",
+                        "callable": "read_text",
+                        "mode": "sync",
+                    },
+                }
+            )
+            workflow = {
+                "id": "root",
+                "kind": "sequence",
+                "statements": [
+                    {
+                        "id": "write_result",
+                        "kind": "callBlock",
+                        "block": "fs.write_text",
+                        "inputs": {
+                            "path": {"kind": "ref", "ref": "input.path"},
+                            "text": {"kind": "literal", "value": "from workflow"},
+                        },
+                    },
+                    {
+                        "id": "read_result",
+                        "kind": "callBlock",
+                        "block": "fs.read_text",
+                        "inputs": {
+                            "path": {"kind": "ref", "ref": "node.write_result.path"},
+                        },
+                    },
+                    {
+                        "id": "return_result",
+                        "kind": "return",
+                        "returns": {
+                            "text": {"kind": "ref", "ref": "node.read_result.text"},
+                            "bytes": {"kind": "ref", "ref": "node.write_result.bytes"},
+                        },
+                    },
+                ],
+            }
+
+            result = asyncio.run(runtime.run_workflow(workflow, {"path": output_path}))
+
+            self.assertEqual(result, {"text": "from workflow", "bytes": 13})
 
     def test_log_block_runs(self):
         runtime = WorkflowRuntime()

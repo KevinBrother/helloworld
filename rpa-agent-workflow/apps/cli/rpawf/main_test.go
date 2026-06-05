@@ -49,7 +49,7 @@ func TestExecRunsSampleWorkflowWithPythonBlocks(t *testing.T) {
 		t.Skip("uv is unavailable")
 	}
 
-	cmd := exec.Command("go", "run", ".", "exec", "../../../examples/sample-workflow/ast.json", "../../../sdks/python/blocks")
+	cmd := exec.Command("go", "run", ".", "exec", "../../../examples/sample-workflow/ast.json", "../../../sdks/block")
 	out, err := cmd.CombinedOutput()
 	if err != nil {
 		t.Fatalf("unexpected error: %v\n%s", err, out)
@@ -94,7 +94,7 @@ func TestExecRunsCalculatorWorkflowWithInputJSON(t *testing.T) {
 				".",
 				"exec",
 				"../../../examples/calculator/ast.json",
-				"../../../sdks/python/blocks",
+				"../../../sdks/block",
 				"../../../examples/calculator/"+tc.input,
 			)
 			out, err := cmd.CombinedOutput()
@@ -127,7 +127,7 @@ func TestCompileGeneratedPythonRunsCalculatorWithInputJSON(t *testing.T) {
 		".",
 		"compile",
 		"../../../examples/calculator/ast.json",
-		"../../../sdks/python/blocks",
+		"../../../sdks/block",
 	)
 	src, err := compileCmd.CombinedOutput()
 	if err != nil {
@@ -241,7 +241,7 @@ func TestExecCalculatorReportsDivisionByZero(t *testing.T) {
 		".",
 		"exec",
 		"../../../examples/calculator/ast.json",
-		"../../../sdks/python/blocks",
+		"../../../sdks/block",
 		"../../../examples/calculator/input-divide-by-zero.json",
 	)
 	out, err := cmd.CombinedOutput()

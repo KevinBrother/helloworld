@@ -56,13 +56,16 @@ func TestEditorServerBlocksReturnsManifestCatalog(t *testing.T) {
 
 	var catalog editorBlocksResponse
 	decodeResponse(t, response, &catalog)
-	if len(catalog.Blocks) != 3 {
-		t.Fatalf("blocks length = %d, want 3: %#v", len(catalog.Blocks), catalog.Blocks)
+	wantIDs := []string{"core.log", "fs.list", "fs.read_text", "fs.write_text", "math.calculate", "system.get_os_info"}
+	if len(catalog.Blocks) != len(wantIDs) {
+		t.Fatalf("blocks length = %d, want %d: %#v", len(catalog.Blocks), len(wantIDs), catalog.Blocks)
 	}
-	if catalog.Blocks[0].ID != "core.log" || catalog.Blocks[1].ID != "math.calculate" || catalog.Blocks[2].ID != "system.get_os_info" {
-		t.Fatalf("block ids = %#v, want sorted real block ids", []string{catalog.Blocks[0].ID, catalog.Blocks[1].ID, catalog.Blocks[2].ID})
+	for i, wantID := range wantIDs {
+		if catalog.Blocks[i].ID != wantID {
+			t.Fatalf("block ids[%d] = %q, want %q in %#v", i, catalog.Blocks[i].ID, wantID, catalog.Blocks)
+		}
 	}
-	calculate := catalog.Blocks[1]
+	calculate := catalog.Blocks[4]
 	if calculate.Namespace != "math" || calculate.Name != "calculate" || len(calculate.Inputs) != 3 || len(calculate.Outputs) != 1 {
 		t.Fatalf("math.calculate catalog entry = %#v, want manifest metadata and ports", calculate)
 	}
@@ -281,7 +284,7 @@ func containsString(values []string, needle string) bool {
 
 func mustLoadTestBlocks(t *testing.T) map[string]block.Definition {
 	t.Helper()
-	blocks, err := loadBlocks("../../../sdks/python/blocks")
+	blocks, err := loadBlocks("../../../sdks/block")
 	if err != nil {
 		t.Fatal(err)
 	}

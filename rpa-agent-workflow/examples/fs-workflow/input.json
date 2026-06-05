@@ -1,0 +1,4 @@
+{
+  "dir": "examples/fs-workflow/input-dir",
+  "outputPath": "output/fs-workflow/result.txt"
+}

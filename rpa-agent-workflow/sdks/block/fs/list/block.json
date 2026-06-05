@@ -1,0 +1,44 @@
+{
+  "schemaVersion": "1.0.0",
+  "id": "fs.list",
+  "namespace": "fs",
+  "name": "list",
+  "version": "1.0.0",
+  "description": "List files and directories under a local directory.",
+  "runtime": {
+    "target": "python",
+    "module": "rpa_sdk.blocks.fs.list",
+    "callable": "list_entries",
+    "mode": "sync"
+  },
+  "inputs": [
+    {
+      "name": "path",
+      "type": {
+        "name": "string"
+      }
+    },
+    {
+      "name": "recursive",
+      "type": {
+        "name": "boolean",
+        "optional": true
+      }
+    }
+  ],
+  "outputs": [
+    {
+      "name": "entries",
+      "type": {
+        "name": "array"
+      }
+    },
+    {
+      "name": "count",
+      "type": {
+        "name": "number"
+      }
+    }
+  ],
+  "permissions": ["fs:read"]
+}

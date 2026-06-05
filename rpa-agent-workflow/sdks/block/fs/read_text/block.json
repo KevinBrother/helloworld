@@ -1,0 +1,50 @@
+{
+  "schemaVersion": "1.0.0",
+  "id": "fs.read_text",
+  "namespace": "fs",
+  "name": "read_text",
+  "version": "1.0.0",
+  "description": "Read a local text file.",
+  "runtime": {
+    "target": "python",
+    "module": "rpa_sdk.blocks.fs.read_text",
+    "callable": "read_text",
+    "mode": "sync"
+  },
+  "inputs": [
+    {
+      "name": "path",
+      "type": {
+        "name": "string"
+      }
+    },
+    {
+      "name": "encoding",
+      "type": {
+        "name": "string",
+        "optional": true
+      }
+    }
+  ],
+  "outputs": [
+    {
+      "name": "path",
+      "type": {
+        "name": "string"
+      }
+    },
+    {
+      "name": "text",
+      "type": {
+        "name": "string"
+      }
+    },
+    {
+      "name": "bytes",
+      "type": {
+        "name": "number"
+      }
+    }
+  ],
+  "permissions": ["fs:read"]
+}

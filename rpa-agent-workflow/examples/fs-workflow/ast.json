@@ -1,0 +1,99 @@
+{
+  "schemaVersion": "1.0.0",
+  "workflow": {
+    "id": "fs_workflow",
+    "name": "Filesystem Workflow"
+  },
+  "inputs": [
+    {
+      "name": "dir",
+      "type": {
+        "name": "string"
+      }
+    },
+    {
+      "name": "outputPath",
+      "type": {
+        "name": "string"
+      }
+    }
+  ],
+  "outputs": [
+    {
+      "name": "count",
+      "type": {
+        "name": "number"
+      }
+    },
+    {
+      "name": "outputPath",
+      "type": {
+        "name": "string"
+      }
+    },
+    {
+      "name": "bytes",
+      "type": {
+        "name": "number"
+      }
+    }
+  ],
+  "body": {
+    "id": "root",
+    "kind": "sequence",
+    "statements": [
+      {
+        "id": "list_input_dir",
+        "kind": "callBlock",
+        "block": "fs.list",
+        "inputs": {
+          "path": {
+            "kind": "ref",
+            "ref": "input.dir"
+          },
+          "recursive": {
+            "kind": "literal",
+            "value": false
+          }
+        }
+      },
+      {
+        "id": "write_summary",
+        "kind": "callBlock",
+        "block": "fs.write_text",
+        "inputs": {
+          "path": {
+            "kind": "ref",
+            "ref": "input.outputPath"
+          },
+          "text": {
+            "kind": "literal",
+            "value": "fs workflow completed"
+          },
+          "createDirs": {
+            "kind": "literal",
+            "value": true
+          }
+        }
+      },
+      {
+        "id": "return_result",
+        "kind": "return",
+        "returns": {
+          "count": {
+            "kind": "ref",
+            "ref": "node.list_input_dir.count"
+          },
+          "outputPath": {
+            "kind": "ref",
+            "ref": "node.write_summary.path"
+          },
+          "bytes": {
+            "kind": "ref",
+            "ref": "node.write_summary.bytes"
+          }
+        }
+      }
+    ]
+  }
+}

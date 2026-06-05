@@ -1,0 +1,65 @@
+{
+  "schemaVersion": "1.0.0",
+  "id": "fs.write_text",
+  "namespace": "fs",
+  "name": "write_text",
+  "version": "1.0.0",
+  "description": "Write text to a local file.",
+  "runtime": {
+    "target": "python",
+    "module": "rpa_sdk.blocks.fs.write_text",
+    "callable": "write_text",
+    "mode": "sync"
+  },
+  "inputs": [
+    {
+      "name": "path",
+      "type": {
+        "name": "string"
+      }
+    },
+    {
+      "name": "text",
+      "type": {
+        "name": "string"
+      }
+    },
+    {
+      "name": "encoding",
+      "type": {
+        "name": "string",
+        "optional": true
+      }
+    },
+    {
+      "name": "append",
+      "type": {
+        "name": "boolean",
+        "optional": true
+      }
+    },
+    {
+      "name": "createDirs",
+      "type": {
+        "name": "boolean",
+        "optional": true
+      }
+    }
+  ],
+  "outputs": [
+    {
+      "name": "path",
+      "type": {
+        "name": "string"
+      }
+    },
+    {
+      "name": "bytes",
+      "type": {
+        "name": "number"
+      }
+    }
+  ],
+  "permissions": ["fs:write"],
+  "sideEffects": ["filesystem.write"]
+}

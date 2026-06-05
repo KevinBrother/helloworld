@@ -22,14 +22,15 @@ cd "/Volumes/doc/workspace/project/helloworld/rpa-agent-workflow "
 - `compiler/go/transform` — AST 到 UI Node 的投影，以及 Edit Operation 应用。
 - `apps/cli/rpawf` — CLI，提供编译、直接执行、调试、UI 投影等命令。
 - `apps/web` — React 可视化编辑器原型。
-- `sdks/python` — Python SDK，包含 runtime、Block 实现和对应的 `block.json` 接口描述。
+- `sdks/block` — 通用 Block catalog，包含 `block.json` 接口协议。
+- `sdks/python` — Python SDK，包含 runtime 和 Python Block 实现。
 - `examples/sample-workflow` — 示例 `ast.json` 和运行脚本。
 - `examples/calculator` — 计算器工作流示例和运行输入 JSON。
 
 ## 核心数据流
 
 - `ast.json` 是工作流真实源数据，页面填写的参数最终写回这里。
-- `sdks/python/blocks/**/block.json` 是 Block 对 Python 实现的接口描述。
+- `sdks/block/**/block.json` 是 Block 的通用接口描述，runtime binding 指向具体语言实现。
 - `ui-node.json` 是由 AST 投影出来的编辑器视图模型，负责画节点、inspector 和操作能力，不作为参数值的最终存储。
 - `edit-operation.json` 描述页面操作，例如 `updateField`，执行后把变更写回 AST。
 - 生成的 Python workflow 是执行产物；执行器只负责运行产物或直接解释 AST，不承载具体业务逻辑。
@@ -54,7 +55,7 @@ pnpm build:web
 
 ```sh
 mkdir -p output
-go run ./apps/cli/rpawf compile examples/sample-workflow/ast.json sdks/python/blocks > output/workflow.py
+go run ./apps/cli/rpawf compile examples/sample-workflow/ast.json sdks/block > output/workflow.py
 ```
 
 运行生成的 Python：
@@ -66,7 +67,7 @@ uv --project sdks/python run python output/workflow.py
 直接执行 AST：
 
 ```sh
-go run ./apps/cli/rpawf exec examples/sample-workflow/ast.json sdks/python/blocks
+go run ./apps/cli/rpawf exec examples/sample-workflow/ast.json sdks/block
 ```
 
 投影 UI Node：
@@ -84,29 +85,29 @@ go run ./apps/cli/rpawf project-ui examples/sample-workflow/ast.json > output/ui
 
 `math.calculate` 的接口和实现位置：
 
-- `sdks/python/blocks/math/calculate/block.json`
+- `sdks/block/math/calculate/block.json`
 - `sdks/python/rpa_sdk/blocks/math/calculate.py`
 
 直接执行 calculator AST：
 
 ```sh
-go run ./apps/cli/rpawf exec examples/calculator/ast.json sdks/python/blocks examples/calculator/input-add.json
-go run ./apps/cli/rpawf exec examples/calculator/ast.json sdks/python/blocks examples/calculator/input-subtract.json
-go run ./apps/cli/rpawf exec examples/calculator/ast.json sdks/python/blocks examples/calculator/input-multiply.json
-go run ./apps/cli/rpawf exec examples/calculator/ast.json sdks/python/blocks examples/calculator/input-divide.json
+go run ./apps/cli/rpawf exec examples/calculator/ast.json sdks/block examples/calculator/input-add.json
+go run ./apps/cli/rpawf exec examples/calculator/ast.json sdks/block examples/calculator/input-subtract.json
+go run ./apps/cli/rpawf exec examples/calculator/ast.json sdks/block examples/calculator/input-multiply.json
+go run ./apps/cli/rpawf exec examples/calculator/ast.json sdks/block examples/calculator/input-divide.json
 ```
 
 除零错误验证：
 
 ```sh
-go run ./apps/cli/rpawf exec examples/calculator/ast.json sdks/python/blocks examples/calculator/input-divide-by-zero.json
+go run ./apps/cli/rpawf exec examples/calculator/ast.json sdks/block examples/calculator/input-divide-by-zero.json
 ```
 
 编译 calculator 到 Python：
 
 ```sh
 mkdir -p output
-go run ./apps/cli/rpawf compile examples/calculator/ast.json sdks/python/blocks > output/calculator.py
+go run ./apps/cli/rpawf compile examples/calculator/ast.json sdks/block > output/calculator.py
 uv --project sdks/python run python output/calculator.py examples/calculator/input-add.json
 ```
 
@@ -119,12 +120,30 @@ go run ./apps/cli/rpawf project-ui examples/calculator/ast.json > output/calcula
 
 生成的 Python workflow 接收可选 input JSON 参数；`-` 表示从 stdin 读取同一份 inputs JSON。
 
+## Filesystem Workflow
+
+`examples/fs-workflow/ast.json` 使用 `fs.list` 读取目录条目，再用 `fs.write_text` 写入本地文本文件。这个示例证明 workflow 可以接收运行时输入、访问本地文件系统、产生文件写入副作用，并返回 block 输出。
+
+直接执行 filesystem AST：
+
+```sh
+go run ./apps/cli/rpawf exec examples/fs-workflow/ast.json sdks/block examples/fs-workflow/input.json
+```
+
+编译 filesystem workflow 到 Python：
+
+```sh
+mkdir -p output
+go run ./apps/cli/rpawf compile examples/fs-workflow/ast.json sdks/block > output/fs-workflow.py
+uv --project sdks/python run python output/fs-workflow.py examples/fs-workflow/input.json
+```
+
 ## Debug
 
 启动调试：
 
 ```sh
-go run ./apps/cli/rpawf debug examples/sample-workflow/ast.json sdks/python/blocks
+go run ./apps/cli/rpawf debug examples/sample-workflow/ast.json sdks/block
 ```
 
 常用调试命令：`break <statementId>`、`break line <n>`、`continue`、`next`、`step`、`out`、`where`、`vars`、`locals`、`stack`、`quit`。
@@ -132,7 +151,7 @@ go run ./apps/cli/rpawf debug examples/sample-workflow/ast.json sdks/python/bloc
 calculator 也可以启动 debug：
 
 ```sh
-go run ./apps/cli/rpawf debug examples/calculator/ast.json sdks/python/blocks
+go run ./apps/cli/rpawf debug examples/calculator/ast.json sdks/block
 ```
 
 当前 debug 命令接收 AST 和 block manifests，还没有接收 input JSON 参数；依赖 `input.left`、`input.operator`、`input.right` 的 calculator 调试链路需要后续补 CLI input 支持。
@@ -153,6 +172,6 @@ go run ./apps/cli/rpawf project-ui examples/calculator/ast.json > output/calcula
 ## 运行方式
 
 ``` bash
-CGO_ENABLED=0 go run ./apps/cli/rpawf serve examples/calculator/ast.json sdks/python/blocks
+CGO_ENABLED=0 go run ./apps/cli/rpawf serve examples/calculator/ast.json sdks/block
 pnpm --dir apps/web dev
 ```
