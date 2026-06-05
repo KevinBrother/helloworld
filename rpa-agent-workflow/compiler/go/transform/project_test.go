@@ -208,6 +208,126 @@ func TestProjectWorkflowProjectsScopedBindingTokensAndNodeOutputs(t *testing.T) 
 	}
 }
 
+func TestBranchProjectionLegacyIfUsesConditionAndDefaultLanes(t *testing.T) {
+	workflow := ast.Workflow{
+		SchemaVersion: "1.0.0",
+		Workflow:      ast.Metadata{ID: "legacy_if_projection"},
+		Body: ast.Statement{ID: "root", Kind: "sequence", Statements: []ast.Statement{
+			{
+				ID:        "choose_path",
+				Kind:      "if",
+				Condition: &ast.Expression{Kind: "literal", Value: true},
+				Then:      []ast.Statement{{ID: "then_step", Kind: "return", Returns: map[string]ast.Expression{}}},
+				Else:      []ast.Statement{{ID: "else_step", Kind: "return", Returns: map[string]ast.Expression{}}},
+			},
+		}},
+	}
+
+	doc := ProjectWorkflow(workflow)
+	node := findProjectedNode(doc.Root, "choose_path")
+	if node == nil {
+		t.Fatal("missing if node")
+	}
+	assertProjectedBranches(t, node.Branches, []projectedBranchExpectation{
+		{id: "choose_path.then", label: "条件 1", kind: "condition", childID: "then_step"},
+		{id: "choose_path.else", label: "否则", kind: "default", childID: "else_step"},
+	})
+}
+
+func TestBranchProjectionCanonicalIfUsesBranchMetadata(t *testing.T) {
+	workflow := ast.Workflow{
+		SchemaVersion: "1.0.0",
+		Workflow:      ast.Metadata{ID: "canonical_if_projection"},
+		Body: ast.Statement{ID: "root", Kind: "sequence", Statements: []ast.Statement{
+			{
+				ID:   "choose_path",
+				Kind: "if",
+				Branches: []ast.Branch{
+					{
+						ID:        "condition_1",
+						Label:     "条件 1",
+						Condition: &ast.Expression{Kind: "literal", Value: false},
+						Body:      []ast.Statement{{ID: "condition_one_step", Kind: "return", Returns: map[string]ast.Expression{}}},
+					},
+					{
+						ID:        "condition_2",
+						Label:     "条件 2",
+						Condition: &ast.Expression{Kind: "literal", Value: true},
+						Body:      []ast.Statement{{ID: "condition_two_step", Kind: "return", Returns: map[string]ast.Expression{}}},
+					},
+					{
+						ID:      "else",
+						Label:   "否则",
+						Default: true,
+						Body:    []ast.Statement{{ID: "else_step", Kind: "return", Returns: map[string]ast.Expression{}}},
+					},
+				},
+			},
+		}},
+	}
+
+	doc := ProjectWorkflow(workflow)
+	node := findProjectedNode(doc.Root, "choose_path")
+	if node == nil {
+		t.Fatal("missing if node")
+	}
+	assertProjectedBranches(t, node.Branches, []projectedBranchExpectation{
+		{id: "condition_1", label: "条件 1", kind: "condition", childID: "condition_one_step"},
+		{id: "condition_2", label: "条件 2", kind: "condition", childID: "condition_two_step"},
+		{id: "else", label: "否则", kind: "default", childID: "else_step"},
+	})
+}
+
+func TestBranchProjectionParallelLabelsLanes(t *testing.T) {
+	workflow := ast.Workflow{
+		SchemaVersion: "1.0.0",
+		Workflow:      ast.Metadata{ID: "parallel_projection"},
+		Body: ast.Statement{ID: "root", Kind: "sequence", Statements: []ast.Statement{
+			{
+				ID:   "run_parallel",
+				Kind: "parallel",
+				Branches: []ast.Branch{
+					{ID: "left", Body: []ast.Statement{{ID: "left_step", Kind: "return", Returns: map[string]ast.Expression{}}}},
+					{ID: "right", Label: "自定义并行", Body: []ast.Statement{{ID: "right_step", Kind: "return", Returns: map[string]ast.Expression{}}}},
+				},
+			},
+		}},
+	}
+
+	doc := ProjectWorkflow(workflow)
+	node := findProjectedNode(doc.Root, "run_parallel")
+	if node == nil {
+		t.Fatal("missing parallel node")
+	}
+	assertProjectedBranches(t, node.Branches, []projectedBranchExpectation{
+		{id: "left", label: "并行 1", kind: "parallel", childID: "left_step"},
+		{id: "right", label: "自定义并行", kind: "parallel", childID: "right_step"},
+	})
+}
+
+type projectedBranchExpectation struct {
+	id      string
+	label   string
+	kind    string
+	childID string
+}
+
+func assertProjectedBranches(t *testing.T, branches []uinode.Branch, want []projectedBranchExpectation) {
+	t.Helper()
+	if len(branches) != len(want) {
+		t.Fatalf("branch count = %d, want %d: %#v", len(branches), len(want), branches)
+	}
+	for i, expected := range want {
+		branch := branches[i]
+		if branch.ID != expected.id || branch.Label != expected.label || branch.Kind != expected.kind {
+			t.Fatalf("branch[%d] = {id:%q label:%q kind:%q}, want {id:%q label:%q kind:%q}", i, branch.ID, branch.Label, branch.Kind, expected.id, expected.label, expected.kind)
+		}
+		if len(branch.Children) != 1 || branch.Children[0].ID != expected.childID {
+			t.Fatalf("branch[%d] children = %#v, want child %q", i, branch.Children, expected.childID)
+		}
+	}
+}
+
 func findProjectedNode(root uinode.Node, id string) *uinode.Node {
 	if root.ID == id {
 		return &root

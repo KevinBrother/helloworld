@@ -108,30 +108,9 @@ func projectStatementWithContext(stmt ast.Statement, path string, lane int, ctx 
 		loopCtx := ctx.withTokens(loopTokens(stmt))
 		node.Children = projectStatementsWithContext(stmt.Statements, path+".statements", lane, loopCtx)
 	case "if":
-		node.Branches = []uinode.Branch{
-			{
-				ID:       stmt.ID + ".then",
-				Label:    "Then",
-				Kind:     "then",
-				Children: projectStatementsWithContext(stmt.Then, path+".then", lane, ctx),
-			},
-			{
-				ID:       stmt.ID + ".else",
-				Label:    "Else",
-				Kind:     "else",
-				Children: projectStatementsWithContext(stmt.Else, path+".else", lane, ctx),
-			},
-		}
+		node.Branches = projectIfBranches(stmt, path, lane, ctx)
 	case "parallel":
-		node.Branches = make([]uinode.Branch, 0, len(stmt.Branches))
-		for i, branch := range stmt.Branches {
-			node.Branches = append(node.Branches, uinode.Branch{
-				ID:       branch.ID,
-				Label:    branchLabel(branch.ID),
-				Kind:     "parallel",
-				Children: projectStatementsWithContext(branch.Body, fmt.Sprintf("%s.branches[%d].body", path, i), i, ctx),
-			})
-		}
+		node.Branches = projectParallelBranches(stmt, path, ctx)
 	case "try":
 		node.Branches = []uinode.Branch{
 			{
@@ -162,6 +141,67 @@ func projectStatementWithContext(stmt ast.Statement, path string, lane int, ctx 
 	}
 
 	return node
+}
+
+func projectIfBranches(stmt ast.Statement, path string, lane int, ctx projectionContext) []uinode.Branch {
+	if len(stmt.Branches) > 0 {
+		branches := make([]uinode.Branch, 0, len(stmt.Branches))
+		conditionIndex := 0
+		for i, branch := range stmt.Branches {
+			kind := "condition"
+			label := branch.Label
+			if branch.Default {
+				kind = "default"
+				if label == "" {
+					label = "否则"
+				}
+			} else {
+				conditionIndex++
+				if label == "" {
+					label = fmt.Sprintf("条件 %d", conditionIndex)
+				}
+			}
+			branches = append(branches, uinode.Branch{
+				ID:       branch.ID,
+				Label:    label,
+				Kind:     kind,
+				Children: projectStatementsWithContext(branch.Body, fmt.Sprintf("%s.branches[%d].body", path, i), i, ctx),
+			})
+		}
+		return branches
+	}
+
+	return []uinode.Branch{
+		{
+			ID:       stmt.ID + ".then",
+			Label:    "条件 1",
+			Kind:     "condition",
+			Children: projectStatementsWithContext(stmt.Then, path+".then", lane, ctx),
+		},
+		{
+			ID:       stmt.ID + ".else",
+			Label:    "否则",
+			Kind:     "default",
+			Children: projectStatementsWithContext(stmt.Else, path+".else", lane, ctx),
+		},
+	}
+}
+
+func projectParallelBranches(stmt ast.Statement, path string, ctx projectionContext) []uinode.Branch {
+	branches := make([]uinode.Branch, 0, len(stmt.Branches))
+	for i, branch := range stmt.Branches {
+		label := branch.Label
+		if label == "" {
+			label = fmt.Sprintf("并行 %d", i+1)
+		}
+		branches = append(branches, uinode.Branch{
+			ID:       branch.ID,
+			Label:    label,
+			Kind:     "parallel",
+			Children: projectStatementsWithContext(branch.Body, fmt.Sprintf("%s.branches[%d].body", path, i), i, ctx),
+		})
+	}
+	return branches
 }
 
 func (ctx projectionContext) withTokens(tokens []map[string]any) projectionContext {
