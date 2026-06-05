@@ -73,6 +73,12 @@ describe("workbench model", () => {
     );
   });
 
+  it("keeps the block library empty when the service catalog is unavailable", () => {
+    const offlineModel = buildWorkbenchModel(sampleDocument as UIDocument);
+
+    expect(offlineModel.blockOptions).toEqual([]);
+  });
+
   it("keeps compatible operator fields bindable even when they expose manual choices", () => {
     const calculateNode = model.nodes.find((node) => node.id === "calculate_large_value")!;
     const operatorField = calculateNode.inputs.find((field) => field.key === "operator")!;

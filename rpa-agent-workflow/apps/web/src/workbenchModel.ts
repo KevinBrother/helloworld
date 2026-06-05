@@ -92,23 +92,12 @@ export function buildWorkbenchModel(document: UIDocument, blockCatalog: BlockDef
 }
 
 function buildBlockOptions(blockCatalog: BlockDefinition[], instances: Map<string, number>): BlockOption[] {
-  if (blockCatalog.length > 0) {
-    return blockCatalog.map((definition) => ({
-      key: definition.id,
-      category: definition.namespace || "block",
-      detail: definition.description || formatPortSummary(definition.inputs?.length ?? 0, definition.outputs?.length ?? 0),
-      instances: instances.get(definition.id) ?? 0,
-    }));
-  }
-
-  return Array.from(instances.entries())
-    .sort(([left], [right]) => left.localeCompare(right))
-    .map(([key, count]) => ({
-      key,
-      category: key.includes(".") ? key.split(".")[0] : "block",
-      detail: "当前流程已使用",
-      instances: count,
-    }));
+  return blockCatalog.map((definition) => ({
+    key: definition.id,
+    category: definition.namespace || "block",
+    detail: definition.description || formatPortSummary(definition.inputs?.length ?? 0, definition.outputs?.length ?? 0),
+    instances: instances.get(definition.id) ?? 0,
+  }));
 }
 
 function formatPortSummary(inputCount: number, outputCount: number) {
