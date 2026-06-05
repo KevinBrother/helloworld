@@ -734,7 +734,7 @@ code {
 .parameter-row-header,
 .parameter-row {
   display: grid;
-  grid-template-columns: minmax(74px, 0.9fr) minmax(84px, 0.72fr) minmax(118px, 1.25fr) 32px;
+  grid-template-columns: minmax(86px, 1fr) minmax(92px, 0.82fr) 32px;
   gap: 0.42rem;
   align-items: center;
 }
@@ -767,6 +767,11 @@ code {
 .parameter-cell-select:disabled {
   background: color-mix(in oklab, var(--surface-2) 70%, var(--surface));
   color: var(--muted);
+}
+
+.parameter-value-cell {
+  grid-column: 1 / -1;
+  min-width: 0;
 }
 
 .parameter-add-button {

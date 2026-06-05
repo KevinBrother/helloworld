@@ -168,8 +168,7 @@ function ParameterCard({
             <div className="parameter-row-header" aria-hidden="true">
               <span>名称</span>
               <span>类型</span>
-              <span>值</span>
-              <span />
+              <span>操作</span>
             </div>
           ) : null}
           {rows.map((row) => (
@@ -248,20 +247,6 @@ function ParameterRow({
           </option>
         ))}
       </select>
-      {field && row.valueEditable ? (
-        <ValueComboInput
-          activeSourceId={getFieldSourceId(field)}
-          error={error}
-          field={field}
-          isOpen={openSourceKey === sourceKey}
-          resolvedValue={getResolvedFieldValue(field, model.sourcesById)}
-          sourceOptions={row.allowReference ? getSourceOptions(model.nodes, node.id, field) : []}
-          onFieldChange={onFieldChange}
-          onOpenChange={(nextOpen) => onOpenSourceKeyChange(nextOpen ? sourceKey : null)}
-        />
-      ) : (
-        <span className="value-control readonly-value">{field ? getResolvedFieldValue(field, model.sourcesById) : ""}</span>
-      )}
       {row.allowDelete ? (
         <button aria-label={`删除参数 ${row.name}`} className="danger-icon-button compact" onClick={onDelete} type="button">
           <Trash2 size={15} />
@@ -269,6 +254,22 @@ function ParameterRow({
       ) : (
         <span aria-hidden="true" />
       )}
+      <div className="parameter-value-cell">
+        {field && row.valueEditable ? (
+          <ValueComboInput
+            activeSourceId={getFieldSourceId(field)}
+            error={error}
+            field={field}
+            isOpen={openSourceKey === sourceKey}
+            resolvedValue={getResolvedFieldValue(field, model.sourcesById)}
+            sourceOptions={row.allowReference ? getSourceOptions(model.nodes, node.id, field) : []}
+            onFieldChange={onFieldChange}
+            onOpenChange={(nextOpen) => onOpenSourceKeyChange(nextOpen ? sourceKey : null)}
+          />
+        ) : (
+          <span className="value-control readonly-value">{field ? getResolvedFieldValue(field, model.sourcesById) : ""}</span>
+        )}
+      </div>
     </div>
   );
 }
