@@ -518,52 +518,51 @@ code {
 }
 
 .canvas-node.canvas-node-if {
-  min-height: 120px;
+  width: 156px;
+  min-height: 96px;
+  margin: 0 auto;
   display: grid;
   place-items: center;
-  border: 0;
-  background: transparent;
-  padding: 0;
-  box-shadow: none;
+  border: 1px solid var(--line-strong);
+  background: color-mix(in oklab, var(--surface) 88%, var(--accent-soft));
+  clip-path: polygon(50% 0, 100% 50%, 50% 100%, 0 50%);
+  padding: 0 1.45rem;
+  text-align: center;
+  box-shadow: 0 16px 34px oklch(18% 0.02 220 / 0.1);
 }
 
 .decision-node-surface {
-  width: 118px;
-  height: 118px;
+  color: var(--text);
+  font-size: 0.9rem;
+  font-weight: 700;
+  line-height: 1.25;
+}
+
+.canvas-node.canvas-node-parallel {
+  width: 72px;
+  min-height: 72px;
+  margin: 12px auto;
   display: grid;
   place-items: center;
-  gap: 0.18rem;
-  border: 1px solid var(--line-strong);
-  background: color-mix(in oklab, var(--surface) 88%, var(--accent-soft));
-  color: var(--text);
-  box-shadow: 0 16px 34px oklch(18% 0.02 220 / 0.1);
-  transform: rotate(45deg);
+  border: 1px solid color-mix(in oklab, var(--line-strong) 72%, transparent);
+  border-radius: 999px;
+  background: color-mix(in oklab, var(--surface) 72%, transparent);
+  color: color-mix(in oklab, var(--accent-strong) 72%, var(--muted));
+  padding: 0;
+  box-shadow: 0 10px 22px oklch(18% 0.02 220 / 0.06);
 }
 
-.decision-node-surface > * {
-  transform: rotate(-45deg);
+.parallel-split-icon {
+  display: grid;
+  place-items: center;
 }
 
-.canvas-node-if .node-kind-row,
-.canvas-node-if .node-io {
-  justify-content: center;
-  text-align: center;
+.parallel-split-icon-upright {
+  transform: rotate(180deg);
 }
 
-.canvas-node-if strong {
-  max-width: 88px;
-  overflow: hidden;
-  text-align: center;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-.canvas-node-if .node-io {
-  display: flex;
-}
-
-.canvas-node-if .node-io span {
-  white-space: nowrap;
+.parallel-split-icon svg {
+  stroke-width: 1.8;
 }
 
 .canvas-node.selected {
@@ -573,14 +572,16 @@ code {
 }
 
 .canvas-node.canvas-node-if.selected {
-  background: transparent;
-  box-shadow: none;
-}
-
-.canvas-node.canvas-node-if.selected .decision-node-surface {
   border-color: var(--accent);
   background: color-mix(in oklab, var(--accent-soft) 42%, var(--surface));
   box-shadow: 0 0 0 2px color-mix(in oklab, var(--accent) 18%, transparent), 0 18px 42px oklch(18% 0.02 220 / 0.12);
+}
+
+.canvas-node.canvas-node-parallel.selected {
+  border-color: var(--accent);
+  background: color-mix(in oklab, var(--accent-soft) 32%, var(--surface));
+  color: var(--accent-strong);
+  box-shadow: 0 0 0 2px color-mix(in oklab, var(--accent) 16%, transparent), 0 14px 32px oklch(18% 0.02 220 / 0.09);
 }
 
 .canvas-node.run-running {
@@ -590,14 +591,16 @@ code {
 }
 
 .canvas-node.canvas-node-if.run-running {
-  background: transparent;
-  box-shadow: none;
-}
-
-.canvas-node.canvas-node-if.run-running .decision-node-surface {
   border-color: var(--warn);
   background: color-mix(in oklab, var(--warn-soft) 44%, var(--surface));
   box-shadow: 0 0 0 2px color-mix(in oklab, var(--warn) 24%, transparent), 0 18px 42px oklch(18% 0.02 220 / 0.12);
+}
+
+.canvas-node.canvas-node-parallel.run-running {
+  border-color: var(--warn);
+  background: color-mix(in oklab, var(--warn-soft) 36%, var(--surface));
+  color: oklch(38% 0.105 72);
+  box-shadow: 0 0 0 2px color-mix(in oklab, var(--warn) 20%, transparent), 0 14px 32px oklch(18% 0.02 220 / 0.1);
 }
 
 .node-kind-row {

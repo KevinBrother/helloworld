@@ -29,9 +29,25 @@ describe("WorkflowCanvas", () => {
     );
 
     expect(html).toContain("canvas-node-if");
-    expect(html).toContain("if 决策");
     expect(html).toContain("2 个分支条件");
+    expect(html).not.toContain("if 决策");
+    expect(html).not.toContain("Choose Path");
     expect(html).not.toContain("if Choose Path 0 个输入 0 个输出");
+  });
+
+  it("renders parallel nodes as subdued split icons", () => {
+    const model = buildWorkbenchModel(parallelCanvasDocument);
+
+    const html = renderToStaticMarkup(
+      <WorkflowCanvas model={model} nodeRunStates={{}} selectedId="root" onSelect={() => undefined} onInsertAtEdge={() => undefined} />,
+    );
+
+    expect(html).toContain("canvas-node-parallel");
+    expect(html).toContain("parallel-split-icon");
+    expect(html).toContain("parallel-split-icon-upright");
+    expect(html).toContain("并行分叉");
+    expect(html).not.toContain("parallel Run Parallel 0 个输入 0 个输出");
+    expect(html).not.toContain("Run Parallel");
   });
 
   it("renders the diagram in a scalable stage with scroll buffer space", () => {
@@ -104,6 +120,28 @@ const branchCanvasDocument: UIDocument = {
         branches: [
           { id: "condition_1", label: "条件 1", kind: "condition", children: [{ id: "condition_step", kind: "callBlock", label: "Condition Step" }] },
           { id: "else", label: "否则", kind: "default", children: [] },
+        ],
+      },
+      { id: "return_result", kind: "return", label: "Return" },
+    ],
+  },
+};
+
+const parallelCanvasDocument: UIDocument = {
+  schemaVersion: "1.0.0",
+  workflowId: "parallel_canvas",
+  root: {
+    id: "root",
+    kind: "sequence",
+    label: "Start",
+    children: [
+      {
+        id: "run_parallel",
+        kind: "parallel",
+        label: "Run Parallel",
+        branches: [
+          { id: "left", label: "并行 1", kind: "parallel", children: [] },
+          { id: "right", label: "并行 2", kind: "parallel", children: [] },
         ],
       },
       { id: "return_result", kind: "return", label: "Return" },

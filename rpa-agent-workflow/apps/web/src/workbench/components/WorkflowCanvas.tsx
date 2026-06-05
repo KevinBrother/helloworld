@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState, type CSSProperties } from "react";
-import { Maximize2, Minus, MousePointer2, Plus } from "lucide-react";
+import { GitFork, Maximize2, Minus, MousePointer2, Plus } from "lucide-react";
 import type { NodeRunState, NodeRunStateMap } from "../../runEvents";
 import { buildCanvasLayout, getNodeIoLabel, type CanvasLayout, type InsertAnchor, type WorkbenchModel, type WorkbenchNode } from "../../workbenchModel";
 
@@ -408,18 +408,38 @@ function CanvasNode({ node, runState, selected, onSelect }: { node?: WorkbenchNo
   if (!node) return null;
   const stateLabel = getRunStateLabel(runState);
   const isDecision = node.kind === "if";
+  const isParallel = node.kind === "parallel";
   const branchCount = node.raw.branches?.length ?? 0;
+
+  if (isDecision) {
+    return (
+      <button className={getCanvasNodeClassName(selected, runState, node.kind)} onClick={() => onSelect(node.id)}>
+        <span className="decision-node-surface">{branchCount} 个分支条件</span>
+      </button>
+    );
+  }
+
+  if (isParallel) {
+    return (
+      <button aria-label="并行分叉" className={getCanvasNodeClassName(selected, runState, node.kind)} onClick={() => onSelect(node.id)} title="并行分叉">
+        <span className="parallel-split-icon parallel-split-icon-upright" aria-hidden="true">
+          <GitFork size={26} />
+        </span>
+        <span className="visually-hidden">并行分叉</span>
+      </button>
+    );
+  }
 
   return (
     <button className={getCanvasNodeClassName(selected, runState, node.kind)} onClick={() => onSelect(node.id)}>
-      <span className={isDecision ? "decision-node-surface" : undefined}>
+      <span>
         <span className="node-kind-row">
           <span className="node-kind">{getCanvasNodeKindLabel(node)}</span>
           {stateLabel ? <span className={`node-run-indicator ${runState}`}>{stateLabel}</span> : null}
         </span>
         <strong>{getDisplayNodeLabel(node)}</strong>
         <div className="node-io">
-          {(isDecision ? [`${branchCount} 个分支条件`] : getNodeIoLabel(node)).map((label) => (
+          {getNodeIoLabel(node).map((label) => (
             <span key={label}>{label}</span>
           ))}
         </div>
@@ -429,12 +449,11 @@ function CanvasNode({ node, runState, selected, onSelect }: { node?: WorkbenchNo
 }
 
 function getCanvasNodeClassName(selected: boolean, runState: NodeRunState, kind: string) {
-  return ["canvas-node", kind === "if" ? "canvas-node-if" : "", selected ? "selected" : "", runState === "running" ? "run-running" : ""].filter(Boolean).join(" ");
+  return ["canvas-node", kind === "if" ? "canvas-node-if" : "", kind === "parallel" ? "canvas-node-parallel" : "", selected ? "selected" : "", runState === "running" ? "run-running" : ""].filter(Boolean).join(" ");
 }
 
 function getCanvasNodeKindLabel(node: WorkbenchNode) {
   if (node.kind === "sequence" && node.order === 0) return "流程输入";
-  if (node.kind === "if") return "if 决策";
   return node.kind;
 }
 
