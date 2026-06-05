@@ -42,6 +42,7 @@ function App() {
   const [runLines, setRunLines] = useState<string[]>(["暂无服务端运行记录。"]);
   const [nodeRunStates, setNodeRunStates] = useState<NodeRunStateMap>({});
   const [pendingInsertAnchor, setPendingInsertAnchor] = useState<InsertAnchor | null>(null);
+  const [createNodeFeedback, setCreateNodeFeedback] = useState("");
   const [deleteModalNode, setDeleteModalNode] = useState<WorkbenchNode | null>(null);
   const [nodeEditPending, setNodeEditPending] = useState(false);
   const [workflowSource, setWorkflowSource] = useState<string | null>(null);
@@ -206,21 +207,31 @@ function App() {
       setStatus("流程服务未连接，不能新增节点");
       return;
     }
+    setCreateNodeFeedback("");
     setPendingInsertAnchor(anchor);
   };
 
   const handleCreateNode = async (node: InsertNodeSpec) => {
-    if (!pendingInsertAnchor) return;
-    if (pendingOperations.length > 0) {
-      setStatus("先保存本地草稿，再新增节点。");
+    if (!pendingInsertAnchor) {
+      setCreateNodeFeedback("新增位置已失效，请重新选择插入位置。");
       return;
     }
+    if (pendingOperations.length > 0) {
+      const message = "先保存本地草稿，再新增节点。";
+      setCreateNodeFeedback(message);
+      setStatus(message);
+      return;
+    }
+    setCreateNodeFeedback("正在新增节点...");
     const ok = await submitServerEdit(
       buildInsertNodeOperation(makeOperationId("insert"), DEFAULT_ACTOR, pendingInsertAnchor, node),
       "节点已新增",
     );
     if (ok) {
+      setCreateNodeFeedback("");
       setPendingInsertAnchor(null);
+    } else {
+      setCreateNodeFeedback("新增失败，请查看顶部状态和诊断信息。");
     }
   };
 
@@ -427,8 +438,12 @@ function App() {
       {pendingInsertAnchor ? (
         <CreateNodeModal
           blocks={model.blockOptions}
+          feedback={createNodeFeedback}
           pending={nodeEditPending}
-          onClose={() => setPendingInsertAnchor(null)}
+          onClose={() => {
+            setCreateNodeFeedback("");
+            setPendingInsertAnchor(null);
+          }}
           onConfirm={(node) => void handleCreateNode(node)}
         />
       ) : null}

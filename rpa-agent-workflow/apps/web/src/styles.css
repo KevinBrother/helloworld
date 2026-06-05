@@ -1032,7 +1032,7 @@ select.value-control {
   width: min(860px, 100%);
   max-height: min(760px, calc(100vh - 2rem));
   display: grid;
-  grid-template-rows: auto auto minmax(0, 1fr) auto;
+  grid-template-rows: auto auto minmax(0, 1fr) auto auto;
   border: 1px solid var(--line);
   border-radius: 8px;
   background: var(--surface);
@@ -1158,6 +1158,18 @@ select.value-control {
   background: var(--surface);
   color: var(--text);
   padding: 0 0.65rem;
+}
+
+.node-modal-feedback {
+  margin: 0 1.25rem 1rem;
+  border: 1px solid color-mix(in oklch, var(--accent) 42%, var(--line));
+  border-radius: 7px;
+  background: var(--accent-soft);
+  color: var(--accent-strong);
+  font-size: 0.86rem;
+  font-weight: 700;
+  line-height: 1.45;
+  padding: 0.65rem 0.75rem;
 }
 
 .delete-confirm-copy {

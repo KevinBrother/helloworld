@@ -5,6 +5,7 @@ import type { InsertNodeSpec } from "../../editOperations";
 
 type CreateNodeModalProps = {
   blocks: BlockOption[];
+  feedback?: string;
   pending: boolean;
   onClose: () => void;
   onConfirm: (node: InsertNodeSpec) => void;
@@ -12,7 +13,7 @@ type CreateNodeModalProps = {
 
 type CreateKind = "callBlock" | "if" | "parallel";
 
-export function CreateNodeModal({ blocks, pending, onClose, onConfirm }: CreateNodeModalProps) {
+export function CreateNodeModal({ blocks, feedback, pending, onClose, onConfirm }: CreateNodeModalProps) {
   const [kind, setKind] = useState<CreateKind>("callBlock");
   const [query, setQuery] = useState("");
   const [selectedBlock, setSelectedBlock] = useState(blocks[0]?.key ?? "");
@@ -77,6 +78,12 @@ export function CreateNodeModal({ blocks, pending, onClose, onConfirm }: CreateN
           </label>
         )}
 
+        {feedback ? (
+          <p className="node-modal-feedback" role="status">
+            {feedback}
+          </p>
+        ) : null}
+
         <footer className="modal-actions">
           <button className="secondary-button" disabled={pending} onClick={onClose} type="button">
             取消
@@ -94,7 +101,7 @@ export function CreateNodeModal({ blocks, pending, onClose, onConfirm }: CreateN
             type="button"
           >
             <Plus size={18} />
-            确认
+            {pending ? "新增中" : "确认"}
           </button>
         </footer>
       </section>
