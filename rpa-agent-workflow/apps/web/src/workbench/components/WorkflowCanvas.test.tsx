@@ -21,6 +21,19 @@ describe("WorkflowCanvas", () => {
     expect(html).toContain('d="M650 518 L650 656 L490 656"');
   });
 
+  it("renders if nodes as diamond decisions with branch counts", () => {
+    const model = buildWorkbenchModel(branchCanvasDocument);
+
+    const html = renderToStaticMarkup(
+      <WorkflowCanvas model={model} nodeRunStates={{}} selectedId="root" onSelect={() => undefined} onInsertAtEdge={() => undefined} />,
+    );
+
+    expect(html).toContain("canvas-node-if");
+    expect(html).toContain("if 决策");
+    expect(html).toContain("2 个分支条件");
+    expect(html).not.toContain("if Choose Path 0 个输入 0 个输出");
+  });
+
   it("renders the diagram in a scalable stage with scroll buffer space", () => {
     const model = buildWorkbenchModel(branchCanvasDocument);
 

@@ -407,25 +407,35 @@ function CanvasLayoutMarker({ role, label }: { role: "branchHeader" | "join" | "
 function CanvasNode({ node, runState, selected, onSelect }: { node?: WorkbenchNode; runState: NodeRunState; selected: boolean; onSelect: (id: string) => void }) {
   if (!node) return null;
   const stateLabel = getRunStateLabel(runState);
+  const isDecision = node.kind === "if";
+  const branchCount = node.raw.branches?.length ?? 0;
 
   return (
-    <button className={getCanvasNodeClassName(selected, runState)} onClick={() => onSelect(node.id)}>
-      <span className="node-kind-row">
-        <span className="node-kind">{node.kind === "sequence" && node.order === 0 ? "流程输入" : node.kind}</span>
-        {stateLabel ? <span className={`node-run-indicator ${runState}`}>{stateLabel}</span> : null}
+    <button className={getCanvasNodeClassName(selected, runState, node.kind)} onClick={() => onSelect(node.id)}>
+      <span className={isDecision ? "decision-node-surface" : undefined}>
+        <span className="node-kind-row">
+          <span className="node-kind">{getCanvasNodeKindLabel(node)}</span>
+          {stateLabel ? <span className={`node-run-indicator ${runState}`}>{stateLabel}</span> : null}
+        </span>
+        <strong>{getDisplayNodeLabel(node)}</strong>
+        <div className="node-io">
+          {(isDecision ? [`${branchCount} 个分支条件`] : getNodeIoLabel(node)).map((label) => (
+            <span key={label}>{label}</span>
+          ))}
+        </div>
       </span>
-      <strong>{getDisplayNodeLabel(node)}</strong>
-      <div className="node-io">
-        {getNodeIoLabel(node).map((label) => (
-          <span key={label}>{label}</span>
-        ))}
-      </div>
     </button>
   );
 }
 
-function getCanvasNodeClassName(selected: boolean, runState: NodeRunState) {
-  return ["canvas-node", selected ? "selected" : "", runState === "running" ? "run-running" : ""].filter(Boolean).join(" ");
+function getCanvasNodeClassName(selected: boolean, runState: NodeRunState, kind: string) {
+  return ["canvas-node", kind === "if" ? "canvas-node-if" : "", selected ? "selected" : "", runState === "running" ? "run-running" : ""].filter(Boolean).join(" ");
+}
+
+function getCanvasNodeKindLabel(node: WorkbenchNode) {
+  if (node.kind === "sequence" && node.order === 0) return "流程输入";
+  if (node.kind === "if") return "if 决策";
+  return node.kind;
 }
 
 function getRunStateLabel(runState: NodeRunState) {
