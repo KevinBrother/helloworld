@@ -88,6 +88,65 @@ func (s *state) runLoop(ctx context.Context, stmt ast.Statement) error {
 	}
 }
 
+func (s *state) runIf(ctx context.Context, stmt ast.Statement) error {
+	if len(stmt.Branches) > 0 {
+		selectedName := ""
+		selectedBody := []ast.Statement(nil)
+
+		for i := range stmt.Branches {
+			branch := stmt.Branches[i]
+			if branch.Default {
+				continue
+			}
+			condition, err := s.evalExpression(branch.Condition)
+			if err != nil {
+				return err
+			}
+			if isTruthy(condition) {
+				selectedName = branch.ID
+				selectedBody = branch.Body
+				break
+			}
+		}
+
+		if selectedName == "" {
+			for i := range stmt.Branches {
+				branch := stmt.Branches[i]
+				if branch.Default {
+					selectedName = branch.ID
+					selectedBody = branch.Body
+					break
+				}
+			}
+		}
+
+		if err := s.runStatements(ctx, selectedBody); err != nil {
+			return err
+		}
+		if selectedName == "" {
+			return nil
+		}
+		return s.mergeBranchOutputs(stmt, selectedName)
+	}
+
+	condition, err := s.evalExpression(stmt.Condition)
+	if err != nil {
+		return err
+	}
+	var branch []ast.Statement
+	branchName := "else"
+	if isTruthy(condition) {
+		branch = stmt.Then
+		branchName = "then"
+	} else {
+		branch = stmt.Else
+	}
+	if err := s.runStatements(ctx, branch); err != nil {
+		return err
+	}
+	return s.mergeBranchOutputs(stmt, branchName)
+}
+
 func (s *state) runCallWorkflow(ctx context.Context, stmt ast.Statement) error {
 	subworkflow, ok := s.subworkflow(stmt.Workflow)
 	if !ok {

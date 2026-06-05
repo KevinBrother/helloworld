@@ -151,22 +151,7 @@ func (s *state) runStatementBody(ctx context.Context, stmt ast.Statement) error 
 		s.setVariable(stmt.Target, value)
 		return nil
 	case "if":
-		condition, err := s.evalExpression(stmt.Condition)
-		if err != nil {
-			return err
-		}
-		var branch []ast.Statement
-		branchName := "else"
-		if isTruthy(condition) {
-			branch = stmt.Then
-			branchName = "then"
-		} else {
-			branch = stmt.Else
-		}
-		if err := s.runStatements(ctx, branch); err != nil {
-			return err
-		}
-		return s.mergeBranchOutputs(stmt, branchName)
+		return s.runIf(ctx, stmt)
 	case "parallel":
 		return s.runParallel(ctx, stmt)
 	case "loop":

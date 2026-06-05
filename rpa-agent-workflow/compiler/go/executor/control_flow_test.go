@@ -182,6 +182,79 @@ func TestRunWorkflowForeachAcceptsTypedSlicesAndArrays(t *testing.T) {
 	}
 }
 
+func TestRunWorkflowIfCanonicalBranches(t *testing.T) {
+	workflow := ast.Workflow{
+		SchemaVersion: "1.0.0",
+		Workflow:      ast.Metadata{ID: "canonical-if"},
+		Body: ast.Statement{
+			ID:   "root",
+			Kind: "sequence",
+			Statements: []ast.Statement{
+				{
+					ID:   "branch-by-canonical-if",
+					Kind: "if",
+					Branches: []ast.Branch{
+						{
+							ID:        "condition_1",
+							Label:     "条件 1",
+							Condition: &ast.Expression{Kind: "literal", Value: false},
+							Body: []ast.Statement{
+								{
+									ID:     "assign-first",
+									Kind:   "assign",
+									Target: "result",
+									Value:  &ast.Expression{Kind: "literal", Value: "first"},
+								},
+							},
+						},
+						{
+							ID:        "condition_2",
+							Label:     "条件 2",
+							Condition: &ast.Expression{Kind: "literal", Value: true},
+							Body: []ast.Statement{
+								{
+									ID:     "assign-second",
+									Kind:   "assign",
+									Target: "result",
+									Value:  &ast.Expression{Kind: "literal", Value: "second"},
+								},
+							},
+						},
+						{
+							ID:      "else",
+							Label:   "否则",
+							Default: true,
+							Body: []ast.Statement{
+								{
+									ID:     "assign-default",
+									Kind:   "assign",
+									Target: "result",
+									Value:  &ast.Expression{Kind: "literal", Value: "default"},
+								},
+							},
+						},
+					},
+				},
+				{
+					ID:   "return-result",
+					Kind: "return",
+					Returns: map[string]ast.Expression{
+						"result": {Kind: "ref", Ref: "var.result"},
+					},
+				},
+			},
+		},
+	}
+
+	result, err := RunWorkflow(context.Background(), workflow, Options{})
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if got := result.Returns["result"]; got != "second" {
+		t.Fatalf("result = %#v, want second", got)
+	}
+}
+
 func TestRunWorkflowExecutesWhileLoop(t *testing.T) {
 	workflow := ast.Workflow{
 		SchemaVersion: "1.0.0",
