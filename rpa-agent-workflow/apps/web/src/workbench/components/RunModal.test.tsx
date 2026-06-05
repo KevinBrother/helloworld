@@ -1,16 +1,16 @@
 import { renderToStaticMarkup } from "react-dom/server";
 import { describe, expect, it } from "vitest";
 import type { WorkbenchModel, WorkbenchNode } from "../../workbenchModel";
-import { TestRunModal } from "./TestRunModal";
+import { RunModal } from "./RunModal";
 
-describe("TestRunModal", () => {
+describe("RunModal", () => {
   it("keeps the run action clickable so validation can report the exact blocker", () => {
     const html = renderToStaticMarkup(
-      <TestRunModal
+      <RunModal
         errors={{ dir: "必填" }}
         model={model}
         pending={false}
-        runMessage="当前工作流未同步到服务端，不能测试运行。"
+        runMessage="当前工作流未同步到服务端，不能运行。"
         workflowInputNode={workflowInputNode}
         openSourceKey={null}
         onClose={() => undefined}
@@ -20,13 +20,14 @@ describe("TestRunModal", () => {
       />,
     );
 
-    expect(html).toContain("运行测试");
+    expect(html).toContain("运行");
+    expect(html).not.toContain("测试");
     expect(html).not.toContain("disabled=\"\"");
   });
 
   it("keeps the run action clickable while a run is pending", () => {
     const html = renderToStaticMarkup(
-      <TestRunModal
+      <RunModal
         errors={{}}
         model={model}
         pending={true}
@@ -41,6 +42,7 @@ describe("TestRunModal", () => {
     );
 
     expect(html).toContain("运行中");
+    expect(html).not.toContain("测试");
     expect(html).not.toContain("disabled=\"\"");
   });
 });

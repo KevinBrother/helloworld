@@ -30,7 +30,7 @@ export function Header({
         </button>
         <button className="primary-button" onClick={onRun}>
           <Play size={17} />
-          {runPending ? "运行中" : "测试运行"}
+          {runPending ? "运行中" : "运行"}
         </button>
       </div>
     </header>

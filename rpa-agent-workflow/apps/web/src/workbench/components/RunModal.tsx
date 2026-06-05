@@ -2,7 +2,7 @@ import { Play, X } from "lucide-react";
 import type { WorkbenchField, WorkbenchModel, WorkbenchNode } from "../../workbenchModel";
 import { ParameterFieldList } from "./ParameterPanel";
 
-type TestRunModalProps = {
+type RunModalProps = {
   errors?: Record<string, string>;
   model: WorkbenchModel;
   pending: boolean;
@@ -15,7 +15,7 @@ type TestRunModalProps = {
   onRun: () => void;
 };
 
-export function TestRunModal({
+export function RunModal({
   errors = {},
   model,
   pending,
@@ -26,16 +26,16 @@ export function TestRunModal({
   onFieldChange,
   onOpenSourceKeyChange,
   onRun,
-}: TestRunModalProps) {
+}: RunModalProps) {
   return (
     <div className="modal-backdrop" role="presentation">
-      <section className="test-modal" role="dialog" aria-modal="true" aria-labelledby="test-run-title">
+      <section className="run-modal" role="dialog" aria-modal="true" aria-labelledby="run-title">
         <div className="modal-header">
           <div>
-            <h2 id="test-run-title">测试运行流程</h2>
+            <h2 id="run-title">运行流程</h2>
             <p>{runMessage}</p>
           </div>
-          <button className="icon-button" aria-label="关闭测试运行" onClick={onClose}>
+          <button className="icon-button" aria-label="关闭运行" onClick={onClose}>
             <X size={18} />
           </button>
         </div>
@@ -66,7 +66,7 @@ export function TestRunModal({
           </button>
           <button className="primary-button" onClick={onRun}>
             <Play size={17} />
-            {pending ? "运行中" : "运行测试"}
+            {pending ? "运行中" : "运行"}
           </button>
         </div>
       </section>

@@ -100,7 +100,7 @@ code {
 .panel-heading h2,
 .selected-node-summary h2,
 .schema-section h3,
-.test-modal h2 {
+.run-modal h2 {
   margin: 0;
   color: var(--text);
   text-wrap: balance;
@@ -865,7 +865,7 @@ select.value-control {
   padding: 1rem;
 }
 
-.test-modal {
+.run-modal {
   width: min(720px, 100%);
   border: 1px solid var(--line);
   border-radius: 8px;

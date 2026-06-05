@@ -3,28 +3,29 @@ import { describe, expect, it } from "vitest";
 import { Header } from "./Header";
 
 describe("Header", () => {
-  it("keeps the test run action clickable when the server workflow cannot run", () => {
+  it("keeps the manual run action clickable when the server workflow cannot run", () => {
     const html = renderToStaticMarkup(
       <Header
         runPending={false}
-        status="当前工作流未同步到服务端，不能测试运行。"
+        status="当前工作流未同步到服务端，不能运行。"
         workflowName="Sample Workflow"
         onSave={() => undefined}
         onRun={() => undefined}
       />,
     );
 
-    expect(html).toContain("测试运行");
+    expect(html).toContain("运行");
+    expect(html).not.toContain("测试");
     expect(html).not.toContain("打开工作流");
     expect(html).not.toContain("加载 UI JSON");
     expect(html).not.toContain("disabled=\"\"");
   });
 
-  it("keeps the test run action clickable while a run is pending", () => {
+  it("keeps the run action clickable while a run is pending", () => {
     const html = renderToStaticMarkup(
       <Header
         runPending={true}
-        status="测试运行中"
+        status="运行中"
         workflowName="Filesystem Workflow"
         onSave={() => undefined}
         onRun={() => undefined}
@@ -32,6 +33,7 @@ describe("Header", () => {
     );
 
     expect(html).toContain("运行中");
+    expect(html).not.toContain("测试");
     expect(html).not.toContain("disabled=\"\"");
   });
 

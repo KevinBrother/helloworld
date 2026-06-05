@@ -13,7 +13,7 @@ import { Header, type SaveState } from "./workbench/components/Header";
 import { NodeLibrary } from "./workbench/components/NodeLibrary";
 import { ParameterPanel } from "./workbench/components/ParameterPanel";
 import { RunLog } from "./workbench/components/RunLog";
-import { TestRunModal } from "./workbench/components/TestRunModal";
+import { RunModal } from "./workbench/components/RunModal";
 import { WorkflowCanvas } from "./workbench/components/WorkflowCanvas";
 import type { BlocksResponse, BlockDefinition, Diagnostic, EditOperation, EditorStateResponse, RunResult, UIDocument, UINode } from "./types";
 
@@ -294,7 +294,7 @@ function App() {
 
   const handleRunWorkflow = async () => {
     if (runPending) {
-      setStatus("测试运行进行中，请等待当前运行完成。");
+      setStatus("运行进行中，请等待当前运行完成。");
       return;
     }
 
@@ -306,7 +306,7 @@ function App() {
     }
 
     if (!model) {
-      setStatus("流程服务未返回工作流，不能测试运行。");
+      setStatus("流程服务未返回工作流，不能运行。");
       return;
     }
 
@@ -332,7 +332,7 @@ function App() {
     setRunModalOpen(false);
     setRunResult(null);
     setNodeRunStates({});
-    setRunLines((current) => appendRunLines(current, [`[${new Date().toLocaleTimeString("en-US", { hour12: false })}] 测试运行开始`], 18));
+    setRunLines((current) => appendRunLines(current, [`[${new Date().toLocaleTimeString("en-US", { hour12: false })}] 运行开始`], 18));
     const timestamp = new Date().toLocaleTimeString("en-US", { hour12: false });
 
     const outcome = await runWorkflowStream(validation.inputs, (message) => {
@@ -346,13 +346,13 @@ function App() {
       const payload = outcome.response;
       setRunResult(payload.result ?? null);
       setDiagnostics(payload.diagnostics ?? []);
-      setRunLines((current) => appendRunLines(current, [`[${timestamp}] 测试运行完成`, ...formatRunLines(payload.result)], 18));
-      setStatus("测试运行完成");
+      setRunLines((current) => appendRunLines(current, [`[${timestamp}] 运行完成`, ...formatRunLines(payload.result)], 18));
+      setStatus("运行完成");
     } else {
       const apiError = normalizeAPIError(outcome.diagnostics[0]?.message ?? "Workflow run failed");
       setRunResult(null);
       setDiagnostics(outcome.diagnostics.length > 0 ? outcome.diagnostics : apiError.diagnostics);
-      setRunLines((current) => appendRunLines(current, [`[${timestamp}] 测试运行失败：${apiError.message}`], 12));
+      setRunLines((current) => appendRunLines(current, [`[${timestamp}] 运行失败：${apiError.message}`], 12));
       setStatus(apiError.message);
     }
 
@@ -406,7 +406,7 @@ function App() {
       <RunLog lines={runLines} open={runLogOpen} result={runResult} onOpenChange={setRunLogOpen} />
 
       {runModalOpen && model ? (
-        <TestRunModal
+        <RunModal
           errors={runInputValidation.errors}
           model={model}
           pending={runPending}

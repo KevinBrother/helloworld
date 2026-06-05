@@ -10,7 +10,7 @@ describe("getRunAvailability", () => {
 
     expect(getRunAvailability(true, "sample")).toEqual({
       available: false,
-      message: "当前工作流未同步到服务端，不能测试运行。",
+      message: "当前工作流未同步到服务端，不能运行。",
     });
   });
 
