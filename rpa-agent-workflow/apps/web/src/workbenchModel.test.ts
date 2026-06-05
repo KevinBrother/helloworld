@@ -39,6 +39,40 @@ describe("workbench model", () => {
     expect(operatorField.options).toEqual(["+", "-", "*", "/"]);
   });
 
+  it("uses real block catalog entries when provided", () => {
+    const catalogModel = buildWorkbenchModel(sampleDocument as UIDocument, [
+      {
+        id: "core.log",
+        namespace: "core",
+        name: "log",
+        version: "1.0.0",
+        inputs: [{ name: "message", type: { name: "string" } }],
+        outputs: [],
+      },
+      {
+        id: "math.calculate",
+        namespace: "math",
+        name: "calculate",
+        version: "1.0.0",
+        inputs: [
+          { name: "left", type: { name: "number" } },
+          { name: "operator", type: { name: "string" } },
+          { name: "right", type: { name: "number" } },
+        ],
+        outputs: [{ name: "result", type: { name: "number" } }],
+      },
+    ]);
+
+    expect(catalogModel.blockOptions.map((block) => block.key)).toEqual(["core.log", "math.calculate"]);
+    expect(catalogModel.blockOptions.find((block) => block.key === "math.calculate")).toEqual(
+      expect.objectContaining({
+        category: "math",
+        detail: "3 个输入 / 1 个输出",
+        instances: 2,
+      }),
+    );
+  });
+
   it("keeps compatible operator fields bindable even when they expose manual choices", () => {
     const calculateNode = model.nodes.find((node) => node.id === "calculate_large_value")!;
     const operatorField = calculateNode.inputs.find((field) => field.key === "operator")!;

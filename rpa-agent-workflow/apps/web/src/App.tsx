@@ -10,7 +10,7 @@ import { ParameterPanel } from "./workbench/components/ParameterPanel";
 import { RunLog } from "./workbench/components/RunLog";
 import { TestRunModal } from "./workbench/components/TestRunModal";
 import { WorkflowCanvas } from "./workbench/components/WorkflowCanvas";
-import type { Diagnostic, EditOperation, EditorStateResponse, RunResult, UIDocument, UINode } from "./types";
+import type { BlocksResponse, BlockDefinition, Diagnostic, EditOperation, EditorStateResponse, RunResult, UIDocument, UINode } from "./types";
 
 const DEFAULT_ACTOR = {
   id: "local-user",
@@ -32,12 +32,13 @@ function App() {
   const [serviceError, setServiceError] = useState("");
   const [serviceRetrying, setServiceRetrying] = useState(true);
   const [blockQuery, setBlockQuery] = useState("");
+  const [blockCatalog, setBlockCatalog] = useState<BlockDefinition[]>([]);
   const [openSourceKey, setOpenSourceKey] = useState<string | null>(null);
   const [runLines, setRunLines] = useState<string[]>(["暂无服务端运行记录。"]);
   const [nodeRunStates, setNodeRunStates] = useState<NodeRunStateMap>({});
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  const model = useMemo(() => buildWorkbenchModel(uiDocument), [uiDocument]);
+  const model = useMemo(() => buildWorkbenchModel(uiDocument, blockCatalog), [uiDocument, blockCatalog]);
   const selectedNode = useMemo(
     () => model.nodes.find((node) => node.id === selectedNodeId) ?? model.nodes[0],
     [model.nodes, selectedNodeId],
@@ -63,9 +64,10 @@ function App() {
     }
 
     try {
-      const state = await requestJSON<EditorStateResponse>("/api/workflow");
+      const [state, blocks] = await Promise.all([requestJSON<EditorStateResponse>("/api/workflow"), requestJSON<BlocksResponse>("/api/blocks")]);
       if (options?.cancelled?.()) return;
       applyServerState(state);
+      setBlockCatalog(blocks.blocks ?? []);
       setServerAvailable(true);
       setSaveState("saved");
       setServiceError("");
@@ -75,6 +77,7 @@ function App() {
       const message = formatError(error);
       setServerAvailable(false);
       setSaveState("sample");
+      setBlockCatalog([]);
       setServiceError(message);
       setStatus(`使用示例流程：${message}`);
     } finally {

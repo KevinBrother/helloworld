@@ -5,6 +5,43 @@ export type UIDocument = {
   metadata?: Record<string, unknown>;
 };
 
+export type BlockType = {
+  name: string;
+  optional?: boolean;
+  nullable?: boolean;
+  enum?: string[];
+  description?: string;
+  items?: BlockType;
+  properties?: Record<string, BlockType>;
+  anyOf?: BlockType[];
+};
+
+export type BlockPort = {
+  name: string;
+  type: BlockType;
+};
+
+export type BlockDefinition = {
+  schemaVersion?: string;
+  id: string;
+  namespace?: string;
+  name?: string;
+  version?: string;
+  description?: string;
+  inputs?: BlockPort[];
+  outputs?: BlockPort[];
+  display?: {
+    label?: string;
+    icon?: string;
+    color?: string;
+  };
+  metadata?: Record<string, unknown>;
+};
+
+export type BlocksResponse = {
+  blocks: BlockDefinition[];
+};
+
 export type UINode = {
   id: string;
   kind: string;

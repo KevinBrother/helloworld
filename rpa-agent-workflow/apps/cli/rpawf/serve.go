@@ -9,6 +9,7 @@ import (
 	"net/http"
 	"os"
 	"path/filepath"
+	"sort"
 	"sync"
 
 	"rpa-agent-workflow/compiler/go/compiler"
@@ -40,6 +41,10 @@ type editorRunResponse struct {
 	Diagnostics []diagnostic.Diagnostic `json:"diagnostics"`
 }
 
+type editorBlocksResponse struct {
+	Blocks []block.Definition `json:"blocks"`
+}
+
 type editorRunStreamMessage struct {
 	Type        string                  `json:"type"`
 	Event       *executor.Event         `json:"event,omitempty"`
@@ -66,6 +71,7 @@ func newEditorServerWithPath(workflow ast.Workflow, blocks map[string]block.Defi
 	}
 	mux := http.NewServeMux()
 	mux.HandleFunc("/api/workflow", server.handleWorkflow)
+	mux.HandleFunc("/api/blocks", server.handleBlocks)
 	mux.HandleFunc("/api/edit", server.handleEdit)
 	mux.HandleFunc("/api/run", server.handleRun)
 	mux.HandleFunc("/api/run/stream", server.handleRunStream)
@@ -87,6 +93,25 @@ func (s *editorServer) handleWorkflow(w http.ResponseWriter, r *http.Request) {
 		UI:          transform.ProjectWorkflowWithBlocks(workflow, s.blocks),
 		Diagnostics: s.validateWorkflow(workflow),
 	})
+}
+
+func (s *editorServer) handleBlocks(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodGet {
+		respondDiagnostics(w, http.StatusMethodNotAllowed, methodNotAllowedDiagnostic(r.Method))
+		return
+	}
+
+	s.mu.Lock()
+	blocks := make([]block.Definition, 0, len(s.blocks))
+	for _, definition := range s.blocks {
+		blocks = append(blocks, definition)
+	}
+	s.mu.Unlock()
+
+	sort.Slice(blocks, func(i, j int) bool {
+		return blocks[i].ID < blocks[j].ID
+	})
+	respondJSON(w, http.StatusOK, editorBlocksResponse{Blocks: blocks})
 }
 
 func (s *editorServer) handleRun(w http.ResponseWriter, r *http.Request) {

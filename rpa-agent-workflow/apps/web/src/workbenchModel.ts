@@ -1,4 +1,4 @@
-import type { InspectorField, UIDocument, UINode } from "./types";
+import type { BlockDefinition, InspectorField, UIDocument, UINode } from "./types";
 
 export type FieldType = "number" | "string" | "boolean" | "path" | "object" | "unknown";
 export type FieldControl = "input" | "select" | "reference" | "expression" | "readonly";
@@ -69,17 +69,7 @@ const SAMPLE_INPUT_VALUES: Record<string, unknown> = {
   right: 7,
 };
 
-const BLOCK_CATALOG: Array<Omit<BlockOption, "instances">> = [
-  { key: "math.calculate", category: "计算", detail: "执行数值计算并输出结果" },
-  { key: "browser.click", category: "浏览器", detail: "点击当前浏览器会话中的元素" },
-  { key: "file.read", category: "文件系统", detail: "读取文件内容并写入流程状态" },
-  { key: "http.request", category: "网络", detail: "调用 HTTP 接口并暴露响应数据" },
-  { key: "condition", category: "控制", detail: "按条件拆分为两个分支" },
-  { key: "loop", category: "控制", detail: "按列表或条件重复执行步骤" },
-  { key: "return", category: "控制", detail: "定义流程输出值" },
-];
-
-export function buildWorkbenchModel(document: UIDocument): WorkbenchModel {
+export function buildWorkbenchModel(document: UIDocument, blockCatalog: BlockDefinition[] = []): WorkbenchModel {
   const nodes = flattenWorkbenchNodes(document.root);
   const sources = buildSources(nodes);
   const instances = new Map<string, number>();
@@ -97,8 +87,32 @@ export function buildWorkbenchModel(document: UIDocument): WorkbenchModel {
     nodes,
     sources,
     sourcesById: new Map(sources.map((source) => [source.id, source])),
-    blockOptions: BLOCK_CATALOG.map((option) => ({ ...option, instances: instances.get(option.key) ?? 0 })),
+    blockOptions: buildBlockOptions(blockCatalog, instances),
   };
+}
+
+function buildBlockOptions(blockCatalog: BlockDefinition[], instances: Map<string, number>): BlockOption[] {
+  if (blockCatalog.length > 0) {
+    return blockCatalog.map((definition) => ({
+      key: definition.id,
+      category: definition.namespace || "block",
+      detail: definition.description || formatPortSummary(definition.inputs?.length ?? 0, definition.outputs?.length ?? 0),
+      instances: instances.get(definition.id) ?? 0,
+    }));
+  }
+
+  return Array.from(instances.entries())
+    .sort(([left], [right]) => left.localeCompare(right))
+    .map(([key, count]) => ({
+      key,
+      category: key.includes(".") ? key.split(".")[0] : "block",
+      detail: "当前流程已使用",
+      instances: count,
+    }));
+}
+
+function formatPortSummary(inputCount: number, outputCount: number) {
+  return `${inputCount} 个输入 / ${outputCount} 个输出`;
 }
 
 export function getNodeIoLabel(node: WorkbenchNode) {

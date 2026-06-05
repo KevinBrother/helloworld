@@ -13,6 +13,7 @@ import (
 	"rpa-agent-workflow/compiler/go/diagnostic"
 	"rpa-agent-workflow/compiler/go/executor"
 	"rpa-agent-workflow/contracts/ast"
+	"rpa-agent-workflow/contracts/block"
 	editoperation "rpa-agent-workflow/contracts/edit-operation"
 	uinode "rpa-agent-workflow/contracts/ui-node"
 )
@@ -38,6 +39,32 @@ func TestEditorServerWorkflowReturnsProjectedState(t *testing.T) {
 	}
 	if len(state.Diagnostics) != 0 {
 		t.Fatalf("diagnostics = %#v, want none", state.Diagnostics)
+	}
+}
+
+func TestEditorServerBlocksReturnsManifestCatalog(t *testing.T) {
+	blocks := mustLoadTestBlocks(t)
+	server := newEditorServer(testEditorWorkflow(), blocks)
+
+	response := httptest.NewRecorder()
+	request := httptest.NewRequest(http.MethodGet, "/api/blocks", nil)
+	server.ServeHTTP(response, request)
+
+	if response.Code != http.StatusOK {
+		t.Fatalf("status = %d, want %d: %s", response.Code, http.StatusOK, response.Body.String())
+	}
+
+	var catalog editorBlocksResponse
+	decodeResponse(t, response, &catalog)
+	if len(catalog.Blocks) != 3 {
+		t.Fatalf("blocks length = %d, want 3: %#v", len(catalog.Blocks), catalog.Blocks)
+	}
+	if catalog.Blocks[0].ID != "core.log" || catalog.Blocks[1].ID != "math.calculate" || catalog.Blocks[2].ID != "system.get_os_info" {
+		t.Fatalf("block ids = %#v, want sorted real block ids", []string{catalog.Blocks[0].ID, catalog.Blocks[1].ID, catalog.Blocks[2].ID})
+	}
+	calculate := catalog.Blocks[1]
+	if calculate.Namespace != "math" || calculate.Name != "calculate" || len(calculate.Inputs) != 3 || len(calculate.Outputs) != 1 {
+		t.Fatalf("math.calculate catalog entry = %#v, want manifest metadata and ports", calculate)
 	}
 }
 
@@ -250,6 +277,15 @@ func containsString(values []string, needle string) bool {
 		}
 	}
 	return false
+}
+
+func mustLoadTestBlocks(t *testing.T) map[string]block.Definition {
+	t.Helper()
+	blocks, err := loadBlocks("../../../sdks/python/blocks")
+	if err != nil {
+		t.Fatal(err)
+	}
+	return blocks
 }
 
 func testEditorWorkflow() ast.Workflow {
