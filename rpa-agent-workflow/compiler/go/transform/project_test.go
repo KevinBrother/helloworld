@@ -121,6 +121,38 @@ func TestProjectWorkflowShowsStartInputsAndReturnOutputs(t *testing.T) {
 	}
 }
 
+func TestProjectWorkflowMarksWorkflowBoundaryCustomParameterSupport(t *testing.T) {
+	workflow := ast.Workflow{
+		Workflow: ast.Metadata{ID: "boundary"},
+		Inputs: []ast.Port{
+			{Name: "dir", Type: ast.Type{Name: "string"}},
+		},
+		Outputs: []ast.Port{
+			{Name: "count", Type: ast.Type{Name: "number"}},
+		},
+		Body: ast.Statement{
+			ID:   "root",
+			Kind: "sequence",
+			Statements: []ast.Statement{
+				{
+					ID:      "return_result",
+					Kind:    "return",
+					Returns: map[string]ast.Expression{"count": {Kind: "literal", Value: float64(0)}},
+				},
+			},
+		},
+	}
+
+	document := ProjectWorkflow(workflow)
+	if document.Root.Metadata["allowCustomInput"] != true {
+		t.Fatalf("root allowCustomInput = %#v", document.Root.Metadata["allowCustomInput"])
+	}
+	returnNode := document.Root.Children[0]
+	if returnNode.Metadata["allowCustomOutput"] != true {
+		t.Fatalf("return allowCustomOutput = %#v", returnNode.Metadata["allowCustomOutput"])
+	}
+}
+
 func TestProjectWorkflowProjectsScopedBindingTokensAndNodeOutputs(t *testing.T) {
 	workflow := ast.Workflow{
 		SchemaVersion: "1.0.0",

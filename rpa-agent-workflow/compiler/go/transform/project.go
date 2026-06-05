@@ -24,6 +24,9 @@ func ProjectWorkflowWithBlocks(workflow ast.Workflow, blocks map[string]block.De
 	}
 	root := projectStatement(workflow.Body, "$.body", 0)
 	root.Label = "Start"
+	root.Metadata = mergeNodeMetadata(root.Metadata, map[string]any{
+		"allowCustomInput": true,
+	})
 	root.Inspector = append(root.Inspector, workflowPortInspectorFields("$.inputs", "Input", workflow.Inputs)...)
 	root.Children = projectStatementsWithContext(workflow.Body.Statements, "$.body.statements", 0, ctx)
 	return uinode.Document{
@@ -493,10 +496,23 @@ func nodeMetadata(stmt ast.Statement) map[string]any {
 		sort.Strings(keys)
 		metadata["returns"] = keys
 	}
+	if stmt.Kind == "return" {
+		metadata["allowCustomOutput"] = true
+	}
 	if len(metadata) == 0 {
 		return nil
 	}
 	return metadata
+}
+
+func mergeNodeMetadata(base map[string]any, extra map[string]any) map[string]any {
+	if len(base) == 0 {
+		base = make(map[string]any, len(extra))
+	}
+	for key, value := range extra {
+		base[key] = value
+	}
+	return base
 }
 
 func nodeMetadataWithOutputs(stmt ast.Statement, outputs []map[string]any, blocks map[string]block.Definition) map[string]any {
