@@ -14,7 +14,7 @@ export function WorkflowCanvas({ model, nodeRunStates, selectedId, onSelect }: W
 
   return (
     <section className="panel canvas-panel">
-      <PanelHeading title="画布" detail="选择节点后配置参数" />
+      <PanelHeading title="画布" />
       <div className="canvas-scroll">
         <div className="workflow-diagram" aria-label="流程画布">
           <svg className="workflow-links" viewBox="0 0 980 700" preserveAspectRatio="none" aria-hidden="true">

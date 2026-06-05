@@ -26,7 +26,7 @@ export function ParameterPanel({ errors = {}, model, node, openSourceKey, onOpen
 
   return (
     <aside className="panel parameter-panel">
-      <PanelHeading title="参数" detail={node.path ?? node.id} />
+      <PanelHeading title="参数" />
       <div className="selected-node-summary">
         <div>
           <h2>{title}</h2>
