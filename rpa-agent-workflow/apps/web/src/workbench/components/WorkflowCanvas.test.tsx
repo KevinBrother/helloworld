@@ -5,7 +5,7 @@ import { buildWorkbenchModel } from "../../workbenchModel";
 import { WorkflowCanvas } from "./WorkflowCanvas";
 
 describe("WorkflowCanvas", () => {
-  it("renders branch controls and visual join labels", () => {
+  it("renders branch controls without labeling visual joins", () => {
     const model = buildWorkbenchModel(branchCanvasDocument);
 
     const html = renderToStaticMarkup(
@@ -15,8 +15,8 @@ describe("WorkflowCanvas", () => {
     expect(html).toContain("新增条件分支");
     expect(html).toContain("分支开头插入");
     expect(html).toContain("分支末尾追加");
-    expect(html).toContain("汇合后继续追加");
-    expect(html).toContain("汇合");
+    expect(html).toContain("继续追加");
+    expect(html).not.toContain("汇合");
   });
 });
 

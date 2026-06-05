@@ -129,7 +129,7 @@ function getEdgeMidpoint(layout: CanvasLayout, fromId: string, toId: string) {
 
 function CanvasLayoutMarker({ role, label }: { role: "branchHeader" | "join" | "emptyBranch"; label?: string }) {
   if (role === "join") {
-    return <div className="canvas-join-node">{label ?? "汇合"}</div>;
+    return <div className="canvas-join-node" aria-hidden="true" />;
   }
   if (role === "emptyBranch") {
     return <div className="canvas-empty-branch">{label ?? "空分支"}</div>;

@@ -319,7 +319,7 @@ export function buildCanvasLayout(model: WorkbenchModel): CanvasLayout {
         insertControls.push({
           id: `insert:${point.astAfterNodeId}->${toNodeId}`,
           kind: "insertNode",
-          label: "汇合后继续追加",
+          label: "继续追加",
           x: Math.round(((fromNode?.x ?? canvasCenterX) + (toNode?.x ?? canvasCenterX)) / 2),
           y: Math.round(((fromNode?.y ?? 0) + (toNode?.y ?? 0)) / 2),
           anchor,
@@ -446,7 +446,7 @@ export function buildCanvasLayout(model: WorkbenchModel): CanvasLayout {
     });
 
     const joinY = branchBottom + CANVAS_BRANCH_HEADER_GAP_Y;
-    layoutNodes.push({ id: joinId, role: "join", label: "汇合", x, y: joinY, width: CANVAS_JOIN_SIZE, height: CANVAS_JOIN_SIZE });
+    layoutNodes.push({ id: joinId, role: "join", x, y: joinY, width: CANVAS_JOIN_SIZE, height: CANVAS_JOIN_SIZE });
     for (const endId of branchEnds) {
       addEdge(endId, joinId, { containerNodeId: uiNode.id, position: "branchEnd" });
     }
