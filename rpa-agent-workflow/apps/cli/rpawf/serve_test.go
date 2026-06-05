@@ -294,6 +294,47 @@ func TestEditorServerApplyInsertNodeReturnsUpdatedProjection(t *testing.T) {
 	}
 }
 
+func TestEditorServerApplyInsertBranchReturnsUpdatedProjection(t *testing.T) {
+	workflow := testInsertWorkflow()
+	workflow.Body.Statements = []ast.Statement{
+		{
+			ID:   "choose_path",
+			Kind: "if",
+			Branches: []ast.Branch{
+				{ID: "condition_1", Label: "条件 1", Condition: &ast.Expression{Kind: "literal", Value: true}},
+				{ID: "else", Label: "否则", Default: true},
+			},
+		},
+		workflow.Body.Statements[0],
+	}
+	server := newEditorServer(workflow, nil)
+	op := editoperation.Document{
+		SchemaVersion: "1.0.0",
+		OperationID:   "insert-branch",
+		Type:          editoperation.OperationTypeInsertBranch,
+		TargetNodeID:  "choose_path",
+		Payload: map[string]any{
+			"nodeId":     "choose_path",
+			"branchKind": "condition",
+		},
+	}
+
+	response := postEdit(t, server, op)
+
+	if response.Code != http.StatusOK {
+		t.Fatalf("status = %d, want %d: %s", response.Code, http.StatusOK, response.Body.String())
+	}
+	var state testEditorStateResponse
+	decodeResponse(t, response, &state)
+	branches := state.AST.Body.Statements[0].Branches
+	if got := []string{branches[0].ID, branches[1].ID, branches[2].ID}; got[0] != "condition_1" || got[1] != "condition_2" || got[2] != "else" {
+		t.Fatalf("branch order = %#v", got)
+	}
+	if state.UI.Root.Children[0].Branches[1].Label != "条件 2" {
+		t.Fatalf("projected branch = %#v", state.UI.Root.Children[0].Branches)
+	}
+}
+
 func TestEditorServerApplyDeleteNodeReturnsUpdatedProjection(t *testing.T) {
 	workflow := testEditorWorkflow()
 	workflow.Body.Statements = append([]ast.Statement{

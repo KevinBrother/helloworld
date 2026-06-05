@@ -565,6 +565,19 @@ func validateEditOperation(op editoperation.Document) *diagnostic.Diagnostic {
 		if _, ok := op.Payload["node"]; !ok {
 			return editDiagnostic("EDIT_NODE_MISSING", "insertNode payload requires node", "$.payload.node")
 		}
+	case editoperation.OperationTypeInsertBranch:
+		if op.TargetNodeID == "" {
+			return editDiagnostic("EDIT_TARGET_MISSING", "insertBranch requires targetNodeId", "$.targetNodeId")
+		}
+		if op.Payload == nil {
+			return editDiagnostic("EDIT_PAYLOAD_MISSING", "insertBranch requires payload", "$.payload")
+		}
+		if _, ok := op.Payload["nodeId"]; !ok {
+			return editDiagnostic("EDIT_NODE_ID_MISSING", "insertBranch payload requires nodeId", "$.payload.nodeId")
+		}
+		if _, ok := op.Payload["branchKind"]; !ok {
+			return editDiagnostic("EDIT_BRANCH_KIND_MISSING", "insertBranch payload requires branchKind", "$.payload.branchKind")
+		}
 	case editoperation.OperationTypeDeleteNode:
 		if op.TargetNodeID == "" {
 			return editDiagnostic("EDIT_TARGET_MISSING", "deleteNode requires targetNodeId", "$.targetNodeId")
