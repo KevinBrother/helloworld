@@ -2,7 +2,7 @@ import { renderToStaticMarkup } from "react-dom/server";
 import { describe, expect, it } from "vitest";
 import type { UIDocument } from "../../types";
 import { buildWorkbenchModel } from "../../workbenchModel";
-import { calculateCanvasStage, calculateZoomScrollPosition, WorkflowCanvas } from "./WorkflowCanvas";
+import { calculateCanvasStage, calculateNextCanvasScale, calculateZoomScrollPosition, shouldZoomCanvasFromWheel, WorkflowCanvas } from "./WorkflowCanvas";
 
 describe("WorkflowCanvas", () => {
   it("renders branch controls without labeling visual joins", () => {
@@ -73,8 +73,15 @@ describe("WorkflowCanvas", () => {
     expect(html).toContain("缩小画布");
     expect(html).toContain("放大画布");
     expect(html).toContain("适配全量画布");
-    expect(html).toContain("滚轮平移已开启");
+    expect(html).not.toContain("滚轮平移已开启");
+    expect(html).not.toContain("滚轮缩放已开启");
     expect(html).toContain("100%");
+  });
+
+  it("keeps panning and zooming available at the same time", () => {
+    expect(shouldZoomCanvasFromWheel({ ctrlKey: false, metaKey: false })).toBe(false);
+    expect(shouldZoomCanvasFromWheel({ ctrlKey: true, metaKey: false })).toBe(true);
+    expect(shouldZoomCanvasFromWheel({ ctrlKey: false, metaKey: true })).toBe(true);
   });
 
   it("uses manual scale when one is provided", () => {
@@ -83,6 +90,18 @@ describe("WorkflowCanvas", () => {
     expect(stage.scale).toBe(0.75);
     expect(stage.scaledWidth).toBe(1500);
     expect(stage.scaledHeight).toBe(900);
+  });
+
+  it("clamps manual scale from 10% to 200%", () => {
+    expect(calculateCanvasStage(2000, 1200, 900, 600, 0.05).scale).toBe(0.1);
+    expect(calculateCanvasStage(2000, 1200, 900, 600, 2.4).scale).toBe(2);
+  });
+
+  it("uses slower 5% zoom steps", () => {
+    expect(calculateNextCanvasScale(0.32, 1)).toBe(0.37);
+    expect(calculateNextCanvasScale(0.37, 1)).toBe(0.42);
+    expect(calculateNextCanvasScale(0.12, -1)).toBe(0.1);
+    expect(calculateNextCanvasScale(1.98, 1)).toBe(2);
   });
 
   it("keeps the pointer position stable while zooming with wheel gestures", () => {

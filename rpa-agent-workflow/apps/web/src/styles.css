@@ -305,17 +305,6 @@ code {
   text-align: center;
 }
 
-.canvas-wheel-mode-button[aria-pressed="true"] {
-  border-color: color-mix(in oklab, var(--accent) 58%, var(--line-strong));
-  background: var(--accent-soft);
-  color: var(--accent-strong);
-}
-
-.canvas-wheel-mode-button span {
-  font-size: 0.76rem;
-  font-weight: 600;
-}
-
 .panel-heading {
   min-height: 54px;
   display: flex;
@@ -423,6 +412,12 @@ code {
     var(--surface);
   overscroll-behavior: contain;
   scrollbar-gutter: stable both-edges;
+  cursor: grab;
+}
+
+.canvas-scroll.is-panning {
+  cursor: grabbing;
+  user-select: none;
 }
 
 .workflow-stage {

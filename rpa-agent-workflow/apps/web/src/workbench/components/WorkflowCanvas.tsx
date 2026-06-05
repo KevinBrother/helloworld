@@ -1,5 +1,5 @@
-import { useCallback, useEffect, useMemo, useRef, useState, type CSSProperties } from "react";
-import { GitFork, Maximize2, Minus, MousePointer2, Plus } from "lucide-react";
+import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState, type CSSProperties, type PointerEvent } from "react";
+import { GitFork, Maximize2, Minus, Plus } from "lucide-react";
 import type { NodeRunState, NodeRunStateMap } from "../../runEvents";
 import { buildCanvasLayout, getNodeIoLabel, type CanvasLayout, type InsertAnchor, type WorkbenchModel, type WorkbenchNode } from "../../workbenchModel";
 
@@ -16,18 +16,20 @@ const CANVAS_SCROLL_BUFFER = 192;
 const CANVAS_FIT_MARGIN = 48;
 const CANVAS_FIT_MIN_SCALE = 0.32;
 const CANVAS_FIT_MAX_SCALE = 1;
-const CANVAS_MANUAL_MIN_SCALE = 0.32;
-const CANVAS_MANUAL_MAX_SCALE = 1.6;
-const CANVAS_ZOOM_STEP = 0.1;
+const CANVAS_MANUAL_MIN_SCALE = 0.1;
+const CANVAS_MANUAL_MAX_SCALE = 2;
+const CANVAS_ZOOM_STEP = 0.05;
 
 export function WorkflowCanvas({ model, nodeRunStates, selectedId, onSelect, onInsertAtEdge, onInsertBranch }: WorkflowCanvasProps) {
   const layout = buildCanvasLayout(model);
   const scrollRef = useRef<HTMLDivElement>(null);
   const lastCenteredSignatureRef = useRef("");
   const pendingScrollRef = useRef<{ mode: "center" } | { mode: "preserveCenter"; xRatio: number; yRatio: number } | { mode: "scrollTo"; left: number; top: number } | null>(null);
+  const dragPanRef = useRef<{ pointerId: number; startClientX: number; startClientY: number; startScrollLeft: number; startScrollTop: number } | null>(null);
+  const scaleRef = useRef(1);
   const [viewportSize, setViewportSize] = useState({ width: 0, height: 0 });
   const [manualScale, setManualScale] = useState<number | null>(null);
-  const [wheelMode, setWheelMode] = useState<"pan" | "zoom">("pan");
+  const [isPanning, setIsPanning] = useState(false);
   const stage = useMemo(
     () => calculateCanvasStage(layout.width, layout.height, viewportSize.width, viewportSize.height, manualScale),
     [layout.width, layout.height, manualScale, viewportSize.height, viewportSize.width],
@@ -48,7 +50,11 @@ export function WorkflowCanvas({ model, nodeRunStates, selectedId, onSelect, onI
     "--canvas-stage-width": `${stage.stageWidth}px`,
   } as CSSProperties;
 
-  useEffect(() => {
+  useLayoutEffect(() => {
+    scaleRef.current = stage.scale;
+  }, [stage.scale]);
+
+  useLayoutEffect(() => {
     const element = scrollRef.current;
     if (!element) return;
 
@@ -116,14 +122,17 @@ export function WorkflowCanvas({ model, nodeRunStates, selectedId, onSelect, onI
   }, [layout.height, layout.width, stage.stageHeight, stage.stageWidth, viewportSize.height, viewportSize.width]);
 
   const updateManualScale = (nextScale: number) => {
+    const boundedScale = clampCanvasScale(nextScale);
+    scaleRef.current = boundedScale;
     pendingScrollRef.current = getCurrentScrollCenter();
-    setManualScale(roundScale(clamp(nextScale, CANVAS_MANUAL_MIN_SCALE, CANVAS_MANUAL_MAX_SCALE)));
+    setManualScale(boundedScale);
   };
 
   const zoomAtPoint = useCallback(
     (nextScale: number, pointerClientX: number, pointerClientY: number) => {
       const element = scrollRef.current;
-      const boundedScale = roundScale(clamp(nextScale, CANVAS_MANUAL_MIN_SCALE, CANVAS_MANUAL_MAX_SCALE));
+      const boundedScale = clampCanvasScale(nextScale);
+      scaleRef.current = boundedScale;
       const nextStage = calculateCanvasStage(layout.width, layout.height, viewportSize.width, viewportSize.height, boundedScale);
       if (element) {
         const rect = element.getBoundingClientRect();
@@ -171,42 +180,68 @@ export function WorkflowCanvas({ model, nodeRunStates, selectedId, onSelect, onI
     if (!element) return;
 
     const handleWheel = (event: WheelEvent) => {
-      if (wheelMode !== "zoom" && !event.ctrlKey && !event.metaKey) return;
+      if (!shouldZoomCanvasFromWheel(event)) return;
       event.preventDefault();
       const direction = event.deltaY > 0 ? -1 : 1;
-      zoomAtPoint(stage.scale + direction * CANVAS_ZOOM_STEP, event.clientX, event.clientY);
+      zoomAtPoint(calculateNextCanvasScale(scaleRef.current, direction), event.clientX, event.clientY);
     };
 
     element.addEventListener("wheel", handleWheel, { passive: false });
     return () => element.removeEventListener("wheel", handleWheel);
-  }, [stage.scale, wheelMode, zoomAtPoint]);
+  }, [stage.scale, zoomAtPoint]);
+
+  const startDragPan = (event: PointerEvent<HTMLDivElement>) => {
+    if (event.button !== 0 || (event.target instanceof Element && event.target.closest("button"))) return;
+    const element = scrollRef.current;
+    if (!element) return;
+
+    dragPanRef.current = {
+      pointerId: event.pointerId,
+      startClientX: event.clientX,
+      startClientY: event.clientY,
+      startScrollLeft: element.scrollLeft,
+      startScrollTop: element.scrollTop,
+    };
+    element.setPointerCapture(event.pointerId);
+    setIsPanning(true);
+  };
+
+  const dragPan = (event: PointerEvent<HTMLDivElement>) => {
+    const drag = dragPanRef.current;
+    const element = scrollRef.current;
+    if (!drag || !element || drag.pointerId !== event.pointerId) return;
+
+    element.scrollLeft = drag.startScrollLeft - (event.clientX - drag.startClientX);
+    element.scrollTop = drag.startScrollTop - (event.clientY - drag.startClientY);
+  };
+
+  const stopDragPan = (event: PointerEvent<HTMLDivElement>) => {
+    const drag = dragPanRef.current;
+    const element = scrollRef.current;
+    if (!drag || drag.pointerId !== event.pointerId) return;
+
+    dragPanRef.current = null;
+    if (element?.hasPointerCapture(event.pointerId)) {
+      element.releasePointerCapture(event.pointerId);
+    }
+    setIsPanning(false);
+  };
 
   return (
     <section className="panel canvas-panel">
       <div className="canvas-zoom-controls" aria-label="画布缩放">
-        <button aria-label="缩小画布" disabled={stage.scale <= CANVAS_MANUAL_MIN_SCALE} onClick={() => updateManualScale(stage.scale - CANVAS_ZOOM_STEP)} title="缩小画布" type="button">
+        <button aria-label="缩小画布" disabled={stage.scale <= CANVAS_MANUAL_MIN_SCALE} onClick={() => updateManualScale(calculateNextCanvasScale(scaleRef.current, -1))} title="缩小画布" type="button">
           <Minus size={16} />
         </button>
         <span className="canvas-zoom-value" aria-live="polite">{zoomPercent}%</span>
-        <button aria-label="放大画布" disabled={stage.scale >= CANVAS_MANUAL_MAX_SCALE} onClick={() => updateManualScale(stage.scale + CANVAS_ZOOM_STEP)} title="放大画布" type="button">
+        <button aria-label="放大画布" disabled={stage.scale >= CANVAS_MANUAL_MAX_SCALE} onClick={() => updateManualScale(calculateNextCanvasScale(scaleRef.current, 1))} title="放大画布" type="button">
           <Plus size={16} />
         </button>
         <button aria-label="适配全量画布" disabled={manualScale === null || roundScale(stage.scale) === roundScale(fitScale)} onClick={fitCanvas} title="适配全量画布" type="button">
           <Maximize2 size={15} />
         </button>
-        <button
-          aria-label={wheelMode === "zoom" ? "滚轮缩放已开启" : "滚轮平移已开启"}
-          aria-pressed={wheelMode === "zoom"}
-          className="canvas-wheel-mode-button"
-          onClick={() => setWheelMode((mode) => (mode === "zoom" ? "pan" : "zoom"))}
-          title={wheelMode === "zoom" ? "滚轮缩放" : "滚轮平移"}
-          type="button"
-        >
-          <MousePointer2 size={15} />
-          <span>{wheelMode === "zoom" ? "缩放" : "平移"}</span>
-        </button>
       </div>
-      <div className="canvas-scroll" ref={scrollRef}>
+      <div className={`canvas-scroll ${isPanning ? "is-panning" : ""}`} onPointerCancel={stopDragPan} onPointerDown={startDragPan} onPointerMove={dragPan} onPointerUp={stopDragPan} ref={scrollRef}>
         <div className="workflow-stage" style={stageStyle}>
           <div className="workflow-zoom-shell">
             <div className="workflow-diagram" style={{ width: layout.width, minHeight: layout.height }} aria-label="流程画布">
@@ -307,6 +342,14 @@ export function calculateCanvasStage(layoutWidth: number, layoutHeight: number, 
   };
 }
 
+export function shouldZoomCanvasFromWheel(event: { ctrlKey: boolean; metaKey: boolean }) {
+  return event.ctrlKey || event.metaKey;
+}
+
+export function calculateNextCanvasScale(currentScale: number, direction: -1 | 1) {
+  return clampCanvasScale(currentScale + direction * CANVAS_ZOOM_STEP);
+}
+
 type CanvasStage = ReturnType<typeof calculateCanvasStage>;
 
 export function calculateZoomScrollPosition({
@@ -349,6 +392,10 @@ function calculateCanvasFitScale(layoutWidth: number, layoutHeight: number, view
 
 function clamp(value: number, min: number, max: number) {
   return Math.min(max, Math.max(min, roundScale(value)));
+}
+
+function clampCanvasScale(value: number) {
+  return clamp(value, CANVAS_MANUAL_MIN_SCALE, CANVAS_MANUAL_MAX_SCALE);
 }
 
 function roundScale(value: number) {
