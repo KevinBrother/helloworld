@@ -134,6 +134,73 @@ func TestApplyUpdateFieldRejectsTargetPathMismatch(t *testing.T) {
 	}
 }
 
+func TestApplyInsertNodeAddsCallBlockBetweenAdjacentSequenceChildren(t *testing.T) {
+	workflow := ast.Workflow{Body: ast.Statement{ID: "root", Kind: "sequence", Statements: []ast.Statement{
+		{ID: "first", Kind: "assign", Target: "var.first", Value: &ast.Expression{Kind: "literal", Value: float64(1)}},
+		{ID: "return_result", Kind: "return", Returns: map[string]ast.Expression{"result": {Kind: "ref", Ref: "var.first"}}},
+	}}}
+
+	updated, diags := ApplyEdit(workflow, editoperation.Document{
+		Type: editoperation.OperationTypeInsertNode,
+		Payload: map[string]any{
+			"anchor": map[string]any{"afterNodeId": "first", "beforeNodeId": "return_result"},
+			"node":   map[string]any{"kind": "callBlock", "block": "core.log"},
+		},
+	})
+
+	if len(diags) != 0 {
+		t.Fatalf("unexpected diagnostics: %#v", diags)
+	}
+	if got := []string{updated.Body.Statements[0].ID, updated.Body.Statements[1].Kind, updated.Body.Statements[2].ID}; got[0] != "first" || got[1] != "callBlock" || got[2] != "return_result" {
+		t.Fatalf("statement order = %#v", got)
+	}
+	if updated.Body.Statements[1].Block != "core.log" {
+		t.Fatalf("inserted block = %q, want core.log", updated.Body.Statements[1].Block)
+	}
+}
+
+func TestApplyInsertNodeAddsIfBetweenAdjacentSequenceChildren(t *testing.T) {
+	workflow := ast.Workflow{Body: ast.Statement{ID: "root", Kind: "sequence", Statements: []ast.Statement{
+		{ID: "first", Kind: "assign"},
+		{ID: "return_result", Kind: "return"},
+	}}}
+
+	updated, diags := ApplyEdit(workflow, editoperation.Document{
+		Type: editoperation.OperationTypeInsertNode,
+		Payload: map[string]any{
+			"anchor": map[string]any{"afterNodeId": "first", "beforeNodeId": "return_result"},
+			"node":   map[string]any{"kind": "if", "branchCount": float64(2)},
+		},
+	})
+
+	if len(diags) != 0 {
+		t.Fatalf("unexpected diagnostics: %#v", diags)
+	}
+	inserted := updated.Body.Statements[1]
+	if inserted.Kind != "if" || inserted.Condition == nil || inserted.Condition.Kind != "literal" || inserted.Condition.Value != true {
+		t.Fatalf("inserted if = %#v", inserted)
+	}
+}
+
+func TestApplyInsertNodeRejectsNonAdjacentAnchor(t *testing.T) {
+	workflow := ast.Workflow{Body: ast.Statement{ID: "root", Kind: "sequence", Statements: []ast.Statement{
+		{ID: "first", Kind: "assign"},
+		{ID: "middle", Kind: "assign"},
+		{ID: "return_result", Kind: "return"},
+	}}}
+
+	_, diags := ApplyEdit(workflow, editoperation.Document{
+		Type: editoperation.OperationTypeInsertNode,
+		Payload: map[string]any{
+			"anchor": map[string]any{"afterNodeId": "first", "beforeNodeId": "return_result"},
+			"node":   map[string]any{"kind": "if", "branchCount": float64(2)},
+		},
+	})
+	if len(diags) == 0 || diags[0].Code != "INSERT_ANCHOR_NOT_ADJACENT" {
+		t.Fatalf("expected INSERT_ANCHOR_NOT_ADJACENT diagnostic, got %#v", diags)
+	}
+}
+
 func TestApplyUnsupportedOperation(t *testing.T) {
 	_, diags := ApplyEdit(ast.Workflow{}, editoperation.Document{Type: "connectNodes"})
 	if len(diags) == 0 || diags[0].Code != "UNSUPPORTED_EDIT_OPERATION" {

@@ -17,6 +17,8 @@ func ApplyEdit(workflow ast.Workflow, op editoperation.Document) (ast.Workflow, 
 		return applyToggleCollapsed(workflow, op)
 	case editoperation.OperationTypeUpdateField:
 		return applyUpdateField(workflow, op)
+	case editoperation.OperationTypeInsertNode:
+		return applyInsertNode(workflow, op)
 	default:
 		return workflow, []diagnostic.Diagnostic{{
 			Code:     "UNSUPPORTED_EDIT_OPERATION",
@@ -25,6 +27,230 @@ func ApplyEdit(workflow ast.Workflow, op editoperation.Document) (ast.Workflow, 
 			Path:     "$.type",
 		}}
 	}
+}
+
+func applyInsertNode(workflow ast.Workflow, op editoperation.Document) (ast.Workflow, []diagnostic.Diagnostic) {
+	anchor, ok := op.Payload["anchor"].(map[string]any)
+	if !ok {
+		return workflow, []diagnostic.Diagnostic{editPayloadDiagnostic("INVALID_INSERT_PAYLOAD", "insertNode payload requires anchor", "$.payload.anchor")}
+	}
+	node, ok := op.Payload["node"].(map[string]any)
+	if !ok {
+		return workflow, []diagnostic.Diagnostic{editPayloadDiagnostic("INVALID_INSERT_PAYLOAD", "insertNode payload requires node", "$.payload.node")}
+	}
+
+	afterNodeID, _ := anchor["afterNodeId"].(string)
+	beforeNodeID, _ := anchor["beforeNodeId"].(string)
+	if afterNodeID == "" || beforeNodeID == "" {
+		return workflow, []diagnostic.Diagnostic{editPayloadDiagnostic("INVALID_INSERT_PAYLOAD", "insertNode anchor requires afterNodeId and beforeNodeId", "$.payload.anchor")}
+	}
+
+	stmt, diag := buildInsertedStatement(workflow, node)
+	if diag != nil {
+		return workflow, []diagnostic.Diagnostic{*diag}
+	}
+	inserted, foundPair := insertBetween(&workflow.Body, afterNodeID, beforeNodeID, stmt)
+	if inserted {
+		return workflow, nil
+	}
+	code := "INSERT_ANCHOR_NOT_FOUND"
+	message := fmt.Sprintf("insert anchor %q -> %q was not found", afterNodeID, beforeNodeID)
+	if foundPair {
+		code = "INSERT_ANCHOR_NOT_ADJACENT"
+		message = fmt.Sprintf("insert anchor %q -> %q is not adjacent", afterNodeID, beforeNodeID)
+	}
+	return workflow, []diagnostic.Diagnostic{editPayloadDiagnostic(code, message, "$.payload.anchor")}
+}
+
+func buildInsertedStatement(workflow ast.Workflow, node map[string]any) (ast.Statement, *diagnostic.Diagnostic) {
+	kind, _ := node["kind"].(string)
+	switch kind {
+	case "callBlock":
+		blockID, _ := node["block"].(string)
+		if blockID == "" {
+			diag := editPayloadDiagnostic("INVALID_INSERT_PAYLOAD", "callBlock insert requires block", "$.payload.node.block")
+			return ast.Statement{}, &diag
+		}
+		return ast.Statement{
+			ID:     uniqueStatementID(workflow, slugStatementID(blockID)),
+			Kind:   "callBlock",
+			Block:  blockID,
+			Inputs: map[string]ast.Expression{},
+		}, nil
+	case "if":
+		return ast.Statement{
+			ID:        uniqueStatementID(workflow, "if_node"),
+			Kind:      "if",
+			Condition: &ast.Expression{Kind: "literal", Value: true},
+			Then:      []ast.Statement{},
+			Else:      []ast.Statement{},
+		}, nil
+	case "parallel":
+		branchCount := insertBranchCount(node)
+		branches := make([]ast.Branch, branchCount)
+		for i := range branches {
+			branches[i] = ast.Branch{ID: fmt.Sprintf("branch_%d", i+1), Body: []ast.Statement{}}
+		}
+		return ast.Statement{
+			ID:       uniqueStatementID(workflow, "parallel_node"),
+			Kind:     "parallel",
+			Branches: branches,
+		}, nil
+	default:
+		diag := editPayloadDiagnostic("UNSUPPORTED_INSERT_NODE_KIND", fmt.Sprintf("unsupported insert node kind %q", kind), "$.payload.node.kind")
+		return ast.Statement{}, &diag
+	}
+}
+
+func insertBranchCount(node map[string]any) int {
+	count := 2
+	switch value := node["branchCount"].(type) {
+	case int:
+		count = value
+	case int64:
+		count = int(value)
+	case float64:
+		count = int(value)
+	}
+	if count < 2 {
+		return 2
+	}
+	return count
+}
+
+func insertBetween(stmt *ast.Statement, afterNodeID string, beforeNodeID string, inserted ast.Statement) (bool, bool) {
+	if stmt == nil {
+		return false, false
+	}
+	if ok, foundPair := insertBetweenInList(&stmt.Statements, afterNodeID, beforeNodeID, inserted); ok || foundPair {
+		return ok, foundPair
+	}
+	if ok, foundPair := insertBetweenInList(&stmt.Then, afterNodeID, beforeNodeID, inserted); ok || foundPair {
+		return ok, foundPair
+	}
+	if ok, foundPair := insertBetweenInList(&stmt.Else, afterNodeID, beforeNodeID, inserted); ok || foundPair {
+		return ok, foundPair
+	}
+	for i := range stmt.Branches {
+		if ok, foundPair := insertBetweenInList(&stmt.Branches[i].Body, afterNodeID, beforeNodeID, inserted); ok || foundPair {
+			return ok, foundPair
+		}
+	}
+	for i := range stmt.Catches {
+		if ok, foundPair := insertBetweenInList(&stmt.Catches[i].Body, afterNodeID, beforeNodeID, inserted); ok || foundPair {
+			return ok, foundPair
+		}
+	}
+	if ok, foundPair := insertBetweenInList(&stmt.Finally, afterNodeID, beforeNodeID, inserted); ok || foundPair {
+		return ok, foundPair
+	}
+
+	foundAny := false
+	for i := range stmt.Statements {
+		ok, foundPair := insertBetween(&stmt.Statements[i], afterNodeID, beforeNodeID, inserted)
+		if ok {
+			return true, true
+		}
+		foundAny = foundAny || foundPair
+	}
+	for i := range stmt.Then {
+		ok, foundPair := insertBetween(&stmt.Then[i], afterNodeID, beforeNodeID, inserted)
+		if ok {
+			return true, true
+		}
+		foundAny = foundAny || foundPair
+	}
+	for i := range stmt.Else {
+		ok, foundPair := insertBetween(&stmt.Else[i], afterNodeID, beforeNodeID, inserted)
+		if ok {
+			return true, true
+		}
+		foundAny = foundAny || foundPair
+	}
+	for i := range stmt.Branches {
+		for j := range stmt.Branches[i].Body {
+			ok, foundPair := insertBetween(&stmt.Branches[i].Body[j], afterNodeID, beforeNodeID, inserted)
+			if ok {
+				return true, true
+			}
+			foundAny = foundAny || foundPair
+		}
+	}
+	for i := range stmt.Catches {
+		for j := range stmt.Catches[i].Body {
+			ok, foundPair := insertBetween(&stmt.Catches[i].Body[j], afterNodeID, beforeNodeID, inserted)
+			if ok {
+				return true, true
+			}
+			foundAny = foundAny || foundPair
+		}
+	}
+	for i := range stmt.Finally {
+		ok, foundPair := insertBetween(&stmt.Finally[i], afterNodeID, beforeNodeID, inserted)
+		if ok {
+			return true, true
+		}
+		foundAny = foundAny || foundPair
+	}
+	return false, foundAny
+}
+
+func insertBetweenInList(stmts *[]ast.Statement, afterNodeID string, beforeNodeID string, inserted ast.Statement) (bool, bool) {
+	list := *stmts
+	afterIndex := -1
+	beforeIndex := -1
+	for i, stmt := range list {
+		if stmt.ID == afterNodeID {
+			afterIndex = i
+		}
+		if stmt.ID == beforeNodeID {
+			beforeIndex = i
+		}
+	}
+	if afterIndex < 0 || beforeIndex < 0 {
+		return false, false
+	}
+	if beforeIndex != afterIndex+1 {
+		return false, true
+	}
+	list = append(list, ast.Statement{})
+	copy(list[afterIndex+2:], list[afterIndex+1:])
+	list[afterIndex+1] = inserted
+	*stmts = list
+	return true, true
+}
+
+func uniqueStatementID(workflow ast.Workflow, base string) string {
+	if base == "" {
+		base = "node"
+	}
+	if findStatementByID(&workflow.Body, base) == nil {
+		return base
+	}
+	for i := 2; ; i++ {
+		candidate := fmt.Sprintf("%s_%d", base, i)
+		if findStatementByID(&workflow.Body, candidate) == nil {
+			return candidate
+		}
+	}
+}
+
+func slugStatementID(value string) string {
+	value = strings.ToLower(value)
+	var b strings.Builder
+	lastUnderscore := false
+	for _, r := range value {
+		if r >= 'a' && r <= 'z' || r >= '0' && r <= '9' {
+			b.WriteRune(r)
+			lastUnderscore = false
+			continue
+		}
+		if !lastUnderscore {
+			b.WriteByte('_')
+			lastUnderscore = true
+		}
+	}
+	return strings.Trim(b.String(), "_")
 }
 
 func applyToggleCollapsed(workflow ast.Workflow, op editoperation.Document) (ast.Workflow, []diagnostic.Diagnostic) {
@@ -345,6 +571,15 @@ func unsafeEditPathDiagnostic(message string) diagnostic.Diagnostic {
 		Severity: diagnostic.SeverityError,
 		Message:  message,
 		Path:     "$.path",
+	}
+}
+
+func editPayloadDiagnostic(code string, message string, path string) diagnostic.Diagnostic {
+	return diagnostic.Diagnostic{
+		Code:     code,
+		Severity: diagnostic.SeverityError,
+		Message:  message,
+		Path:     path,
 	}
 }
 
