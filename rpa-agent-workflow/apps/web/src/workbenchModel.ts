@@ -388,7 +388,7 @@ function toWorkbenchNode(
   const inputs = fields
     .filter(isInputField)
     .flatMap((field) => toInputFields(field, order === 0 && node.kind === "sequence", workflowInputValues));
-  const outputs = fields.filter(isOutputField).map((field) => toWorkbenchField(field, false, node.kind === "return"));
+  const outputs = fields.filter(isOutputField).map((field) => toWorkbenchField(field, false, false));
 
   if (node.kind === "callBlock" && outputs.length === 0) {
     outputs.push({

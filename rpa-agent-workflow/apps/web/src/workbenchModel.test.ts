@@ -162,7 +162,7 @@ describe("workbench model", () => {
     ]);
   });
 
-  it("models return outputs as declarations without resolved values", () => {
+  it("models return values as editable expressions", () => {
     const returnNode = model.nodes.find((node) => node.id === "return_result")!;
 
     expect(returnNode.outputs).toEqual([
@@ -170,9 +170,9 @@ describe("workbench model", () => {
         key: "result",
         label: "result",
         type: "number",
-        control: "readonly",
-        readonly: true,
-        value: undefined,
+        control: "reference",
+        readonly: undefined,
+        value: { kind: "ref", ref: "node.branch_by_threshold.result" },
       }),
     ]);
   });
