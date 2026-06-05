@@ -58,6 +58,8 @@ export type WorkbenchModel = {
   blockOptions: BlockOption[];
 };
 
+type WorkflowInputValues = Record<string, unknown>;
+
 export type CanvasTopology = {
   start?: WorkbenchNode;
   decision?: WorkbenchNode;
@@ -113,7 +115,7 @@ const CANVAS_BRANCH_START_GAP_Y = 124;
 const CANVAS_BRANCH_LANE_GAP_X = 320;
 
 export function buildWorkbenchModel(document: UIDocument, blockCatalog: BlockDefinition[] = []): WorkbenchModel {
-  const nodes = flattenWorkbenchNodes(document.root);
+  const nodes = flattenWorkbenchNodes(document.root, workflowInputValuesFromDocument(document));
   const sources = buildSources(nodes);
   const instances = new Map<string, number>();
 
@@ -338,11 +340,11 @@ function unique(values: string[]) {
   return [...new Set(values)];
 }
 
-function flattenWorkbenchNodes(root: UINode) {
+function flattenWorkbenchNodes(root: UINode, workflowInputValues: WorkflowInputValues) {
   const nodes: WorkbenchNode[] = [];
 
   const visit = (node: UINode, branch?: string) => {
-    nodes.push(toWorkbenchNode(node, nodes.length, branch));
+    nodes.push(toWorkbenchNode(node, nodes.length, branch, workflowInputValues));
     for (const child of node.children ?? []) {
       visit(child, branch);
     }
@@ -357,9 +359,11 @@ function flattenWorkbenchNodes(root: UINode) {
   return nodes;
 }
 
-function toWorkbenchNode(node: UINode, order: number, branch?: string): WorkbenchNode {
+function toWorkbenchNode(node: UINode, order: number, branch: string | undefined, workflowInputValues: WorkflowInputValues): WorkbenchNode {
   const fields = node.inspector ?? [];
-  const inputs = fields.filter(isInputField).flatMap((field) => toInputFields(field, order === 0 && node.kind === "sequence"));
+  const inputs = fields
+    .filter(isInputField)
+    .flatMap((field) => toInputFields(field, order === 0 && node.kind === "sequence", workflowInputValues));
   const outputs = fields.filter(isOutputField).map((field) => toWorkbenchField(field, false, node.kind === "return"));
 
   if (node.kind === "callBlock" && outputs.length === 0) {
@@ -421,7 +425,12 @@ function isOutputField(field: InspectorField) {
   return field.path.includes(".outputs.") || field.path.includes(".returns.");
 }
 
-function toWorkbenchField(field: InspectorField, editableWorkflowInput = false, declarationOnly = false): WorkbenchField {
+function toWorkbenchField(
+  field: InspectorField,
+  editableWorkflowInput = false,
+  declarationOnly = false,
+  workflowInputValues: WorkflowInputValues = {},
+): WorkbenchField {
   const key = fieldKey(field);
   return {
     key,
@@ -429,13 +438,13 @@ function toWorkbenchField(field: InspectorField, editableWorkflowInput = false, 
     type: inferFieldType(field),
     control: declarationOnly ? "readonly" : editableWorkflowInput ? "input" : inferControl(field),
     path: field.path,
-    value: declarationOnly ? undefined : field.control === "port" ? workflowInputValue(field, key) : field.value,
+    value: declarationOnly ? undefined : field.control === "port" ? workflowInputValue(field, key, workflowInputValues) : field.value,
     readonly: declarationOnly ? true : editableWorkflowInput ? false : field.readonly,
     options: inferOptions(key, field.path),
   };
 }
 
-function toInputFields(field: InspectorField, editableWorkflowInput = false): WorkbenchField[] {
+function toInputFields(field: InspectorField, editableWorkflowInput = false, workflowInputValues: WorkflowInputValues = {}): WorkbenchField[] {
   if (field.label === "Condition" && isExpressionRecord(field.value) && field.value.kind === "binary") {
     const operatorValue = isRecord(field.value.operator) ? field.value.operator : { kind: "literal", value: String(field.value.op ?? ">") };
     return [
@@ -469,7 +478,7 @@ function toInputFields(field: InspectorField, editableWorkflowInput = false): Wo
     ];
   }
 
-  return [toWorkbenchField(field, editableWorkflowInput)];
+  return [toWorkbenchField(field, editableWorkflowInput, false, workflowInputValues)];
 }
 
 function buildSources(nodes: WorkbenchNode[]) {
@@ -520,11 +529,20 @@ function isCompatibleSource(field: WorkbenchField, source: WorkbenchSource) {
   return source.options.every((option) => allowed.has(option));
 }
 
-function workflowInputValue(field: InspectorField, key: string) {
+function workflowInputValue(field: InspectorField, key: string, workflowInputValues: WorkflowInputValues) {
+  if (Object.hasOwn(workflowInputValues, key)) {
+    return workflowInputValues[key];
+  }
   if (isExpressionRecord(field.value)) {
     return field.value;
   }
   return SAMPLE_INPUT_VALUES[key] ?? "";
+}
+
+function workflowInputValuesFromDocument(document: UIDocument): WorkflowInputValues {
+  const value = document.metadata?.workflowInputValues;
+  if (!isRecord(value)) return {};
+  return value;
 }
 
 function isWorkflowInputNode(node: WorkbenchNode) {

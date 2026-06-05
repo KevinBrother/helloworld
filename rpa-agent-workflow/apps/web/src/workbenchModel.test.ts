@@ -94,10 +94,14 @@ describe("workbench model", () => {
     expect(getSourceOptions(model.nodes, branchNode.id, conditionOperator).map((source) => source.id)).toEqual([]);
   });
 
-  it("uses edited workflow input values instead of falling back to samples", () => {
+  it("uses workflow input values from document metadata instead of falling back to samples", () => {
     const editedDocument = structuredClone(sampleDocument) as UIDocument;
-    const operatorPort = editedDocument.root.inspector!.find((field) => field.path === "$.inputs.operator")!;
-    operatorPort.value = { kind: "literal", value: "-" };
+    editedDocument.metadata = {
+      ...editedDocument.metadata,
+      workflowInputValues: {
+        operator: "-",
+      },
+    };
 
     const editedModel = buildWorkbenchModel(editedDocument);
     const startNode = editedModel.nodes.find((node) => node.id === "root")!;
@@ -105,6 +109,7 @@ describe("workbench model", () => {
 
     expect(getResolvedFieldValue(operatorField, editedModel.sourcesById)).toBe("-");
     expect(editedModel.sourcesById.get("input.operator")?.displayValue).toBe("-");
+    expect(operatorField.type).toBe("string");
   });
 
   it("filters source choices by expected field type", () => {

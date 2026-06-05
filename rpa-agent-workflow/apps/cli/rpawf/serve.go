@@ -127,6 +127,24 @@ func (s *editorServer) handleWorkflowOpen(w http.ResponseWriter, r *http.Request
 		})
 		return
 	}
+	if !filepath.IsAbs(source) {
+		respondDiagnostics(w, http.StatusBadRequest, diagnostic.Diagnostic{
+			Code:     "WORKFLOW_SOURCE_NOT_ABSOLUTE",
+			Severity: diagnostic.SeverityError,
+			Message:  "workflow source must be an absolute ast.json path",
+			Path:     "$.source",
+		})
+		return
+	}
+	if filepath.Base(source) != "ast.json" {
+		respondDiagnostics(w, http.StatusBadRequest, diagnostic.Diagnostic{
+			Code:     "WORKFLOW_SOURCE_NOT_AST_JSON",
+			Severity: diagnostic.SeverityError,
+			Message:  "workflow source must point to ast.json",
+			Path:     "$.source",
+		})
+		return
+	}
 
 	data, err := os.ReadFile(source)
 	if err != nil {

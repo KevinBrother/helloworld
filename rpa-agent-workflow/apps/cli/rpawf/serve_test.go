@@ -206,19 +206,38 @@ func TestEditorServerOpenWorkflowSourceReplacesRunnableWorkflow(t *testing.T) {
 	}
 }
 
-func TestEditorServerOpenWorkflowSourceSupportsRelativePaths(t *testing.T) {
+func TestEditorServerOpenWorkflowSourceRejectsRelativePaths(t *testing.T) {
 	server := newEditorServer(testRunnableWorkflow(), nil)
 	source := filepath.Join("..", "..", "..", "examples", "fs-workflow", "ast.json")
 
 	response := postOpenWorkflow(t, server, source)
 
-	if response.Code != http.StatusOK {
-		t.Fatalf("status = %d, want %d: %s", response.Code, http.StatusOK, response.Body.String())
+	if response.Code != http.StatusBadRequest {
+		t.Fatalf("status = %d, want %d: %s", response.Code, http.StatusBadRequest, response.Body.String())
 	}
 	var state testEditorStateResponse
 	decodeResponse(t, response, &state)
-	if state.AST.Workflow.ID != "fs_workflow" || state.UI.WorkflowID != "fs_workflow" {
-		t.Fatalf("loaded state = %#v, want fs_workflow ast and ui projection", state)
+	if len(state.Diagnostics) != 1 || state.Diagnostics[0].Code != "WORKFLOW_SOURCE_NOT_ABSOLUTE" {
+		t.Fatalf("diagnostics = %#v, want WORKFLOW_SOURCE_NOT_ABSOLUTE", state.Diagnostics)
+	}
+}
+
+func TestEditorServerOpenWorkflowSourceRejectsNonASTFilename(t *testing.T) {
+	server := newEditorServer(testRunnableWorkflow(), nil)
+	source := filepath.Join(t.TempDir(), "ui-node.json")
+	if err := os.WriteFile(source, []byte(`{}`), 0o644); err != nil {
+		t.Fatal(err)
+	}
+
+	response := postOpenWorkflow(t, server, source)
+
+	if response.Code != http.StatusBadRequest {
+		t.Fatalf("status = %d, want %d: %s", response.Code, http.StatusBadRequest, response.Body.String())
+	}
+	var state testEditorStateResponse
+	decodeResponse(t, response, &state)
+	if len(state.Diagnostics) != 1 || state.Diagnostics[0].Code != "WORKFLOW_SOURCE_NOT_AST_JSON" {
+		t.Fatalf("diagnostics = %#v, want WORKFLOW_SOURCE_NOT_AST_JSON", state.Diagnostics)
 	}
 }
 

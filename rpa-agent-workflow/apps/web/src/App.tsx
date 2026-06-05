@@ -5,6 +5,8 @@ import { reduceRunMessage, runWorkflowStream, type NodeRunStateMap } from "./run
 import { validateWorkflowRunInputs } from "./runInputValidation";
 import { findInvalidConditionOperatorRepairs } from "./runReadiness";
 import { buildWorkbenchModel, type InsertAnchor, type WorkbenchField, type WorkbenchNode } from "./workbenchModel";
+import { clearWorkflowDraft, loadWorkflowDraft, saveWorkflowDraft } from "./workflowDraft";
+import { workflowSourceFromSearch } from "./workflowSource";
 import { CreateNodeModal } from "./workbench/components/CreateNodeModal";
 import { DeleteNodeModal } from "./workbench/components/DeleteNodeModal";
 import { Header, type SaveState } from "./workbench/components/Header";
@@ -42,6 +44,8 @@ function App() {
   const [pendingInsertAnchor, setPendingInsertAnchor] = useState<InsertAnchor | null>(null);
   const [deleteModalNode, setDeleteModalNode] = useState<WorkbenchNode | null>(null);
   const [nodeEditPending, setNodeEditPending] = useState(false);
+  const [workflowSource, setWorkflowSource] = useState<string | null>(null);
+  const [pendingOperations, setPendingOperations] = useState<EditOperation[]>([]);
 
   const model = useMemo(() => (uiDocument ? buildWorkbenchModel(uiDocument, blockCatalog) : null), [uiDocument, blockCatalog]);
   const runAvailability = useMemo(() => getRunAvailability(serverAvailable, saveState), [serverAvailable, saveState]);
@@ -71,14 +75,30 @@ function App() {
     }
 
     try {
-      const [blocks, state] = await Promise.all([requestJSON<BlocksResponse>("/api/blocks"), loadInitialWorkflowState()]);
+      const source = requiredWorkflowSourceFromURL();
+      const [blocks, state] = await Promise.all([requestJSON<BlocksResponse>("/api/blocks"), openWorkflowSource(source)]);
       if (options?.cancelled?.()) return;
-      applyServerState(state);
       setBlockCatalog(blocks.blocks ?? []);
+      setWorkflowSource(source);
       setServerAvailable(true);
-      setSaveState("saved");
       setServiceError("");
-      setStatus(sourceFromURL() ? `已打开工作流：${sourceFromURL()}` : "流程服务已连接");
+
+      const draft = loadDraft(source);
+      if (draft) {
+        const normalizedDraft = normalizeLoadedDraft(draft, state.ui);
+        setUIDocument(normalizedDraft.ui);
+        setDiagnostics(state.diagnostics ?? []);
+        setSelectedNodeId(findNode(normalizedDraft.ui.root, normalizedDraft.selectedNodeId) ? normalizedDraft.selectedNodeId : normalizedDraft.ui.root.id);
+        setPendingOperations(normalizedDraft.pendingOperations);
+        saveDraft(normalizedDraft);
+        setSaveState(normalizedDraft.pendingOperations.length > 0 ? "sample" : "saved");
+        setStatus(normalizedDraft.pendingOperations.length > 0 ? `已恢复本地草稿：${source}` : `已恢复本地运行输入：${source}`);
+      } else {
+        applyServerState(state);
+        setPendingOperations([]);
+        setSaveState("saved");
+        setStatus(`已打开工作流：${source}`);
+      }
     } catch (error) {
       if (options?.cancelled?.()) return;
       const message = formatError(error);
@@ -86,7 +106,7 @@ function App() {
       setSaveState("sample");
       setBlockCatalog([]);
       setServiceError(message);
-      setStatus(`使用示例流程：${message}`);
+      setStatus(message);
     } finally {
       if (!options?.cancelled?.()) {
         setServiceRetrying(false);
@@ -103,6 +123,11 @@ function App() {
   }, []);
 
   const submitFieldUpdate = async (node: WorkbenchNode, field: WorkbenchField, value: unknown) => {
+    if (!uiDocument) {
+      setStatus("流程尚未加载，不能修改字段。");
+      return;
+    }
+
     const operation: EditOperation = {
       schemaVersion: "1.0.0",
       operationId: makeOperationId("update"),
@@ -113,33 +138,28 @@ function App() {
       actor: DEFAULT_ACTOR,
     };
 
-    setUIDocument((current) => (current ? updateFieldValue(current, node.id, field.path, value) : current));
+    const workflowRunInput = isWorkflowRunInputField(node, field);
+    const nextDocument = workflowRunInput ? updateWorkflowRunInputValue(uiDocument, field.key, value) : updateFieldValue(uiDocument, node.id, field.path, value);
+    const nextOperations = workflowRunInput ? pendingOperations : [...pendingOperations, operation];
+    setUIDocument(nextDocument);
+    setPendingOperations(nextOperations);
 
-    if (!serverAvailable) {
-      setSaveState("sample");
-      setStatus("修改已在本地应用");
-      return;
+    if (workflowSource) {
+      saveDraft({
+        pendingOperations: nextOperations,
+        selectedNodeId,
+        source: workflowSource,
+        ui: nextDocument,
+      });
     }
 
-    setSaveState("saving");
-    try {
-      const state = await requestJSON<EditorStateResponse>("/api/edit", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(operation),
-      });
-      applyServerState(state);
-      setSaveState("saved");
-      setStatus("流程已保存");
-    } catch (error) {
-      const apiError = normalizeAPIError(error);
-      setSaveState("failed");
-      setDiagnostics(apiError.diagnostics);
-      setStatus(apiError.message);
-      if (apiError.network) {
-        setServerAvailable(false);
-        setServiceError(apiError.message);
-      }
+    setSaveState(nextOperations.length > 0 ? "sample" : "saved");
+    if (!workflowSource) {
+      setStatus("URL 缺少 workflow 的 ast.json 绝对路径，不能保存草稿。");
+    } else if (workflowRunInput) {
+      setStatus("运行输入已保存到本地");
+    } else {
+      setStatus("修改已保存到本地草稿");
     }
   };
 
@@ -178,6 +198,10 @@ function App() {
 
   const handleInsertAtEdge = (anchor: InsertAnchor) => {
     setOpenSourceKey(null);
+    if (pendingOperations.length > 0) {
+      setStatus("先保存本地草稿，再修改流程结构。");
+      return;
+    }
     if (!serverAvailable) {
       setStatus("流程服务未连接，不能新增节点");
       return;
@@ -187,6 +211,10 @@ function App() {
 
   const handleCreateNode = async (node: InsertNodeSpec) => {
     if (!pendingInsertAnchor) return;
+    if (pendingOperations.length > 0) {
+      setStatus("先保存本地草稿，再新增节点。");
+      return;
+    }
     const ok = await submitServerEdit(
       buildInsertNodeOperation(makeOperationId("insert"), DEFAULT_ACTOR, pendingInsertAnchor, node),
       "节点已新增",
@@ -198,9 +226,69 @@ function App() {
 
   const handleDeleteNode = async () => {
     if (!deleteModalNode) return;
+    if (pendingOperations.length > 0) {
+      setStatus("先保存本地草稿，再删除节点。");
+      return;
+    }
     const ok = await submitServerEdit(buildDeleteNodeOperation(makeOperationId("delete"), DEFAULT_ACTOR, deleteModalNode), "节点已删除");
     if (ok) {
       setDeleteModalNode(null);
+    }
+  };
+
+  const handleSaveWorkflow = async () => {
+    if (saveState === "saving") {
+      setStatus("流程保存中，请等待当前保存完成。");
+      return;
+    }
+    if (!workflowSource) {
+      setStatus("URL 缺少 workflow 的 ast.json 绝对路径，不能保存流程。");
+      return;
+    }
+    if (!serverAvailable) {
+      setStatus("流程服务未连接，不能保存到服务端。");
+      return;
+    }
+    if (pendingOperations.length === 0) {
+      setSaveState("saved");
+      setStatus("运行输入已保存在本地，没有流程修改需要同步。");
+      return;
+    }
+
+    setSaveState("saving");
+    try {
+      let latestState: EditorStateResponse | null = null;
+      for (const operation of pendingOperations) {
+        latestState = await requestJSON<EditorStateResponse>("/api/edit", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(operation),
+        });
+      }
+      const savedState = latestState ? preserveWorkflowRunInputs(latestState, uiDocument) : null;
+      if (savedState) applyServerState(savedState);
+      setPendingOperations([]);
+      if (savedState) {
+        saveDraft({
+          pendingOperations: [],
+          selectedNodeId,
+          source: workflowSource,
+          ui: savedState.ui,
+        });
+      } else {
+        clearDraft(workflowSource);
+      }
+      setSaveState("saved");
+      setStatus("流程已保存到服务端");
+    } catch (error) {
+      const apiError = normalizeAPIError(error);
+      setSaveState("failed");
+      setDiagnostics(apiError.diagnostics);
+      setStatus(apiError.message);
+      if (apiError.network) {
+        setServerAvailable(false);
+        setServiceError(apiError.message);
+      }
     }
   };
 
@@ -225,6 +313,10 @@ function App() {
     const repairs = findInvalidConditionOperatorRepairs(model);
     for (const repair of repairs) {
       await submitFieldUpdate(repair.node, repair.field, repair.value);
+    }
+    if (repairs.length > 0) {
+      setStatus("已修正本地草稿，请保存流程后再运行。");
+      return;
     }
 
     const validation = validateWorkflowRunInputs(workflowInputNode?.inputs);
@@ -271,9 +363,9 @@ function App() {
     <div className="workbench-shell">
       <Header
         runPending={runPending}
-        serverAvailable={serverAvailable}
         status={status}
         workflowName={model?.workflowName ?? "Workflow Editor"}
+        onSave={() => void handleSaveWorkflow()}
         onRun={() => {
           setOpenSourceKey(null);
           setRunModalOpen(true);
@@ -363,6 +455,20 @@ function updateFieldValue(document: UIDocument, nodeId: string, path: string, va
   };
 }
 
+function updateWorkflowRunInputValue(document: UIDocument, key: string, value: unknown): UIDocument {
+  const currentValues = workflowInputValues(document);
+  return {
+    ...document,
+    metadata: {
+      ...document.metadata,
+      workflowInputValues: {
+        ...currentValues,
+        [key]: value,
+      },
+    },
+  };
+}
+
 function updateInspectorFieldValue(field: NonNullable<UINode["inspector"]>[number], path: string, value: unknown) {
   if (field.path === path) {
     return { ...field, value };
@@ -414,20 +520,75 @@ function findNode(root: UINode, id: string): UINode | null {
   return null;
 }
 
+function normalizeLoadedDraft(draft: Parameters<typeof saveWorkflowDraft>[1], serverUI: UIDocument) {
+  let ui = restoreWorkflowInputDeclarations(draft.ui, serverUI);
+  const pendingOperations: EditOperation[] = [];
+  for (const operation of draft.pendingOperations) {
+    if (isWorkflowInputPath(operation.path)) {
+      const key = workflowInputKey(operation.path);
+      if (key) ui = updateWorkflowRunInputValue(ui, key, operation.payload?.value);
+      continue;
+    }
+    pendingOperations.push(operation);
+  }
+  return {
+    ...draft,
+    pendingOperations,
+    ui,
+  };
+}
+
+function restoreWorkflowInputDeclarations(draftUI: UIDocument, serverUI: UIDocument): UIDocument {
+  const serverFields = new Map((serverUI.root.inspector ?? []).filter((field) => isWorkflowInputPath(field.path)).map((field) => [field.path, field]));
+  return {
+    ...draftUI,
+    root: {
+      ...draftUI.root,
+      inspector: draftUI.root.inspector?.map((field) => serverFields.get(field.path) ?? field),
+    },
+  };
+}
+
+function preserveWorkflowRunInputs(state: EditorStateResponse, sourceDocument: UIDocument | null): EditorStateResponse {
+  if (!sourceDocument) return state;
+  return {
+    ...state,
+    ui: {
+      ...state.ui,
+      metadata: {
+        ...state.ui.metadata,
+        workflowInputValues: workflowInputValues(sourceDocument),
+      },
+    },
+  };
+}
+
+function workflowInputValues(document: UIDocument) {
+  const value = document.metadata?.workflowInputValues;
+  return isRecord(value) ? value : {};
+}
+
+function isWorkflowRunInputField(node: WorkbenchNode, field: WorkbenchField) {
+  return node.kind === "sequence" && node.order === 0 && isWorkflowInputPath(field.path);
+}
+
+function isWorkflowInputPath(path: string | undefined): path is string {
+  return typeof path === "string" && path.startsWith("$.inputs.");
+}
+
+function workflowInputKey(path: string | undefined) {
+  if (!isWorkflowInputPath(path)) return "";
+  return path.slice("$.inputs.".length);
+}
+
 async function requestJSON<T>(url: string, init?: RequestInit): Promise<T> {
   const response = await fetch(url, init);
   if (!response.ok) {
-    throw new Error(`Request failed with status ${response.status}`);
+    const diagnostics = await responseDiagnostics(response);
+    const message = diagnostics[0]?.message ?? `Request failed with status ${response.status}`;
+    throw new WorkflowRequestError(message, diagnostics);
   }
   return (await response.json()) as T;
-}
-
-function loadInitialWorkflowState() {
-  const source = sourceFromURL();
-  if (source) {
-    return openWorkflowSource(source);
-  }
-  return requestJSON<EditorStateResponse>("/api/workflow");
 }
 
 function openWorkflowSource(source: string) {
@@ -438,17 +599,68 @@ function openWorkflowSource(source: string) {
   });
 }
 
-function sourceFromURL() {
-  return new URLSearchParams(window.location.search).get("workflow")?.trim() || null;
+function requiredWorkflowSourceFromURL() {
+  const result = workflowSourceFromSearch(window.location.search);
+  if ("source" in result && result.source) return result.source;
+  if ("error" in result) throw new Error(result.error);
+  throw new Error("URL 缺少 workflow 参数，请提供 ast.json 的绝对路径。");
+}
+
+async function responseDiagnostics(response: Response): Promise<Diagnostic[]> {
+  try {
+    const payload = (await response.json()) as { diagnostics?: Diagnostic[] };
+    return payload.diagnostics ?? [];
+  } catch {
+    return [];
+  }
 }
 
 function normalizeAPIError(error: unknown): { message: string; diagnostics: Diagnostic[]; network: boolean } {
+  if (error instanceof WorkflowRequestError) {
+    return {
+      message: error.message,
+      diagnostics: error.diagnostics.length > 0 ? error.diagnostics : [{ severity: "error", code: "workflow.api", message: error.message }],
+      network: false,
+    };
+  }
   const message = formatError(error);
   return {
     message,
     diagnostics: [{ severity: "error", code: "workflow.api", message }],
     network: message.includes("Failed to fetch") || message.includes("NetworkError") || message.includes("status 500"),
   };
+}
+
+function loadDraft(source: string) {
+  const storage = browserStorage();
+  return storage ? loadWorkflowDraft(storage, source) : null;
+}
+
+function saveDraft(draft: Parameters<typeof saveWorkflowDraft>[1]) {
+  const storage = browserStorage();
+  if (storage) saveWorkflowDraft(storage, draft);
+}
+
+function clearDraft(source: string) {
+  const storage = browserStorage();
+  if (storage) clearWorkflowDraft(storage, source);
+}
+
+function browserStorage() {
+  try {
+    return window.localStorage;
+  } catch {
+    return null;
+  }
+}
+
+class WorkflowRequestError extends Error {
+  constructor(
+    message: string,
+    readonly diagnostics: Diagnostic[],
+  ) {
+    super(message);
+  }
 }
 
 function formatRunLines(result: RunResult | null | undefined) {
@@ -479,13 +691,6 @@ function toRunInputValue(value: unknown): unknown {
 
 function makeOperationId(prefix: string) {
   return `${prefix}-${Date.now()}-${Math.random().toString(16).slice(2)}`;
-}
-
-function saveLabel(state: SaveState) {
-  if (state === "saved") return "Saved";
-  if (state === "saving") return "Saving";
-  if (state === "failed") return "Save failed";
-  return "Local edits";
 }
 
 function formatError(error: unknown) {

@@ -4,17 +4,17 @@ export type SaveState = "sample" | "saved" | "saving" | "failed";
 
 type HeaderProps = {
   runPending: boolean;
-  serverAvailable: boolean;
   status: string;
   workflowName: string;
+  onSave: () => void;
   onRun: () => void;
 };
 
 export function Header({
   runPending,
-  serverAvailable,
   status,
   workflowName,
+  onSave,
   onRun,
 }: HeaderProps) {
   return (
@@ -24,7 +24,7 @@ export function Header({
         <p>{status}</p>
       </div>
       <div className="header-actions">
-        <button className="secondary-button" disabled={!serverAvailable}>
+        <button className="secondary-button" onClick={onSave}>
           <Save size={17} />
           保存流程
         </button>

@@ -7,9 +7,9 @@ describe("Header", () => {
     const html = renderToStaticMarkup(
       <Header
         runPending={false}
-        serverAvailable={true}
         status="当前工作流未同步到服务端，不能测试运行。"
         workflowName="Sample Workflow"
+        onSave={() => undefined}
         onRun={() => undefined}
       />,
     );
@@ -24,14 +24,29 @@ describe("Header", () => {
     const html = renderToStaticMarkup(
       <Header
         runPending={true}
-        serverAvailable={true}
         status="测试运行中"
         workflowName="Filesystem Workflow"
+        onSave={() => undefined}
         onRun={() => undefined}
       />,
     );
 
     expect(html).toContain("运行中");
+    expect(html).not.toContain("disabled=\"\"");
+  });
+
+  it("keeps save clickable so missing prerequisites are reported by the click handler", () => {
+    const html = renderToStaticMarkup(
+      <Header
+        runPending={false}
+        status="流程服务未连接"
+        workflowName="Filesystem Workflow"
+        onSave={() => undefined}
+        onRun={() => undefined}
+      />,
+    );
+
+    expect(html).toContain("保存流程");
     expect(html).not.toContain("disabled=\"\"");
   });
 });
