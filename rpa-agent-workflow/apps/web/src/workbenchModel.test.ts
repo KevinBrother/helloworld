@@ -34,6 +34,80 @@ describe("workbench model", () => {
     expect(returnNode.outputPorts.map((field) => `${field.key}:${field.type}`)).toEqual(["result:number"]);
   });
 
+  it("projects workflow inputs into unified parameter rows", () => {
+    const startNode = model.nodes.find((node) => node.id === "root")!;
+
+    expect(startNode.inputRows.map((row) => ({
+      name: row.name,
+      type: row.type,
+      direction: row.direction,
+      valuePath: row.valuePath,
+      portPath: row.portPath,
+      valueEditable: row.valueEditable,
+      allowReference: row.allowReference,
+    }))).toEqual([
+      {
+        name: "left",
+        type: "number",
+        direction: "input",
+        valuePath: "$.inputs.left",
+        portPath: "$.inputs.left",
+        valueEditable: true,
+        allowReference: false,
+      },
+      {
+        name: "operator",
+        type: "string",
+        direction: "input",
+        valuePath: "$.inputs.operator",
+        portPath: "$.inputs.operator",
+        valueEditable: true,
+        allowReference: false,
+      },
+      {
+        name: "right",
+        type: "number",
+        direction: "input",
+        valuePath: "$.inputs.right",
+        portPath: "$.inputs.right",
+        valueEditable: true,
+        allowReference: false,
+      },
+    ]);
+  });
+
+  it("projects return outputs into unified editable output rows", () => {
+    const boundaryModel = buildWorkbenchModel(withBoundaryParameterMetadata(sampleDocument as UIDocument));
+    const returnNode = boundaryModel.nodes.find((node) => node.id === "return_result")!;
+
+    expect(returnNode.outputRows).toEqual([
+      expect.objectContaining({
+        name: "result",
+        type: "number",
+        direction: "output",
+        portPath: "$.outputs.result",
+        valuePath: "$.body.statements[1].returns.result",
+        valueEditable: true,
+        allowReference: true,
+        allowDelete: true,
+      }),
+    ]);
+  });
+
+  it("projects normal block outputs as read-only output rows", () => {
+    const calculateNode = model.nodes.find((node) => node.id === "calculate_large_value")!;
+
+    expect(calculateNode.outputRows).toEqual([
+      expect.objectContaining({
+        name: "result",
+        direction: "output",
+        valueEditable: false,
+        allowReference: false,
+        allowDelete: false,
+      }),
+    ]);
+  });
+
   it("models if condition as left, operator, and right inputs", () => {
     const branchNode = model.nodes.find((node) => node.id === "branch_by_threshold")!;
 
@@ -317,6 +391,34 @@ describe("workbench model", () => {
     );
   });
 });
+
+function withBoundaryParameterMetadata(document: UIDocument): UIDocument {
+  const clone = structuredClone(document);
+  clone.root.metadata = {
+    ...clone.root.metadata,
+    allowCustomInput: true,
+  };
+  clone.root = markReturnNodes(clone.root);
+  return clone;
+}
+
+function markReturnNodes(node: UIDocument["root"]): UIDocument["root"] {
+  return {
+    ...node,
+    metadata:
+      node.kind === "return"
+        ? {
+            ...node.metadata,
+            allowCustomOutput: true,
+          }
+        : node.metadata,
+    children: node.children?.map(markReturnNodes),
+    branches: node.branches?.map((branch) => ({
+      ...branch,
+      children: branch.children?.map(markReturnNodes),
+    })),
+  };
+}
 
 function branchDocument(kind: "parallel" | "empty-if" | "non-empty-if"): UIDocument {
   if (kind === "parallel") {
