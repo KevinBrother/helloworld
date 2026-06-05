@@ -1,0 +1,59 @@
+import { describe, expect, it } from "vitest";
+import { buildDeleteNodeOperation, buildInsertNodeOperation } from "./editOperations";
+import type { InsertAnchor, WorkbenchNode } from "./workbenchModel";
+
+const actor = {
+  id: "local-user",
+  name: "Local Editor",
+  kind: "human",
+};
+
+describe("edit operation builders", () => {
+  it("builds insertNode for action blocks", () => {
+    const anchor: InsertAnchor = {
+      afterNodeId: "first",
+      beforeNodeId: "second",
+      containerNodeId: "root",
+    };
+
+    expect(buildInsertNodeOperation("op-1", actor, anchor, { kind: "callBlock", block: "core.log" })).toEqual({
+      schemaVersion: "1.0.0",
+      operationId: "op-1",
+      type: "insertNode",
+      payload: {
+        anchor,
+        node: { kind: "callBlock", block: "core.log" },
+      },
+      actor,
+    });
+  });
+
+  it("builds insertNode for condition and parallel nodes", () => {
+    const anchor: InsertAnchor = { afterNodeId: "first", beforeNodeId: "second" };
+
+    expect(buildInsertNodeOperation("op-if", actor, anchor, { kind: "if", branchCount: 2 }).payload?.node).toEqual({
+      kind: "if",
+      branchCount: 2,
+    });
+    expect(buildInsertNodeOperation("op-parallel", actor, anchor, { kind: "parallel", branchCount: 3 }).payload?.node).toEqual({
+      kind: "parallel",
+      branchCount: 3,
+    });
+  });
+
+  it("builds deleteNode for the selected node", () => {
+    const node = {
+      id: "calculate",
+      deletable: true,
+    } as WorkbenchNode;
+
+    expect(buildDeleteNodeOperation("delete-1", actor, node)).toEqual({
+      schemaVersion: "1.0.0",
+      operationId: "delete-1",
+      type: "deleteNode",
+      targetNodeId: "calculate",
+      payload: { nodeId: "calculate" },
+      actor,
+    });
+  });
+});

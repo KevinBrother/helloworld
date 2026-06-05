@@ -36,6 +36,9 @@ export type WorkbenchNode = {
   raw: UINode;
   inputs: WorkbenchField[];
   outputs: WorkbenchField[];
+  deletable: boolean;
+  deleteMessage: string;
+  hasNestedChildren: boolean;
 };
 
 export type BlockOption = {
@@ -75,6 +78,14 @@ export type CanvasLayoutEdge = {
   id: string;
   from: string;
   to: string;
+  anchor: InsertAnchor;
+};
+
+export type InsertAnchor = {
+  afterNodeId: string;
+  beforeNodeId: string;
+  containerNodeId?: string;
+  branchId?: string;
 };
 
 export type CanvasLayout = {
@@ -240,7 +251,16 @@ export function buildCanvasLayout(model: WorkbenchModel): CanvasLayout {
   const connect = (fromIds: string[], toId: string) => {
     for (const fromId of fromIds) {
       if (fromId !== toId) {
-        edges.push({ id: `${fromId}->${toId}`, from: fromId, to: toId });
+        edges.push({
+          id: `${fromId}->${toId}`,
+          from: fromId,
+          to: toId,
+          anchor: {
+            afterNodeId: fromId,
+            beforeNodeId: toId,
+            containerNodeId: model.root.id,
+          },
+        });
       }
     }
   };
@@ -364,7 +384,29 @@ function toWorkbenchNode(node: UINode, order: number, branch?: string): Workbenc
     raw: node,
     inputs,
     outputs,
+    deletable: isNodeDeletable(node, order),
+    deleteMessage: getDeleteMessage(node, order),
+    hasNestedChildren: hasNestedChildren(node),
   };
+}
+
+function isNodeDeletable(node: UINode, order: number) {
+  if (node.kind === "sequence" && order === 0) return false;
+  if (node.kind === "return") return false;
+  if (node.capabilities?.deleteNode?.enabled === false) return false;
+  return true;
+}
+
+function getDeleteMessage(node: UINode, order: number) {
+  if (node.kind === "sequence" && order === 0) return "开始节点不能删除";
+  if (node.kind === "return") return "返回节点不能删除";
+  if (hasNestedChildren(node)) return "删除该节点会同时删除内部子节点";
+  return "删除该节点";
+}
+
+function hasNestedChildren(node: UINode) {
+  if ((node.children?.length ?? 0) > 0) return true;
+  return (node.branches ?? []).some((branch) => (branch.children?.length ?? 0) > 0);
 }
 
 function isInputField(field: InspectorField) {

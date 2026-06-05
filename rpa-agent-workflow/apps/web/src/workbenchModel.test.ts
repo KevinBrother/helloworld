@@ -186,6 +186,11 @@ describe("workbench model", () => {
     expect(layout.nodes.map((node) => node.y)).toEqual([18, 190, 362, 534]);
     expect(layout.width).toBe(560);
     expect(layout.height).toBeGreaterThanOrEqual(680);
+    expect(layout.edges[0].anchor).toEqual({
+      afterNodeId: "root",
+      beforeNodeId: "list_input_dir",
+      containerNodeId: "root",
+    });
   });
 
   it("preserves readable branch lanes for conditional workflows", () => {
@@ -203,6 +208,21 @@ describe("workbench model", () => {
     );
     expect(layout.nodes.find((node) => node.node.id === "calculate_small_value")?.x).toBeGreaterThan(
       layout.nodes.find((node) => node.node.id === "branch_by_threshold")!.x,
+    );
+  });
+
+  it("marks protected and editable nodes for explicit deletion", () => {
+    expect(model.nodes.find((node) => node.id === "root")).toEqual(
+      expect.objectContaining({ deletable: false, deleteMessage: "开始节点不能删除" }),
+    );
+    expect(model.nodes.find((node) => node.id === "return_result")).toEqual(
+      expect.objectContaining({ deletable: false, deleteMessage: "返回节点不能删除" }),
+    );
+    expect(model.nodes.find((node) => node.id === "calculate_large_value")).toEqual(
+      expect.objectContaining({ deletable: true, hasNestedChildren: false }),
+    );
+    expect(model.nodes.find((node) => node.id === "branch_by_threshold")).toEqual(
+      expect.objectContaining({ deletable: true, hasNestedChildren: true }),
     );
   });
 });
