@@ -250,6 +250,72 @@ code {
   overflow: hidden;
 }
 
+.canvas-panel {
+  position: relative;
+}
+
+.canvas-zoom-controls {
+  position: absolute;
+  top: 0.78rem;
+  right: 0.78rem;
+  z-index: 5;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.28rem;
+  border: 1px solid var(--line);
+  border-radius: 7px;
+  background: color-mix(in oklab, var(--surface) 92%, transparent);
+  padding: 0.24rem;
+  box-shadow: 0 14px 32px color-mix(in oklab, var(--shadow) 74%, transparent);
+  backdrop-filter: blur(10px);
+}
+
+.canvas-zoom-controls button {
+  min-width: 30px;
+  height: 30px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.28rem;
+  border: 1px solid transparent;
+  border-radius: 5px;
+  background: transparent;
+  color: var(--text);
+  padding: 0 0.34rem;
+}
+
+.canvas-zoom-controls button:hover:not(:disabled),
+.canvas-zoom-controls button:focus-visible {
+  border-color: var(--line-strong);
+  background: var(--surface-2);
+}
+
+.canvas-zoom-controls button:disabled {
+  color: var(--muted);
+  cursor: not-allowed;
+  opacity: 0.45;
+}
+
+.canvas-zoom-value {
+  min-width: 3.2rem;
+  color: var(--muted);
+  font-family: "IBM Plex Mono", ui-monospace, SFMono-Regular, monospace;
+  font-size: 0.78rem;
+  font-weight: 600;
+  text-align: center;
+}
+
+.canvas-wheel-mode-button[aria-pressed="true"] {
+  border-color: color-mix(in oklab, var(--accent) 58%, var(--line-strong));
+  background: var(--accent-soft);
+  color: var(--accent-strong);
+}
+
+.canvas-wheel-mode-button span {
+  font-size: 0.76rem;
+  font-weight: 600;
+}
+
 .panel-heading {
   min-height: 54px;
   display: flex;
@@ -351,16 +417,35 @@ code {
 .canvas-scroll {
   flex: 1;
   overflow: auto;
-  padding: 1rem;
+  padding: 0;
   background:
     radial-gradient(circle at 1px 1px, oklch(74% 0.018 205 / 0.72) 1px, transparent 0) 0 0 / 28px 28px,
     var(--surface);
+  overscroll-behavior: contain;
+  scrollbar-gutter: stable both-edges;
+}
+
+.workflow-stage {
+  position: relative;
+  width: var(--canvas-stage-width);
+  min-width: 100%;
+  height: var(--canvas-stage-height);
+  min-height: 100%;
+}
+
+.workflow-zoom-shell {
+  position: absolute;
+  left: var(--canvas-offset-x);
+  top: var(--canvas-offset-y);
+  width: var(--canvas-layout-width);
+  height: var(--canvas-layout-height);
+  transform: scale(var(--canvas-scale));
+  transform-origin: top left;
 }
 
 .workflow-diagram {
   position: relative;
   min-height: 700px;
-  margin: 0 auto;
 }
 
 .workflow-links {
@@ -1330,6 +1415,12 @@ select.value-control {
   .parameter-panel {
     min-height: 320px;
     max-height: none;
+  }
+
+  .canvas-panel {
+    height: 68vh;
+    min-height: 420px;
+    max-height: 620px;
   }
 
   .sample-input-grid {
