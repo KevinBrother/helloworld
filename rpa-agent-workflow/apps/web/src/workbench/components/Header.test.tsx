@@ -18,4 +18,20 @@ describe("Header", () => {
     expect(html).toContain("测试运行");
     expect(html).not.toContain("disabled=\"\"");
   });
+
+  it("keeps the test run action clickable while a run is pending", () => {
+    const html = renderToStaticMarkup(
+      <Header
+        runPending={true}
+        serverAvailable={true}
+        status="测试运行中"
+        workflowName="Filesystem Workflow"
+        onLoadJSON={() => undefined}
+        onRun={() => undefined}
+      />,
+    );
+
+    expect(html).toContain("运行中");
+    expect(html).not.toContain("disabled=\"\"");
+  });
 });

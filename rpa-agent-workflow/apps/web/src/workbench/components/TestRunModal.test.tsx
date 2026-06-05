@@ -23,6 +23,26 @@ describe("TestRunModal", () => {
     expect(html).toContain("运行测试");
     expect(html).not.toContain("disabled=\"\"");
   });
+
+  it("keeps the run action clickable while a run is pending", () => {
+    const html = renderToStaticMarkup(
+      <TestRunModal
+        errors={{}}
+        model={model}
+        pending={true}
+        runMessage="在服务端运行当前流程。"
+        workflowInputNode={workflowInputNode}
+        openSourceKey={null}
+        onClose={() => undefined}
+        onFieldChange={() => undefined}
+        onOpenSourceKeyChange={() => undefined}
+        onRun={() => undefined}
+      />,
+    );
+
+    expect(html).toContain("运行中");
+    expect(html).not.toContain("disabled=\"\"");
+  });
 });
 
 const workflowInputNode: WorkbenchNode = {

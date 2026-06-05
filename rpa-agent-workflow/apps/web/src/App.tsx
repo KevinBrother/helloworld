@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from "react";
-import sampleDocument from "../../../output/calculator-ui-node.json";
+// import sampleDocument from "../../../output/calculator-ui-node.json";
+import sampleDocument from "../../../output/fs-ui-node.json";
 import { getRunAvailability } from "./runAvailability";
 import { reduceRunMessage, runWorkflowStream, type NodeRunStateMap } from "./runEvents";
 import { validateWorkflowRunInputs } from "./runInputValidation";
@@ -140,6 +141,11 @@ function App() {
   };
 
   const handleRunWorkflow = async () => {
+    if (runPending) {
+      setStatus("测试运行进行中，请等待当前运行完成。");
+      return;
+    }
+
     if (!runAvailability.available) {
       setOpenSourceKey(null);
       setRunModalOpen(true);

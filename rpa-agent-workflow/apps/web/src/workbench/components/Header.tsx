@@ -34,7 +34,7 @@ export function Header({
           <Save size={17} />
           保存流程
         </button>
-        <button className="primary-button" onClick={onRun} disabled={runPending}>
+        <button className="primary-button" onClick={onRun}>
           <Play size={17} />
           {runPending ? "运行中" : "测试运行"}
         </button>

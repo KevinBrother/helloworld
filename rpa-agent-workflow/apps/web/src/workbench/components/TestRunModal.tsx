@@ -64,7 +64,7 @@ export function TestRunModal({
           <button className="secondary-button" onClick={onClose}>
             取消
           </button>
-          <button className="primary-button" onClick={onRun} disabled={pending}>
+          <button className="primary-button" onClick={onRun}>
             <Play size={17} />
             {pending ? "运行中" : "运行测试"}
           </button>
