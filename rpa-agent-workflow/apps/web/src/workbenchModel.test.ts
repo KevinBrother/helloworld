@@ -190,7 +190,7 @@ describe("workbench model", () => {
   it("lays out plain sequence workflows as connected vertical steps", () => {
     const layout = buildCanvasLayout(fsModel);
 
-    expect(layout.nodes.map((node) => node.node.id)).toEqual(["root", "list_input_dir", "write_summary", "return_result"]);
+    expect(layout.nodes.map((node) => node.node?.id)).toEqual(["root", "list_input_dir", "write_summary", "return_result"]);
     expect(layout.edges.map((edge) => `${edge.from}->${edge.to}`)).toEqual([
       "root->list_input_dir",
       "list_input_dir->write_summary",
@@ -207,22 +207,59 @@ describe("workbench model", () => {
     });
   });
 
-  it("preserves readable branch lanes for conditional workflows", () => {
+  it("lays out if branches with branch headers and a visual join", () => {
     const layout = buildCanvasLayout(model);
+    const branchNode = layout.nodes.find((node) => node.node?.id === "branch_by_threshold")!;
+    const branchHeaders = layout.nodes.filter((node) => node.role === "branchHeader");
+    const join = layout.nodes.find((node) => node.role === "join" && node.id === "branch_by_threshold:join");
 
-    expect(layout.edges.map((edge) => `${edge.from}->${edge.to}`)).toEqual([
-      "root->branch_by_threshold",
-      "branch_by_threshold->calculate_large_value",
-      "branch_by_threshold->calculate_small_value",
-      "calculate_large_value->return_result",
-      "calculate_small_value->return_result",
+    expect(branchHeaders.map((node) => node.label)).toEqual(["Then", "Else"]);
+    expect(join).toEqual(expect.objectContaining({ role: "join", x: branchNode.x }));
+    expect(layout.edges.map((edge) => `${edge.from}->${edge.to}`)).toContain("branch_by_threshold:join->return_result");
+    expect(layout.nodes.find((node) => node.node?.id === "calculate_large_value")?.x).toBeLessThan(branchNode.x);
+    expect(layout.nodes.find((node) => node.node?.id === "calculate_small_value")?.x).toBeGreaterThan(branchNode.x);
+    expect(layout.insertControls).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({ kind: "insertBranch", nodeId: "branch_by_threshold", branchKind: "condition" }),
+        expect.objectContaining({ kind: "insertNode", anchor: expect.objectContaining({ branchId: "branch_by_threshold.then", position: "branchStart" }) }),
+        expect.objectContaining({ kind: "insertNode", anchor: expect.objectContaining({ branchId: "branch_by_threshold.then", position: "branchEnd" }) }),
+        expect.objectContaining({ kind: "insertNode", anchor: expect.objectContaining({ afterNodeId: "branch_by_threshold", beforeNodeId: "return_result", position: "afterJoin" }) }),
+      ]),
+    );
+  });
+
+  it("lays out parallel branches with one lane per branch and a visual join", () => {
+    const parallelModel = buildWorkbenchModel(branchDocument("parallel"));
+    const layout = buildCanvasLayout(parallelModel);
+
+    expect(layout.nodes.filter((node) => node.role === "branchHeader").map((node) => node.label)).toEqual(["并行 1", "并行 2"]);
+    expect(layout.nodes.find((node) => node.id === "run_parallel:join")).toEqual(expect.objectContaining({ role: "join" }));
+    expect(layout.insertControls).toEqual(
+      expect.arrayContaining([expect.objectContaining({ kind: "insertBranch", nodeId: "run_parallel", branchKind: "parallel" })]),
+    );
+  });
+
+  it("lays out empty branches with one placeholder insert control", () => {
+    const emptyModel = buildWorkbenchModel(branchDocument("empty-if"));
+    const layout = buildCanvasLayout(emptyModel);
+
+    expect(layout.nodes.find((node) => node.id === "choose_path:condition_1:empty")).toEqual(
+      expect.objectContaining({ role: "emptyBranch", branchId: "condition_1" }),
+    );
+    expect(layout.insertControls.filter((control) => control.anchor?.branchId === "condition_1")).toEqual([
+      expect.objectContaining({ kind: "insertNode", anchor: expect.objectContaining({ position: "branchStart" }) }),
     ]);
-    expect(layout.nodes.find((node) => node.node.id === "calculate_large_value")?.x).toBeLessThan(
-      layout.nodes.find((node) => node.node.id === "branch_by_threshold")!.x,
-    );
-    expect(layout.nodes.find((node) => node.node.id === "calculate_small_value")?.x).toBeGreaterThan(
-      layout.nodes.find((node) => node.node.id === "branch_by_threshold")!.x,
-    );
+  });
+
+  it("lays out non-empty branches with start, between, and end insert controls", () => {
+    const nonEmptyModel = buildWorkbenchModel(branchDocument("non-empty-if"));
+    const layout = buildCanvasLayout(nonEmptyModel);
+
+    expect(layout.insertControls.filter((control) => control.anchor?.branchId === "condition_1").map((control) => control.anchor?.position)).toEqual([
+      "branchStart",
+      "between",
+      "branchEnd",
+    ]);
   });
 
   it("marks protected and editable nodes for explicit deletion", () => {
@@ -240,3 +277,60 @@ describe("workbench model", () => {
     );
   });
 });
+
+function branchDocument(kind: "parallel" | "empty-if" | "non-empty-if"): UIDocument {
+  if (kind === "parallel") {
+    return {
+      schemaVersion: "1.0.0",
+      workflowId: "parallel_layout",
+      root: {
+        id: "root",
+        kind: "sequence",
+        label: "Start",
+        children: [
+          {
+            id: "run_parallel",
+            kind: "parallel",
+            label: "Run Parallel",
+            branches: [
+              { id: "branch_1", label: "并行 1", kind: "parallel", children: [{ id: "left_step", kind: "callBlock", label: "Left" }] },
+              { id: "branch_2", label: "并行 2", kind: "parallel", children: [{ id: "right_step", kind: "callBlock", label: "Right" }] },
+            ],
+          },
+        ],
+      },
+    };
+  }
+
+  return {
+    schemaVersion: "1.0.0",
+    workflowId: `${kind}_layout`,
+    root: {
+      id: "root",
+      kind: "sequence",
+      label: "Start",
+      children: [
+        {
+          id: "choose_path",
+          kind: "if",
+          label: "Choose Path",
+          branches: [
+            {
+              id: "condition_1",
+              label: "条件 1",
+              kind: "condition",
+              children:
+                kind === "non-empty-if"
+                  ? [
+                      { id: "first_condition_step", kind: "callBlock", label: "First" },
+                      { id: "second_condition_step", kind: "callBlock", label: "Second" },
+                    ]
+                  : [],
+            },
+            { id: "else", label: "否则", kind: "default", children: [] },
+          ],
+        },
+      ],
+    },
+  };
+}

@@ -83,8 +83,14 @@ export type CanvasTopology = {
   returnNode?: WorkbenchNode;
 };
 
+export type CanvasLayoutNodeRole = "statement" | "branchHeader" | "join" | "emptyBranch";
+
 export type CanvasLayoutNode = {
-  node: WorkbenchNode;
+  id: string;
+  role: CanvasLayoutNodeRole;
+  node?: WorkbenchNode;
+  label?: string;
+  branchId?: string;
   x: number;
   y: number;
   width: number;
@@ -96,6 +102,17 @@ export type CanvasLayoutEdge = {
   from: string;
   to: string;
   anchor: InsertAnchor;
+};
+
+export type CanvasInsertControl = {
+  id: string;
+  kind: "insertNode" | "insertBranch";
+  label: string;
+  x: number;
+  y: number;
+  anchor?: InsertAnchor;
+  nodeId?: string;
+  branchKind?: "condition" | "parallel";
 };
 
 export type InsertAnchor = {
@@ -111,6 +128,7 @@ export type CanvasLayout = {
   height: number;
   nodes: CanvasLayoutNode[];
   edges: CanvasLayoutEdge[];
+  insertControls: CanvasInsertControl[];
 };
 
 const SAMPLE_INPUT_VALUES: Record<string, unknown> = {
@@ -127,8 +145,14 @@ const CANVAS_NODE_HEIGHT = 96;
 const CANVAS_START_Y = 18;
 const CANVAS_STEP_GAP_Y = 76;
 const CANVAS_STEP_Y = CANVAS_NODE_HEIGHT + CANVAS_STEP_GAP_Y;
-const CANVAS_BRANCH_START_GAP_Y = 124;
 const CANVAS_BRANCH_LANE_GAP_X = 320;
+const CANVAS_BRANCH_HEADER_WIDTH = 180;
+const CANVAS_BRANCH_HEADER_HEIGHT = 42;
+const CANVAS_EMPTY_BRANCH_WIDTH = 220;
+const CANVAS_EMPTY_BRANCH_HEIGHT = 74;
+const CANVAS_JOIN_SIZE = 34;
+const CANVAS_BRANCH_HEADER_GAP_Y = 62;
+const CANVAS_BRANCH_NODE_GAP_Y = 54;
 
 export function buildWorkbenchModel(document: UIDocument, blockCatalog: BlockDefinition[] = []): WorkbenchModel {
   const nodes = flattenWorkbenchNodes(document.root, workflowInputValuesFromDocument(document), rootWorkflowOutputPorts(document.root));
@@ -254,82 +278,212 @@ export function buildCanvasLayout(model: WorkbenchModel): CanvasLayout {
   const nodeById = new Map(model.nodes.map((node) => [node.id, node]));
   const layoutNodes: CanvasLayoutNode[] = [];
   const edges: CanvasLayoutEdge[] = [];
-  const placed = new Set<string>();
-  const hasBranches = model.nodes.some((node) => node.kind === "if" && node.raw.branches?.length);
+  const insertControls: CanvasInsertControl[] = [];
+  const placedStatements = new Set<string>();
+  const hasBranches = model.nodes.some((node) => (node.kind === "if" || node.kind === "parallel") && node.raw.branches?.length);
   const canvasWidth = hasBranches ? CANVAS_BRANCH_WIDTH : CANVAS_LINEAR_WIDTH;
   const canvasCenterX = canvasWidth / 2;
 
-  const placeNode = (nodeId: string, x: number, y: number) => {
-    const node = nodeById.get(nodeId);
-    if (!node || placed.has(nodeId)) return;
-    placed.add(nodeId);
-    layoutNodes.push({ node, x, y, width: CANVAS_NODE_WIDTH, height: CANVAS_NODE_HEIGHT });
+  type PreviousPoint = {
+    visualId: string;
+    astAfterNodeId: string;
+    position?: InsertAnchor["position"];
   };
 
-  const connect = (fromIds: string[], toId: string) => {
-    for (const fromId of fromIds) {
-      if (fromId !== toId) {
-        edges.push({
-          id: `${fromId}->${toId}`,
-          from: fromId,
-          to: toId,
-          anchor: {
-            afterNodeId: fromId,
-            beforeNodeId: toId,
-            containerNodeId: model.root.id,
-          },
+  const placeStatementNode = (uiNode: UINode, x: number, y: number) => {
+    const node = nodeById.get(uiNode.id);
+    if (!node || placedStatements.has(uiNode.id)) return undefined;
+    placedStatements.add(uiNode.id);
+    const layoutNode = { id: uiNode.id, role: "statement" as const, node, x, y, width: CANVAS_NODE_WIDTH, height: CANVAS_NODE_HEIGHT };
+    layoutNodes.push(layoutNode);
+    return layoutNode;
+  };
+
+  const addEdge = (from: string, to: string, anchor: InsertAnchor) => {
+    if (from === to) return;
+    edges.push({ id: `${from}->${to}`, from, to, anchor });
+  };
+
+  const connectPrevious = (previous: PreviousPoint[], toNodeId: string) => {
+    for (const point of previous) {
+      const anchor: InsertAnchor = {
+        afterNodeId: point.astAfterNodeId,
+        beforeNodeId: toNodeId,
+        containerNodeId: model.root.id,
+      };
+      if (point.position) anchor.position = point.position;
+      addEdge(point.visualId, toNodeId, anchor);
+      if (point.position === "afterJoin") {
+        const fromNode = layoutNodes.find((node) => node.id === point.visualId);
+        const toNode = layoutNodes.find((node) => node.id === toNodeId);
+        insertControls.push({
+          id: `insert:${point.astAfterNodeId}->${toNodeId}`,
+          kind: "insertNode",
+          label: "汇合后继续追加",
+          x: Math.round(((fromNode?.x ?? canvasCenterX) + (toNode?.x ?? canvasCenterX)) / 2),
+          y: Math.round(((fromNode?.y ?? 0) + (toNode?.y ?? 0)) / 2),
+          anchor,
         });
       }
     }
   };
 
-  placeNode(model.root.id, canvasCenterX, CANVAS_START_Y);
+  const layoutBranchNode = (uiNode: UINode, previous: PreviousPoint[], x: number, y: number) => {
+    placeStatementNode(uiNode, x, y);
+    connectPrevious(previous, uiNode.id);
 
-  let previousIds = [model.root.id];
+    const branches = uiNode.branches ?? [];
+    insertControls.push({
+      id: `branch:${uiNode.id}:add`,
+      kind: "insertBranch",
+      label: uiNode.kind === "parallel" ? "新增并行分支" : "新增条件分支",
+      x,
+      y: y + CANVAS_NODE_HEIGHT + 34,
+      nodeId: uiNode.id,
+      branchKind: uiNode.kind === "parallel" ? "parallel" : "condition",
+    });
+
+    const headerY = y + CANVAS_NODE_HEIGHT + CANVAS_BRANCH_HEADER_GAP_Y;
+    const firstChildY = headerY + CANVAS_BRANCH_HEADER_HEIGHT + CANVAS_BRANCH_NODE_GAP_Y;
+    const laneXs = getBranchLaneCenters(branches.length, x);
+    const joinId = `${uiNode.id}:join`;
+    const branchEnds: string[] = [];
+    let branchBottom = firstChildY + CANVAS_EMPTY_BRANCH_HEIGHT;
+
+    branches.forEach((branch, branchIndex) => {
+      const laneX = laneXs[branchIndex] ?? x;
+      const headerId = `${uiNode.id}:${branch.id}:header`;
+      layoutNodes.push({
+        id: headerId,
+        role: "branchHeader",
+        label: branch.label ?? branch.kind ?? `分支 ${branchIndex + 1}`,
+        branchId: branch.id,
+        x: laneX,
+        y: headerY,
+        width: CANVAS_BRANCH_HEADER_WIDTH,
+        height: CANVAS_BRANCH_HEADER_HEIGHT,
+      });
+      addEdge(uiNode.id, headerId, { containerNodeId: uiNode.id, branchId: branch.id, position: "branchStart" });
+
+      const children = branch.children ?? [];
+      if (children.length === 0) {
+        const emptyId = `${uiNode.id}:${branch.id}:empty`;
+        layoutNodes.push({
+          id: emptyId,
+          role: "emptyBranch",
+          label: "空分支",
+          branchId: branch.id,
+          x: laneX,
+          y: firstChildY,
+          width: CANVAS_EMPTY_BRANCH_WIDTH,
+          height: CANVAS_EMPTY_BRANCH_HEIGHT,
+        });
+        insertControls.push({
+          id: `insert:${uiNode.id}:${branch.id}:empty`,
+          kind: "insertNode",
+          label: "分支开头插入",
+          x: laneX,
+          y: firstChildY + CANVAS_EMPTY_BRANCH_HEIGHT / 2,
+          anchor: { containerNodeId: uiNode.id, branchId: branch.id, position: "branchStart" },
+        });
+        addEdge(headerId, emptyId, { containerNodeId: uiNode.id, branchId: branch.id, position: "branchStart" });
+        branchEnds.push(emptyId);
+        branchBottom = Math.max(branchBottom, firstChildY + CANVAS_EMPTY_BRANCH_HEIGHT);
+        return;
+      }
+
+      insertControls.push({
+        id: `insert:${uiNode.id}:${branch.id}:start`,
+        kind: "insertNode",
+        label: "分支开头插入",
+        x: laneX,
+        y: Math.round((headerY + CANVAS_BRANCH_HEADER_HEIGHT + firstChildY) / 2),
+        anchor: { containerNodeId: uiNode.id, branchId: branch.id, position: "branchStart" },
+      });
+
+      let cursorY = firstChildY;
+      let previousVisualId = headerId;
+      children.forEach((child, childIndex) => {
+        placeStatementNode(child, laneX, cursorY);
+        const anchor: InsertAnchor =
+          childIndex === 0
+            ? { containerNodeId: uiNode.id, branchId: branch.id, position: "branchStart" }
+            : {
+                containerNodeId: uiNode.id,
+                branchId: branch.id,
+                position: "between",
+                afterNodeId: children[childIndex - 1].id,
+                beforeNodeId: child.id,
+              };
+        addEdge(previousVisualId, child.id, anchor);
+
+        if (childIndex > 0) {
+          insertControls.push({
+            id: `insert:${children[childIndex - 1].id}->${child.id}`,
+            kind: "insertNode",
+            label: "分支中间插入",
+            x: laneX,
+            y: cursorY - CANVAS_STEP_GAP_Y / 2,
+            anchor,
+          });
+        }
+
+        previousVisualId = child.id;
+        cursorY += CANVAS_STEP_Y;
+      });
+
+      const lastChild = children[children.length - 1];
+      insertControls.push({
+        id: `insert:${uiNode.id}:${branch.id}:end`,
+        kind: "insertNode",
+        label: "分支末尾追加",
+        x: laneX,
+        y: cursorY - CANVAS_STEP_GAP_Y / 2,
+        anchor: { containerNodeId: uiNode.id, branchId: branch.id, position: "branchEnd" },
+      });
+      branchEnds.push(lastChild.id);
+      branchBottom = Math.max(branchBottom, cursorY - CANVAS_STEP_GAP_Y + CANVAS_BRANCH_NODE_GAP_Y);
+    });
+
+    const joinY = branchBottom + CANVAS_BRANCH_HEADER_GAP_Y;
+    layoutNodes.push({ id: joinId, role: "join", label: "汇合", x, y: joinY, width: CANVAS_JOIN_SIZE, height: CANVAS_JOIN_SIZE });
+    for (const endId of branchEnds) {
+      addEdge(endId, joinId, { containerNodeId: uiNode.id, position: "branchEnd" });
+    }
+
+    return {
+      previous: [{ visualId: joinId, astAfterNodeId: uiNode.id, position: "afterJoin" as const }],
+      nextY: joinY + CANVAS_JOIN_SIZE + CANVAS_STEP_GAP_Y,
+    };
+  };
+
+  placeStatementNode(model.root, canvasCenterX, CANVAS_START_Y);
+
+  let previous: PreviousPoint[] = [{ visualId: model.root.id, astAfterNodeId: model.root.id }];
   let cursorY = CANVAS_START_Y + CANVAS_STEP_Y;
 
   for (const child of model.root.children ?? []) {
-    if (child.kind === "if" && child.branches?.length) {
-      placeNode(child.id, canvasCenterX, cursorY);
-      connect(previousIds, child.id);
-
-      const branchStartY = cursorY + CANVAS_NODE_HEIGHT + CANVAS_BRANCH_START_GAP_Y;
-      const laneXs = getBranchLaneCenters(child.branches.length, canvasCenterX);
-      const branchEndIds: string[] = [];
-      let branchBottomY = branchStartY;
-
-      child.branches.forEach((branch, branchIndex) => {
-        let branchPreviousIds = [child.id];
-        let branchCursorY = branchStartY;
-        const branchChildren = branch.children ?? [];
-
-        for (const branchChild of branchChildren) {
-          placeNode(branchChild.id, laneXs[branchIndex], branchCursorY);
-          connect(branchPreviousIds, branchChild.id);
-          branchPreviousIds = [branchChild.id];
-          branchCursorY += CANVAS_STEP_Y;
-        }
-
-        branchEndIds.push(...branchPreviousIds);
-        branchBottomY = Math.max(branchBottomY, branchCursorY - CANVAS_STEP_GAP_Y);
-      });
-
-      previousIds = unique(branchEndIds);
-      cursorY = branchBottomY + CANVAS_BRANCH_START_GAP_Y;
+    if ((child.kind === "if" || child.kind === "parallel") && child.branches?.length) {
+      const result = layoutBranchNode(child, previous, canvasCenterX, cursorY);
+      if (result) {
+        previous = result.previous;
+        cursorY = result.nextY;
+      }
       continue;
     }
 
-    placeNode(child.id, canvasCenterX, cursorY);
-    connect(previousIds, child.id);
-    previousIds = [child.id];
+    placeStatementNode(child, canvasCenterX, cursorY);
+    connectPrevious(previous, child.id);
+    previous = [{ visualId: child.id, astAfterNodeId: child.id }];
     cursorY += CANVAS_STEP_Y;
   }
 
   for (const node of model.nodes) {
-    if (!placed.has(node.id)) {
-      placeNode(node.id, canvasCenterX, cursorY);
-      connect(previousIds, node.id);
-      previousIds = [node.id];
+    if (!placedStatements.has(node.id)) {
+      layoutNodes.push({ id: node.id, role: "statement", node, x: canvasCenterX, y: cursorY, width: CANVAS_NODE_WIDTH, height: CANVAS_NODE_HEIGHT });
+      placedStatements.add(node.id);
+      connectPrevious(previous, node.id);
+      previous = [{ visualId: node.id, astAfterNodeId: node.id }];
       cursorY += CANVAS_STEP_Y;
     }
   }
@@ -343,6 +497,7 @@ export function buildCanvasLayout(model: WorkbenchModel): CanvasLayout {
     height: Math.max(CANVAS_MIN_HEIGHT, maxNodeY + CANVAS_STEP_GAP_Y),
     nodes: layoutNodes,
     edges,
+    insertControls,
   };
 }
 
@@ -350,10 +505,6 @@ function getBranchLaneCenters(count: number, centerX: number) {
   if (count <= 1) return [centerX];
   const firstLaneX = centerX - ((count - 1) * CANVAS_BRANCH_LANE_GAP_X) / 2;
   return Array.from({ length: count }, (_, index) => firstLaneX + index * CANVAS_BRANCH_LANE_GAP_X);
-}
-
-function unique(values: string[]) {
-  return [...new Set(values)];
 }
 
 function flattenWorkbenchNodes(root: UINode, workflowInputValues: WorkflowInputValues, workflowOutputPorts: WorkbenchPort[]) {
