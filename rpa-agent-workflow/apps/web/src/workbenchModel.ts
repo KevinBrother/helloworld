@@ -99,10 +99,11 @@ export type CanvasLayoutEdge = {
 };
 
 export type InsertAnchor = {
-  afterNodeId: string;
-  beforeNodeId: string;
+  afterNodeId?: string;
+  beforeNodeId?: string;
   containerNodeId?: string;
   branchId?: string;
+  position?: "branchStart" | "branchEnd" | "between" | "afterJoin";
 };
 
 export type CanvasLayout = {

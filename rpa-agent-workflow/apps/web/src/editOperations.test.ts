@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { buildDeleteNodeOperation, buildInsertNodeOperation, buildUpdateWorkflowPortsOperation } from "./editOperations";
+import { buildDeleteNodeOperation, buildInsertBranchOperation, buildInsertNodeOperation, buildUpdateWorkflowPortsOperation } from "./editOperations";
 import type { InsertAnchor, WorkbenchNode } from "./workbenchModel";
 
 const actor = {
@@ -38,6 +38,39 @@ describe("edit operation builders", () => {
     expect(buildInsertNodeOperation("op-parallel", actor, anchor, { kind: "parallel", branchCount: 3 }).payload?.node).toEqual({
       kind: "parallel",
       branchCount: 3,
+    });
+  });
+
+  it("builds insertNode with branch-local anchors", () => {
+    const anchor: InsertAnchor = {
+      containerNodeId: "choose_path",
+      branchId: "condition_1",
+      position: "branchStart",
+    };
+
+    expect(buildInsertNodeOperation("op-branch-node", actor, anchor, { kind: "callBlock", block: "core.log" })).toEqual({
+      schemaVersion: "1.0.0",
+      operationId: "op-branch-node",
+      type: "insertNode",
+      payload: {
+        anchor,
+        node: { kind: "callBlock", block: "core.log" },
+      },
+      actor,
+    });
+  });
+
+  it("builds insertBranch for control-flow nodes", () => {
+    expect(buildInsertBranchOperation("op-branch", actor, "choose_path", "condition")).toEqual({
+      schemaVersion: "1.0.0",
+      operationId: "op-branch",
+      type: "insertBranch",
+      targetNodeId: "choose_path",
+      payload: {
+        nodeId: "choose_path",
+        branchKind: "condition",
+      },
+      actor,
     });
   });
 

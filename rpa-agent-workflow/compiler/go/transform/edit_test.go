@@ -279,6 +279,179 @@ func TestApplyInsertNodeAddsIfBetweenAdjacentSequenceChildren(t *testing.T) {
 	}
 }
 
+func TestApplyInsertBranchAddsIfConditionBeforeDefault(t *testing.T) {
+	workflow := ast.Workflow{Body: ast.Statement{ID: "root", Kind: "sequence", Statements: []ast.Statement{
+		{
+			ID:   "choose_path",
+			Kind: "if",
+			Branches: []ast.Branch{
+				{ID: "condition_1", Label: "条件 1", Condition: &ast.Expression{Kind: "literal", Value: true}},
+				{ID: "else", Label: "否则", Default: true},
+			},
+		},
+	}}}
+
+	updated, diags := ApplyEdit(workflow, editoperation.Document{
+		Type: editoperation.OperationTypeInsertBranch,
+		Payload: map[string]any{
+			"nodeId":     "choose_path",
+			"branchKind": "condition",
+		},
+	})
+	if len(diags) != 0 {
+		t.Fatalf("unexpected diagnostics: %#v", diags)
+	}
+	branches := updated.Body.Statements[0].Branches
+	if got := []string{branches[0].ID, branches[1].ID, branches[2].ID}; got[0] != "condition_1" || got[1] != "condition_2" || got[2] != "else" {
+		t.Fatalf("branch order = %#v", got)
+	}
+	if branches[1].Label != "条件 2" || branches[1].Condition == nil || branches[1].Default {
+		t.Fatalf("inserted if branch = %#v", branches[1])
+	}
+}
+
+func TestApplyInsertBranchCanonicalizesLegacyIfBeforeAddingCondition(t *testing.T) {
+	workflow := ast.Workflow{Body: ast.Statement{ID: "root", Kind: "sequence", Statements: []ast.Statement{
+		{
+			ID:        "choose_path",
+			Kind:      "if",
+			Condition: &ast.Expression{Kind: "literal", Value: true},
+			Then:      []ast.Statement{{ID: "then_step", Kind: "assign"}},
+			Else:      []ast.Statement{{ID: "else_step", Kind: "assign"}},
+		},
+	}}}
+
+	updated, diags := ApplyEdit(workflow, editoperation.Document{
+		Type: editoperation.OperationTypeInsertBranch,
+		Payload: map[string]any{
+			"nodeId":     "choose_path",
+			"branchKind": "condition",
+		},
+	})
+	if len(diags) != 0 {
+		t.Fatalf("unexpected diagnostics: %#v", diags)
+	}
+	inserted := updated.Body.Statements[0]
+	if len(inserted.Branches) != 3 || len(inserted.Then) != 0 || len(inserted.Else) != 0 || inserted.Condition != nil {
+		t.Fatalf("legacy if was not canonicalized: %#v", inserted)
+	}
+	if inserted.Branches[0].Body[0].ID != "then_step" || inserted.Branches[2].Body[0].ID != "else_step" {
+		t.Fatalf("legacy branch bodies not preserved: %#v", inserted.Branches)
+	}
+}
+
+func TestApplyInsertBranchAppendsParallelBranch(t *testing.T) {
+	workflow := ast.Workflow{Body: ast.Statement{ID: "root", Kind: "sequence", Statements: []ast.Statement{
+		{
+			ID:   "run_parallel",
+			Kind: "parallel",
+			Branches: []ast.Branch{
+				{ID: "branch_1", Label: "并行 1"},
+				{ID: "branch_2", Label: "并行 2"},
+			},
+		},
+	}}}
+
+	updated, diags := ApplyEdit(workflow, editoperation.Document{
+		Type: editoperation.OperationTypeInsertBranch,
+		Payload: map[string]any{
+			"nodeId":     "run_parallel",
+			"branchKind": "parallel",
+		},
+	})
+	if len(diags) != 0 {
+		t.Fatalf("unexpected diagnostics: %#v", diags)
+	}
+	branches := updated.Body.Statements[0].Branches
+	if len(branches) != 3 || branches[2].ID != "branch_3" || branches[2].Label != "并行 3" {
+		t.Fatalf("parallel branches = %#v", branches)
+	}
+}
+
+func TestApplyInsertNodeAddsBranchStartWithBranchAnchor(t *testing.T) {
+	workflow := ast.Workflow{Body: ast.Statement{ID: "root", Kind: "sequence", Statements: []ast.Statement{
+		{
+			ID:   "choose_path",
+			Kind: "if",
+			Branches: []ast.Branch{
+				{ID: "condition_1", Label: "条件 1", Condition: &ast.Expression{Kind: "literal", Value: true}, Body: []ast.Statement{{ID: "existing", Kind: "assign"}}},
+				{ID: "else", Label: "否则", Default: true},
+			},
+		},
+	}}}
+
+	updated, diags := ApplyEdit(workflow, editoperation.Document{
+		Type: editoperation.OperationTypeInsertNode,
+		Payload: map[string]any{
+			"anchor": map[string]any{"containerNodeId": "choose_path", "branchId": "condition_1", "position": "branchStart"},
+			"node":   map[string]any{"kind": "callBlock", "block": "core.log"},
+		},
+	})
+	if len(diags) != 0 {
+		t.Fatalf("unexpected diagnostics: %#v", diags)
+	}
+	body := updated.Body.Statements[0].Branches[0].Body
+	if len(body) != 2 || body[0].Kind != "callBlock" || body[1].ID != "existing" {
+		t.Fatalf("branch body = %#v", body)
+	}
+}
+
+func TestApplyInsertNodeAddsBranchEndWithBranchAnchor(t *testing.T) {
+	workflow := ast.Workflow{Body: ast.Statement{ID: "root", Kind: "sequence", Statements: []ast.Statement{
+		{
+			ID:   "run_parallel",
+			Kind: "parallel",
+			Branches: []ast.Branch{
+				{ID: "branch_1", Label: "并行 1", Body: []ast.Statement{{ID: "existing", Kind: "assign"}}},
+				{ID: "branch_2", Label: "并行 2"},
+			},
+		},
+	}}}
+
+	updated, diags := ApplyEdit(workflow, editoperation.Document{
+		Type: editoperation.OperationTypeInsertNode,
+		Payload: map[string]any{
+			"anchor": map[string]any{"containerNodeId": "run_parallel", "branchId": "branch_1", "position": "branchEnd"},
+			"node":   map[string]any{"kind": "callBlock", "block": "core.log"},
+		},
+	})
+	if len(diags) != 0 {
+		t.Fatalf("unexpected diagnostics: %#v", diags)
+	}
+	body := updated.Body.Statements[0].Branches[0].Body
+	if len(body) != 2 || body[0].ID != "existing" || body[1].Kind != "callBlock" {
+		t.Fatalf("branch body = %#v", body)
+	}
+}
+
+func TestApplyInsertNodeAddsBetweenBranchChildrenWithBranchAnchor(t *testing.T) {
+	workflow := ast.Workflow{Body: ast.Statement{ID: "root", Kind: "sequence", Statements: []ast.Statement{
+		{
+			ID:   "run_parallel",
+			Kind: "parallel",
+			Branches: []ast.Branch{
+				{ID: "branch_1", Label: "并行 1", Body: []ast.Statement{{ID: "first", Kind: "assign"}, {ID: "second", Kind: "assign"}}},
+				{ID: "branch_2", Label: "并行 2"},
+			},
+		},
+	}}}
+
+	updated, diags := ApplyEdit(workflow, editoperation.Document{
+		Type: editoperation.OperationTypeInsertNode,
+		Payload: map[string]any{
+			"anchor": map[string]any{"containerNodeId": "run_parallel", "branchId": "branch_1", "position": "between", "afterNodeId": "first", "beforeNodeId": "second"},
+			"node":   map[string]any{"kind": "callBlock", "block": "core.log"},
+		},
+	})
+	if len(diags) != 0 {
+		t.Fatalf("unexpected diagnostics: %#v", diags)
+	}
+	body := updated.Body.Statements[0].Branches[0].Body
+	if got := []string{body[0].ID, body[1].Kind, body[2].ID}; got[0] != "first" || got[1] != "callBlock" || got[2] != "second" {
+		t.Fatalf("branch body order = %#v", got)
+	}
+}
+
 func TestApplyInsertNodeAddsNodeBetweenRootAndFirstChild(t *testing.T) {
 	workflow := ast.Workflow{Body: ast.Statement{ID: "root", Kind: "sequence", Statements: []ast.Statement{
 		{ID: "first", Kind: "assign"},

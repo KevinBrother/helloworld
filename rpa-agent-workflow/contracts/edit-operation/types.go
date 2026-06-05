@@ -4,6 +4,7 @@ const (
 	OperationTypeToggleCollapsed = "toggleCollapsed"
 	OperationTypeUpdateField     = "updateField"
 	OperationTypeInsertNode      = "insertNode"
+	OperationTypeInsertBranch    = "insertBranch"
 	OperationTypeDeleteNode      = "deleteNode"
 	OperationTypeMoveStatement   = "moveStatement"
 	OperationTypeDuplicateNode   = "duplicateNode"

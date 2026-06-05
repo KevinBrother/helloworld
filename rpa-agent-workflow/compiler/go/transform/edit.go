@@ -19,6 +19,8 @@ func ApplyEdit(workflow ast.Workflow, op editoperation.Document) (ast.Workflow, 
 		return applyUpdateField(workflow, op)
 	case editoperation.OperationTypeInsertNode:
 		return applyInsertNode(workflow, op)
+	case editoperation.OperationTypeInsertBranch:
+		return applyInsertBranch(workflow, op)
 	case editoperation.OperationTypeDeleteNode:
 		return applyDeleteNode(workflow, op)
 	default:
@@ -144,16 +146,28 @@ func applyInsertNode(workflow ast.Workflow, op editoperation.Document) (ast.Work
 		return workflow, []diagnostic.Diagnostic{editPayloadDiagnostic("INVALID_INSERT_PAYLOAD", "insertNode payload requires node", "$.payload.node")}
 	}
 
+	stmt, diag := buildInsertedStatement(workflow, node)
+	if diag != nil {
+		return workflow, []diagnostic.Diagnostic{*diag}
+	}
+
+	if position, _ := anchor["position"].(string); isBranchLocalInsertPosition(position) {
+		inserted, insertDiags := insertIntoBranchAnchor(&workflow.Body, anchor, stmt)
+		if len(insertDiags) > 0 {
+			return workflow, insertDiags
+		}
+		if inserted {
+			return workflow, nil
+		}
+		return workflow, []diagnostic.Diagnostic{editPayloadDiagnostic("INSERT_BRANCH_ANCHOR_NOT_FOUND", "branch insert anchor was not found", "$.payload.anchor")}
+	}
+
 	afterNodeID, _ := anchor["afterNodeId"].(string)
 	beforeNodeID, _ := anchor["beforeNodeId"].(string)
 	if afterNodeID == "" || beforeNodeID == "" {
 		return workflow, []diagnostic.Diagnostic{editPayloadDiagnostic("INVALID_INSERT_PAYLOAD", "insertNode anchor requires afterNodeId and beforeNodeId", "$.payload.anchor")}
 	}
 
-	stmt, diag := buildInsertedStatement(workflow, node)
-	if diag != nil {
-		return workflow, []diagnostic.Diagnostic{*diag}
-	}
 	inserted, foundPair := insertBetween(&workflow.Body, afterNodeID, beforeNodeID, stmt)
 	if inserted {
 		return workflow, nil
@@ -165,6 +179,48 @@ func applyInsertNode(workflow ast.Workflow, op editoperation.Document) (ast.Work
 		message = fmt.Sprintf("insert anchor %q -> %q is not adjacent", afterNodeID, beforeNodeID)
 	}
 	return workflow, []diagnostic.Diagnostic{editPayloadDiagnostic(code, message, "$.payload.anchor")}
+}
+
+func applyInsertBranch(workflow ast.Workflow, op editoperation.Document) (ast.Workflow, []diagnostic.Diagnostic) {
+	nodeID, _ := op.Payload["nodeId"].(string)
+	if nodeID == "" {
+		return workflow, []diagnostic.Diagnostic{editPayloadDiagnostic("INVALID_INSERT_BRANCH_PAYLOAD", "insertBranch payload requires nodeId", "$.payload.nodeId")}
+	}
+	stmt := findStatementByID(&workflow.Body, nodeID)
+	if stmt == nil {
+		return workflow, []diagnostic.Diagnostic{notFoundDiagnostic(nodeID)}
+	}
+
+	switch stmt.Kind {
+	case "if":
+		canonicalizeIfBranches(stmt)
+		conditionIndex := nextIfConditionIndex(stmt.Branches)
+		branch := ast.Branch{
+			ID:        uniqueBranchID(stmt.Branches, "condition"),
+			Label:     fmt.Sprintf("条件 %d", conditionIndex),
+			Condition: &ast.Expression{Kind: "literal", Value: true},
+			Body:      []ast.Statement{},
+		}
+		defaultIndex := defaultBranchIndex(stmt.Branches)
+		if defaultIndex < 0 {
+			stmt.Branches = append(stmt.Branches, branch)
+			return workflow, nil
+		}
+		stmt.Branches = append(stmt.Branches, ast.Branch{})
+		copy(stmt.Branches[defaultIndex+1:], stmt.Branches[defaultIndex:])
+		stmt.Branches[defaultIndex] = branch
+		return workflow, nil
+	case "parallel":
+		nextIndex := len(stmt.Branches) + 1
+		stmt.Branches = append(stmt.Branches, ast.Branch{
+			ID:    uniqueBranchID(stmt.Branches, "branch"),
+			Label: fmt.Sprintf("并行 %d", nextIndex),
+			Body:  []ast.Statement{},
+		})
+		return workflow, nil
+	default:
+		return workflow, []diagnostic.Diagnostic{editPayloadDiagnostic("INSERT_BRANCH_UNSUPPORTED_NODE", fmt.Sprintf("node %q does not support branches", nodeID), "$.payload.nodeId")}
+	}
 }
 
 func buildInsertedStatement(workflow ast.Workflow, node map[string]any) (ast.Statement, *diagnostic.Diagnostic) {
@@ -208,6 +264,146 @@ func buildInsertedStatement(workflow ast.Workflow, node map[string]any) (ast.Sta
 	default:
 		diag := editPayloadDiagnostic("UNSUPPORTED_INSERT_NODE_KIND", fmt.Sprintf("unsupported insert node kind %q", kind), "$.payload.node.kind")
 		return ast.Statement{}, &diag
+	}
+}
+
+func isBranchLocalInsertPosition(position string) bool {
+	return position == "branchStart" || position == "branchEnd" || position == "between"
+}
+
+func insertIntoBranchAnchor(root *ast.Statement, anchor map[string]any, inserted ast.Statement) (bool, []diagnostic.Diagnostic) {
+	containerNodeID, _ := anchor["containerNodeId"].(string)
+	branchID, _ := anchor["branchId"].(string)
+	position, _ := anchor["position"].(string)
+	if containerNodeID == "" || branchID == "" {
+		return false, []diagnostic.Diagnostic{editPayloadDiagnostic("INVALID_INSERT_PAYLOAD", "branch insert anchor requires containerNodeId and branchId", "$.payload.anchor")}
+	}
+	container := findStatementByID(root, containerNodeID)
+	if container == nil {
+		return false, []diagnostic.Diagnostic{notFoundDiagnostic(containerNodeID)}
+	}
+	body := branchBodyByID(container, branchID)
+	if body == nil {
+		return false, []diagnostic.Diagnostic{editPayloadDiagnostic("INSERT_BRANCH_ANCHOR_NOT_FOUND", fmt.Sprintf("branch %q was not found on node %q", branchID, containerNodeID), "$.payload.anchor.branchId")}
+	}
+
+	switch position {
+	case "branchStart":
+		*body = append([]ast.Statement{inserted}, (*body)...)
+		return true, nil
+	case "branchEnd":
+		*body = append(*body, inserted)
+		return true, nil
+	case "between":
+		afterNodeID, _ := anchor["afterNodeId"].(string)
+		beforeNodeID, _ := anchor["beforeNodeId"].(string)
+		if afterNodeID == "" || beforeNodeID == "" {
+			return false, []diagnostic.Diagnostic{editPayloadDiagnostic("INVALID_INSERT_PAYLOAD", "between branch anchor requires afterNodeId and beforeNodeId", "$.payload.anchor")}
+		}
+		insertedOK, foundPair := insertBetweenInList(body, afterNodeID, beforeNodeID, inserted)
+		if insertedOK {
+			return true, nil
+		}
+		code := "INSERT_BRANCH_ANCHOR_NOT_FOUND"
+		message := fmt.Sprintf("branch insert anchor %q -> %q was not found", afterNodeID, beforeNodeID)
+		if foundPair {
+			code = "INSERT_BRANCH_ANCHOR_NOT_ADJACENT"
+			message = fmt.Sprintf("branch insert anchor %q -> %q is not adjacent", afterNodeID, beforeNodeID)
+		}
+		return false, []diagnostic.Diagnostic{editPayloadDiagnostic(code, message, "$.payload.anchor")}
+	default:
+		return false, []diagnostic.Diagnostic{editPayloadDiagnostic("INVALID_INSERT_PAYLOAD", fmt.Sprintf("unsupported branch insert position %q", position), "$.payload.anchor.position")}
+	}
+}
+
+func branchBodyByID(stmt *ast.Statement, branchID string) *[]ast.Statement {
+	if stmt == nil {
+		return nil
+	}
+	switch stmt.Kind {
+	case "if":
+		if len(stmt.Branches) > 0 {
+			for i := range stmt.Branches {
+				if stmt.Branches[i].ID == branchID {
+					return &stmt.Branches[i].Body
+				}
+			}
+		}
+		if branchID == stmt.ID+".then" || branchID == "then" {
+			return &stmt.Then
+		}
+		if branchID == stmt.ID+".else" || branchID == "else" {
+			return &stmt.Else
+		}
+	case "parallel":
+		for i := range stmt.Branches {
+			if stmt.Branches[i].ID == branchID {
+				return &stmt.Branches[i].Body
+			}
+		}
+	}
+	return nil
+}
+
+func canonicalizeIfBranches(stmt *ast.Statement) {
+	if stmt == nil || stmt.Kind != "if" || len(stmt.Branches) > 0 {
+		return
+	}
+	stmt.Branches = []ast.Branch{
+		{
+			ID:        uniqueBranchID(nil, "condition"),
+			Label:     "条件 1",
+			Condition: stmt.Condition,
+			Body:      stmt.Then,
+		},
+		{
+			ID:      "else",
+			Label:   "否则",
+			Default: true,
+			Body:    stmt.Else,
+		},
+	}
+	stmt.Condition = nil
+	stmt.Then = nil
+	stmt.Else = nil
+}
+
+func nextIfConditionIndex(branches []ast.Branch) int {
+	count := 0
+	for _, branch := range branches {
+		if !branch.Default {
+			count++
+		}
+	}
+	return count + 1
+}
+
+func defaultBranchIndex(branches []ast.Branch) int {
+	for i, branch := range branches {
+		if branch.Default {
+			return i
+		}
+	}
+	return -1
+}
+
+func uniqueBranchID(branches []ast.Branch, base string) string {
+	if base == "" {
+		base = "branch"
+	}
+	exists := func(id string) bool {
+		for _, branch := range branches {
+			if branch.ID == id {
+				return true
+			}
+		}
+		return false
+	}
+	for i := 1; ; i++ {
+		candidate := fmt.Sprintf("%s_%d", base, i)
+		if !exists(candidate) {
+			return candidate
+		}
 	}
 }
 

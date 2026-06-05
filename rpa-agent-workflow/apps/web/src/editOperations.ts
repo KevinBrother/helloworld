@@ -26,6 +26,25 @@ export function buildInsertNodeOperation(operationId: string, actor: Actor, anch
   };
 }
 
+export function buildInsertBranchOperation(
+  operationId: string,
+  actor: Actor,
+  nodeId: string,
+  branchKind: "condition" | "parallel",
+): EditOperation {
+  return {
+    schemaVersion: "1.0.0",
+    operationId,
+    type: "insertBranch",
+    targetNodeId: nodeId,
+    payload: {
+      nodeId,
+      branchKind,
+    },
+    actor,
+  };
+}
+
 export function buildDeleteNodeOperation(operationId: string, actor: Actor, node: WorkbenchNode): EditOperation {
   return {
     schemaVersion: "1.0.0",

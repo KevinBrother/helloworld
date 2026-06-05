@@ -13,6 +13,7 @@
         "toggleCollapsed",
         "updateField",
         "insertNode",
+        "insertBranch",
         "deleteNode",
         "moveStatement",
         "duplicateNode",
