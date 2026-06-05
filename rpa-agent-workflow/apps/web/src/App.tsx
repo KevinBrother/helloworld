@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import {
   buildDeleteNodeOperation,
+  buildInsertBranchOperation,
   buildInsertNodeOperation,
   buildUpdateWorkflowPortsOperation,
   type InsertNodeSpec,
@@ -271,6 +272,19 @@ function App() {
     }
   };
 
+  const handleInsertBranch = async (nodeId: string, branchKind: "condition" | "parallel") => {
+    setOpenSourceKey(null);
+    if (pendingOperations.length > 0) {
+      setStatus("先保存本地草稿，再新增分支。");
+      return;
+    }
+    if (!serverAvailable) {
+      setStatus("流程服务未连接，不能新增分支");
+      return;
+    }
+    await submitServerEdit(buildInsertBranchOperation(makeOperationId("branch"), DEFAULT_ACTOR, nodeId, branchKind), "分支已新增");
+  };
+
   const handleDeleteNode = async () => {
     if (!deleteModalNode) return;
     if (pendingOperations.length > 0) {
@@ -426,6 +440,7 @@ function App() {
             model={model}
             nodeRunStates={nodeRunStates}
             selectedId={selectedNode.id}
+            onInsertBranch={handleInsertBranch}
             onInsertAtEdge={handleInsertAtEdge}
             onSelect={(id) => {
               setOpenSourceKey(null);

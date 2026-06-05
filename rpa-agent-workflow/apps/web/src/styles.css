@@ -384,6 +384,55 @@ code {
   z-index: 1;
 }
 
+.canvas-node-position.role-branchHeader,
+.canvas-node-position.role-emptyBranch,
+.canvas-node-position.role-join {
+  z-index: 1;
+  display: grid;
+  place-items: center;
+}
+
+.canvas-branch-header {
+  width: 100%;
+  min-height: 42px;
+  display: grid;
+  place-items: center;
+  border: 1px solid var(--line-strong);
+  border-radius: 6px;
+  background: color-mix(in oklab, var(--surface-2) 84%, white);
+  color: var(--text);
+  font-size: 0.82rem;
+  font-weight: 700;
+  box-shadow: 0 10px 24px color-mix(in oklab, var(--shadow) 52%, transparent);
+}
+
+.canvas-empty-branch {
+  width: 100%;
+  min-height: 74px;
+  display: grid;
+  place-items: center;
+  border: 1px dashed var(--line-strong);
+  border-radius: 6px;
+  background: color-mix(in oklab, var(--surface) 74%, var(--surface-2));
+  color: var(--muted);
+  font-size: 0.82rem;
+  font-weight: 600;
+}
+
+.canvas-join-node {
+  width: 34px;
+  height: 34px;
+  display: grid;
+  place-items: center;
+  border: 2px solid var(--line-strong);
+  border-radius: 50%;
+  background: var(--surface);
+  color: var(--muted);
+  font-size: 0.62rem;
+  font-weight: 800;
+  box-shadow: 0 8px 20px var(--shadow);
+}
+
 .canvas-node {
   width: 100%;
   min-height: 96px;
@@ -1026,6 +1075,25 @@ select.value-control {
 .edge-insert-button:focus-visible {
   transform: translate(-50%, -50%) scale(1.08);
   background: var(--accent-strong);
+}
+
+.edge-insert-button.insert-control {
+  opacity: 1;
+}
+
+.edge-insert-button.branch-add {
+  border-color: color-mix(in oklab, var(--accent) 62%, var(--line-strong));
+  background: var(--accent-strong);
+}
+
+.visually-hidden {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  white-space: nowrap;
+  clip-path: inset(50%);
 }
 
 .selected-node-actions {

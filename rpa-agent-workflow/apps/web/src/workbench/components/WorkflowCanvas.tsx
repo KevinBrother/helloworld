@@ -8,9 +8,10 @@ type WorkflowCanvasProps = {
   selectedId: string;
   onSelect: (id: string) => void;
   onInsertAtEdge?: (anchor: InsertAnchor) => void;
+  onInsertBranch?: (nodeId: string, branchKind: "condition" | "parallel") => void;
 };
 
-export function WorkflowCanvas({ model, nodeRunStates, selectedId, onSelect, onInsertAtEdge }: WorkflowCanvasProps) {
+export function WorkflowCanvas({ model, nodeRunStates, selectedId, onSelect, onInsertAtEdge, onInsertBranch }: WorkflowCanvasProps) {
   const layout = buildCanvasLayout(model);
 
   return (
@@ -23,7 +24,7 @@ export function WorkflowCanvas({ model, nodeRunStates, selectedId, onSelect, onI
             ))}
           </svg>
 
-          {layout.edges.map((edge) => {
+          {layout.edges.filter((edge) => !edge.anchor.position).map((edge) => {
             const point = getEdgeMidpoint(layout, edge.from, edge.to);
             if (!point) return null;
             return (
@@ -40,22 +41,49 @@ export function WorkflowCanvas({ model, nodeRunStates, selectedId, onSelect, onI
             );
           })}
 
+          {layout.insertControls.map((control) => (
+            <button
+              aria-label={control.label}
+              className={`edge-insert-button insert-control ${control.kind === "insertBranch" ? "branch-add" : ""}`}
+              key={control.id}
+              onClick={() => {
+                if (control.kind === "insertBranch" && control.nodeId && control.branchKind) {
+                  onInsertBranch?.(control.nodeId, control.branchKind);
+                  return;
+                }
+                if (control.anchor) {
+                  onInsertAtEdge?.(control.anchor);
+                }
+              }}
+              style={{ left: control.x, top: control.y }}
+              title={control.label}
+              type="button"
+            >
+              <Plus size={16} />
+              <span className="visually-hidden">{control.label}</span>
+            </button>
+          ))}
+
           {layout.nodes.map((layoutNode) => (
             <div
-              className="canvas-node-position"
-              key={layoutNode.node.id}
+              className={`canvas-node-position role-${layoutNode.role}`}
+              key={layoutNode.id}
               style={{
                 left: layoutNode.x - layoutNode.width / 2,
                 top: layoutNode.y,
                 width: layoutNode.width,
               }}
             >
-              <CanvasNode
-                node={layoutNode.node}
-                runState={nodeRunStates[layoutNode.node.id] ?? "idle"}
-                selected={selectedId === layoutNode.node.id}
-                onSelect={onSelect}
-              />
+              {layoutNode.role === "statement" ? (
+                <CanvasNode
+                  node={layoutNode.node}
+                  runState={layoutNode.node ? (nodeRunStates[layoutNode.node.id] ?? "idle") : "idle"}
+                  selected={layoutNode.node ? selectedId === layoutNode.node.id : false}
+                  onSelect={onSelect}
+                />
+              ) : (
+                <CanvasLayoutMarker role={layoutNode.role} label={layoutNode.label} />
+              )}
             </div>
           ))}
         </div>
@@ -65,8 +93,8 @@ export function WorkflowCanvas({ model, nodeRunStates, selectedId, onSelect, onI
 }
 
 function getEdgePath(layout: CanvasLayout, fromId: string, toId: string) {
-  const from = layout.nodes.find((node) => node.node.id === fromId);
-  const to = layout.nodes.find((node) => node.node.id === toId);
+  const from = layout.nodes.find((node) => node.id === fromId);
+  const to = layout.nodes.find((node) => node.id === toId);
   if (!from || !to) return "";
 
   const startX = from.x;
@@ -83,8 +111,8 @@ function getEdgePath(layout: CanvasLayout, fromId: string, toId: string) {
 }
 
 function getEdgeMidpoint(layout: CanvasLayout, fromId: string, toId: string) {
-  const from = layout.nodes.find((node) => node.node.id === fromId);
-  const to = layout.nodes.find((node) => node.node.id === toId);
+  const from = layout.nodes.find((node) => node.id === fromId);
+  const to = layout.nodes.find((node) => node.id === toId);
   if (!from || !to) return null;
 
   const startX = from.x;
@@ -97,6 +125,16 @@ function getEdgeMidpoint(layout: CanvasLayout, fromId: string, toId: string) {
   }
 
   return { x: Math.round((startX + endX) / 2), y: Math.round((startY + endY) / 2) };
+}
+
+function CanvasLayoutMarker({ role, label }: { role: "branchHeader" | "join" | "emptyBranch"; label?: string }) {
+  if (role === "join") {
+    return <div className="canvas-join-node">{label ?? "汇合"}</div>;
+  }
+  if (role === "emptyBranch") {
+    return <div className="canvas-empty-branch">{label ?? "空分支"}</div>;
+  }
+  return <div className="canvas-branch-header">{label ?? "分支"}</div>;
 }
 
 function CanvasNode({ node, runState, selected, onSelect }: { node?: WorkbenchNode; runState: NodeRunState; selected: boolean; onSelect: (id: string) => void }) {
