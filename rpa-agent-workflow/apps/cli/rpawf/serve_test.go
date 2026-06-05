@@ -178,6 +178,64 @@ func TestEditorServerPersistsAcceptedEditToASTFile(t *testing.T) {
 	}
 }
 
+func TestEditorServerApplyInsertNodeReturnsUpdatedProjection(t *testing.T) {
+	server := newEditorServer(testEditorWorkflow(), nil)
+	op := editoperation.Document{
+		SchemaVersion: "1.0.0",
+		OperationID:   "insert-log",
+		Type:          editoperation.OperationTypeInsertNode,
+		Payload: map[string]any{
+			"anchor": map[string]any{"afterNodeId": "assign_count", "beforeNodeId": "return_count"},
+			"node":   map[string]any{"kind": "callBlock", "block": "core.log"},
+		},
+	}
+
+	response := postEdit(t, server, op)
+
+	if response.Code != http.StatusOK {
+		t.Fatalf("status = %d, want %d: %s", response.Code, http.StatusOK, response.Body.String())
+	}
+	var state testEditorStateResponse
+	decodeResponse(t, response, &state)
+	if got := []string{state.AST.Body.Statements[0].ID, state.AST.Body.Statements[1].Kind, state.AST.Body.Statements[2].ID}; got[0] != "assign_count" || got[1] != "callBlock" || got[2] != "return_count" {
+		t.Fatalf("statement order = %#v", got)
+	}
+	if state.UI.Root.Children[1].Kind != "callBlock" {
+		t.Fatalf("projected inserted node kind = %q, want callBlock", state.UI.Root.Children[1].Kind)
+	}
+}
+
+func TestEditorServerApplyDeleteNodeReturnsUpdatedProjection(t *testing.T) {
+	workflow := testEditorWorkflow()
+	workflow.Body.Statements = append([]ast.Statement{
+		{ID: "remove_me", Kind: "callBlock", Block: "core.log"},
+	}, workflow.Body.Statements...)
+	server := newEditorServer(workflow, nil)
+	op := editoperation.Document{
+		SchemaVersion: "1.0.0",
+		OperationID:   "delete-node",
+		Type:          editoperation.OperationTypeDeleteNode,
+		TargetNodeID:  "remove_me",
+		Payload:       map[string]any{"nodeId": "remove_me"},
+	}
+
+	response := postEdit(t, server, op)
+
+	if response.Code != http.StatusOK {
+		t.Fatalf("status = %d, want %d: %s", response.Code, http.StatusOK, response.Body.String())
+	}
+	var state testEditorStateResponse
+	decodeResponse(t, response, &state)
+	if state.AST.Body.Statements[0].ID != "assign_count" {
+		t.Fatalf("first statement = %q, want assign_count", state.AST.Body.Statements[0].ID)
+	}
+	for _, child := range state.UI.Root.Children {
+		if child.ID == "remove_me" {
+			t.Fatalf("projected ui still contains deleted node: %#v", state.UI.Root.Children)
+		}
+	}
+}
+
 func TestEditorServerRunReturnsCurrentWorkflowResult(t *testing.T) {
 	server := newEditorServer(testRunnableWorkflow(), nil)
 

@@ -390,6 +390,26 @@ func validateEditOperation(op editoperation.Document) *diagnostic.Diagnostic {
 		if _, ok := op.Payload["value"]; !ok {
 			return editDiagnostic("EDIT_VALUE_MISSING", "updateField payload requires value", "$.payload.value")
 		}
+	case editoperation.OperationTypeInsertNode:
+		if op.Payload == nil {
+			return editDiagnostic("EDIT_PAYLOAD_MISSING", "insertNode requires payload", "$.payload")
+		}
+		if _, ok := op.Payload["anchor"]; !ok {
+			return editDiagnostic("EDIT_ANCHOR_MISSING", "insertNode payload requires anchor", "$.payload.anchor")
+		}
+		if _, ok := op.Payload["node"]; !ok {
+			return editDiagnostic("EDIT_NODE_MISSING", "insertNode payload requires node", "$.payload.node")
+		}
+	case editoperation.OperationTypeDeleteNode:
+		if op.TargetNodeID == "" {
+			return editDiagnostic("EDIT_TARGET_MISSING", "deleteNode requires targetNodeId", "$.targetNodeId")
+		}
+		if op.Payload == nil {
+			return editDiagnostic("EDIT_PAYLOAD_MISSING", "deleteNode requires payload", "$.payload")
+		}
+		if _, ok := op.Payload["nodeId"]; !ok {
+			return editDiagnostic("EDIT_NODE_ID_MISSING", "deleteNode payload requires nodeId", "$.payload.nodeId")
+		}
 	default:
 		return editDiagnostic("UNSUPPORTED_EDIT_OPERATION", fmt.Sprintf("unsupported edit operation %q", op.Type), "$.type")
 	}
