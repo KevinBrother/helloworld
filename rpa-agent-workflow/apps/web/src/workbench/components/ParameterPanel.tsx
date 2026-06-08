@@ -122,6 +122,7 @@ function ParameterCard({
 }) {
   const [draftPorts, setDraftPorts] = useState(() => portsFromRows(rows));
   const commitTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const showActions = rows.some((row) => row.allowDelete);
 
   useEffect(() => {
     setDraftPorts(portsFromRows(rows));
@@ -163,12 +164,12 @@ function ParameterCard({
           <span>{title}</span>
           <small>{rows.length} 个</small>
         </summary>
-        <div className="parameter-row-list">
+        <div className={showActions ? "parameter-row-list with-actions" : "parameter-row-list"}>
           {rows.length > 0 ? (
             <div className="parameter-row-header" aria-hidden="true">
               <span>名称</span>
               <span>类型</span>
-              <span>操作</span>
+              {showActions ? <span>操作</span> : null}
             </div>
           ) : null}
           {rows.map((row) => (
@@ -183,6 +184,7 @@ function ParameterCard({
               onFieldChange={onFieldChange}
               onNameChange={(name) => row.port && updateRowPort(row, { ...row.port.value, name }, 180)}
               onOpenSourceKeyChange={onOpenSourceKeyChange}
+              showActions={showActions}
               onTypeChange={(type) => row.port && updateRowPort(row, { ...row.port.value, type: { name: type } })}
             />
           ))}
@@ -208,6 +210,7 @@ function ParameterRow({
   onFieldChange,
   onNameChange,
   onOpenSourceKeyChange,
+  showActions,
   onTypeChange,
 }: {
   errors: Record<string, string>;
@@ -219,12 +222,15 @@ function ParameterRow({
   onFieldChange: (field: WorkbenchField, value: unknown) => void;
   onNameChange: (name: string) => void;
   onOpenSourceKeyChange: (key: string | null) => void;
+  showActions: boolean;
   onTypeChange: (type: string) => void;
 }) {
   const field = row.field;
   const valueField = field ? { ...field, key: row.name, label: row.name, type: row.type } : undefined;
   const sourceKey = `${node.id}:${row.valuePath ?? row.id}`;
   const error = field ? errors[field.key] : undefined;
+  const resolvedReadonlyValue = field ? getResolvedFieldValue(field, model.sourcesById) : "";
+  const showValueCell = Boolean((valueField && row.valueEditable) || resolvedReadonlyValue);
 
   return (
     <div className="parameter-row">
@@ -248,29 +254,33 @@ function ParameterRow({
           </option>
         ))}
       </select>
-      {row.allowDelete ? (
-        <button aria-label={`删除参数 ${row.name}`} className="danger-icon-button compact" onClick={onDelete} type="button">
-          <Trash2 size={15} />
-        </button>
-      ) : (
-        <span aria-hidden="true" />
-      )}
-      <div className="parameter-value-cell">
-        {valueField && row.valueEditable ? (
-          <ValueComboInput
-            activeSourceId={getFieldSourceId(valueField)}
-            error={error}
-            field={valueField}
-            isOpen={openSourceKey === sourceKey}
-            resolvedValue={getResolvedFieldValue(valueField, model.sourcesById)}
-            sourceOptions={row.allowReference ? getSourceOptions(model.nodes, node.id, valueField) : []}
-            onFieldChange={onFieldChange}
-            onOpenChange={(nextOpen) => onOpenSourceKeyChange(nextOpen ? sourceKey : null)}
-          />
+      {showActions ? (
+        row.allowDelete ? (
+          <button aria-label={`删除参数 ${row.name}`} className="danger-icon-button compact" onClick={onDelete} type="button">
+            <Trash2 size={15} />
+          </button>
         ) : (
-          <span className="value-control readonly-value">{field ? getResolvedFieldValue(field, model.sourcesById) : ""}</span>
-        )}
-      </div>
+          <span aria-hidden="true" />
+        )
+      ) : null}
+      {showValueCell ? (
+        <div className="parameter-value-cell">
+          {valueField && row.valueEditable ? (
+            <ValueComboInput
+              activeSourceId={getFieldSourceId(valueField)}
+              error={error}
+              field={valueField}
+              isOpen={openSourceKey === sourceKey}
+              resolvedValue={getResolvedFieldValue(valueField, model.sourcesById)}
+              sourceOptions={row.allowReference ? getSourceOptions(model.nodes, node.id, valueField) : []}
+              onFieldChange={onFieldChange}
+              onOpenChange={(nextOpen) => onOpenSourceKeyChange(nextOpen ? sourceKey : null)}
+            />
+          ) : (
+            <span className="value-control readonly-value">{resolvedReadonlyValue}</span>
+          )}
+        </div>
+      ) : null}
     </div>
   );
 }

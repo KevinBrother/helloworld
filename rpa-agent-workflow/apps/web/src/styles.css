@@ -732,9 +732,14 @@ code {
 .parameter-row-header,
 .parameter-row {
   display: grid;
-  grid-template-columns: minmax(86px, 1fr) minmax(92px, 0.82fr) 32px;
+  grid-template-columns: minmax(86px, 1fr) minmax(92px, 0.82fr);
   gap: 0.42rem;
   align-items: center;
+}
+
+.parameter-row-list.with-actions .parameter-row-header,
+.parameter-row-list.with-actions .parameter-row {
+  grid-template-columns: minmax(86px, 1fr) minmax(92px, 0.82fr) 32px;
 }
 
 .parameter-row-header {

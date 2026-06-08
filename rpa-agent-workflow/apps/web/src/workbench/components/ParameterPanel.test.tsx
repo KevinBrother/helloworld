@@ -96,6 +96,58 @@ describe("ParameterPanel", () => {
     expect(html).toContain("count");
     expect(html).not.toContain("entries");
   });
+
+  it("renders readonly block outputs as declarations without empty value boxes", () => {
+    const outputNode: WorkbenchNode = {
+      ...fsListNode,
+      outputRows: [
+        {
+          id: "output:$.body.statements[0].outputs.entries",
+          direction: "output",
+          name: "entries",
+          type: "array",
+          nameEditable: false,
+          typeEditable: false,
+          valueEditable: false,
+          custom: false,
+          valuePath: "$.body.statements[0].outputs.entries",
+          field: fsListNode.outputs[0],
+          allowReference: false,
+          allowDelete: false,
+        },
+        {
+          id: "output:$.body.statements[0].outputs.count",
+          direction: "output",
+          name: "count",
+          type: "number",
+          nameEditable: false,
+          typeEditable: false,
+          valueEditable: false,
+          custom: false,
+          valuePath: "$.body.statements[0].outputs.count",
+          field: fsListNode.outputs[1],
+          allowReference: false,
+          allowDelete: false,
+        },
+      ],
+    };
+    const html = renderToStaticMarkup(
+      <ParameterPanel
+        model={{ ...model, nodes: [outputNode] }}
+        node={outputNode}
+        openSourceKey={null}
+        onFieldChange={() => undefined}
+        onOpenSourceKeyChange={() => undefined}
+        onWorkflowPortsChange={() => undefined}
+      />,
+    );
+
+    expect(html).toContain("输出参数");
+    expect(html).toContain("entries");
+    expect(html).toContain("count");
+    expect(html).not.toContain("readonly-value");
+    expect(html).not.toContain("操作");
+  });
 });
 
 const startNode: WorkbenchNode = {
