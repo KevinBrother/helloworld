@@ -174,6 +174,9 @@ class WorkflowRuntime:
         if name == "core.log":
             from .blocks.core.log import log
             return log(**inputs)
+        if name == "core.delay":
+            from .blocks.core.delay import delay
+            return delay(**inputs)
         if name == "system.get_os_info":
             from .blocks.system.get_os_info import get_os_info
             return get_os_info(**inputs)

@@ -57,7 +57,7 @@ func TestEditorServerBlocksReturnsManifestCatalog(t *testing.T) {
 
 	var catalog editorBlocksResponse
 	decodeResponse(t, response, &catalog)
-	wantIDs := []string{"core.log", "fs.list", "fs.read_text", "fs.write_text", "math.calculate", "system.get_os_info"}
+	wantIDs := []string{"core.delay", "core.log", "fs.list", "fs.read_text", "fs.write_text", "math.calculate", "system.get_os_info"}
 	if len(catalog.Blocks) != len(wantIDs) {
 		t.Fatalf("blocks length = %d, want %d: %#v", len(catalog.Blocks), len(wantIDs), catalog.Blocks)
 	}
@@ -66,7 +66,11 @@ func TestEditorServerBlocksReturnsManifestCatalog(t *testing.T) {
 			t.Fatalf("block ids[%d] = %q, want %q in %#v", i, catalog.Blocks[i].ID, wantID, catalog.Blocks)
 		}
 	}
-	calculate := catalog.Blocks[4]
+	delay := catalog.Blocks[0]
+	if delay.Namespace != "core" || delay.Name != "delay" || len(delay.Inputs) != 1 || len(delay.Outputs) != 0 {
+		t.Fatalf("core.delay catalog entry = %#v, want manifest metadata and duration input", delay)
+	}
+	calculate := catalog.Blocks[5]
 	if calculate.Namespace != "math" || calculate.Name != "calculate" || len(calculate.Inputs) != 3 || len(calculate.Outputs) != 1 {
 		t.Fatalf("math.calculate catalog entry = %#v, want manifest metadata and ports", calculate)
 	}

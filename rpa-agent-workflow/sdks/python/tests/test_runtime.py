@@ -1,5 +1,6 @@
 import asyncio
 import importlib
+import time
 import tempfile
 from pathlib import Path
 import unittest
@@ -9,6 +10,7 @@ from rpa_sdk.runtime import WorkflowRuntime
 
 class RuntimeTest(unittest.TestCase):
     def test_block_implementations_use_namespace_directories(self):
+        self.assertTrue(hasattr(importlib.import_module("rpa_sdk.blocks.core.delay"), "delay"))
         self.assertTrue(hasattr(importlib.import_module("rpa_sdk.blocks.core.log"), "log"))
         self.assertTrue(hasattr(importlib.import_module("rpa_sdk.blocks.fs.list"), "list_entries"))
         self.assertTrue(hasattr(importlib.import_module("rpa_sdk.blocks.fs.read_text"), "read_text"))
@@ -120,6 +122,17 @@ class RuntimeTest(unittest.TestCase):
         runtime = WorkflowRuntime()
         result = runtime.call_block("core.log", {"message": "hello"})
         self.assertIsNone(result)
+
+    def test_delay_block_waits_for_requested_milliseconds(self):
+        runtime = WorkflowRuntime()
+
+        started = time.perf_counter()
+        result = runtime.call_block("core.delay", {"durationMs": 20})
+        elapsed = time.perf_counter() - started
+
+        self.assertIsNone(result)
+        self.assertGreaterEqual(elapsed, 0.015)
+        self.assertLess(elapsed, 0.5)
 
     def test_literal_inputs_are_evaluated_before_block_call(self):
         runtime = WorkflowRuntime()

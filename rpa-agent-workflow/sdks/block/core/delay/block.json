@@ -1,0 +1,21 @@
+{
+  "schemaVersion": "1.0.0",
+  "id": "core.delay",
+  "namespace": "core",
+  "name": "delay",
+  "version": "1.0.0",
+  "runtime": {
+    "target": "python",
+    "module": "rpa_sdk.blocks.core.delay",
+    "callable": "delay",
+    "mode": "sync"
+  },
+  "inputs": [
+    {
+      "name": "durationMs",
+      "type": {
+        "name": "number"
+      }
+    }
+  ]
+}
