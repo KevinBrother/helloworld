@@ -12,7 +12,7 @@ import {
 } from "./workbenchModel";
 import type { UIDocument } from "./types";
 
-const model = buildWorkbenchModel(sampleDocument as UIDocument);
+const model = buildWorkbenchModel(withCalculatorOutputMetadata(sampleDocument as UIDocument));
 const fsModel = buildWorkbenchModel(fsDocument as UIDocument);
 
 describe("workbench model", () => {
@@ -106,6 +106,16 @@ describe("workbench model", () => {
         allowDelete: false,
       }),
     ]);
+  });
+
+  it("does not invent result outputs for blocks that declare no outputs", () => {
+    const delayModel = buildWorkbenchModel(delayDocument());
+    const delayNode = delayModel.nodes.find((node) => node.id === "wait_before_list")!;
+
+    expect(delayNode.outputs).toEqual([]);
+    expect(delayNode.outputRows).toEqual([]);
+    expect(delayModel.sources.map((source) => source.id)).not.toContain("node.wait_before_list.result");
+    expect(getNodeIoLabel(delayNode)).toEqual(["1 个输入", "0 个输出"]);
   });
 
   it("projects block metadata outputs and editable implicit return output declarations", () => {
@@ -729,6 +739,58 @@ function fsListReturnDocument(): UIDocument {
               control: "expression",
               value: { kind: "ref", ref: "state.last_item" },
               metadata: { availableTokens },
+            },
+          ],
+        },
+      ],
+    },
+  };
+}
+
+function withCalculatorOutputMetadata(document: UIDocument): UIDocument {
+  const clone = structuredClone(document);
+  const visit = (node: UIDocument["root"]) => {
+    if (node.id === "calculate_large_value" || node.id === "calculate_small_value") {
+      node.metadata = {
+        ...node.metadata,
+        outputs: [
+          {
+            group: "Upstream Outputs",
+            ref: `node.${node.id}.result`,
+            label: `${node.id}.result`,
+            type: "number",
+            detail: "math.calculate",
+          },
+        ],
+      };
+    }
+    node.children?.forEach(visit);
+    node.branches?.forEach((branch) => branch.children?.forEach(visit));
+  };
+  visit(clone.root);
+  return clone;
+}
+
+function delayDocument(): UIDocument {
+  return {
+    schemaVersion: "1.0.0",
+    workflowId: "delay_workflow",
+    root: {
+      id: "root",
+      kind: "sequence",
+      label: "Start",
+      children: [
+        {
+          id: "wait_before_list",
+          kind: "callBlock",
+          label: "core.delay",
+          path: "$.body.statements[0]",
+          inspector: [
+            {
+              path: "$.body.statements[0].inputs.durationMs",
+              label: "Input durationMs",
+              control: "expression",
+              value: { kind: "literal", value: 0 },
             },
           ],
         },

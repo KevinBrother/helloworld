@@ -614,18 +614,6 @@ function toWorkbenchNode(
         : outputs.map(outputPortFromReturnField)
       : outputPorts;
 
-  if (node.kind === "callBlock" && outputs.length === 0) {
-    outputs.push({
-      key: "result",
-      label: "result",
-      type: "number",
-      control: "readonly",
-      path: `${node.path ?? node.id}.outputs.result`,
-      value: undefined,
-      readonly: true,
-    });
-  }
-
   const inputRows = buildParameterRows("input", node, inputs, inputPorts, allowCustomInput);
   const outputRows = buildParameterRows("output", node, outputs, nodeOutputPorts, allowCustomOutput);
 
