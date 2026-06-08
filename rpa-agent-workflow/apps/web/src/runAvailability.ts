@@ -13,15 +13,8 @@ export function getRunAvailability(serverAvailable: boolean, saveState: SaveStat
     };
   }
 
-  if (saveState !== "saved") {
-    return {
-      available: false,
-      message: "当前工作流未同步到服务端，不能运行。",
-    };
-  }
-
   return {
     available: true,
-    message: "在服务端运行当前流程。",
+    message: saveState === "saved" ? "在服务端运行当前流程。" : "运行前会自动同步本地草稿。",
   };
 }

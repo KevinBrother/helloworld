@@ -385,6 +385,12 @@ function App() {
       return;
     }
 
+    if (!(await commitPendingDraftToServer("本地草稿已保存，开始运行"))) {
+      setOpenSourceKey(null);
+      setRunModalOpen(true);
+      return;
+    }
+
     if (!model) {
       setStatus("流程服务未返回工作流，不能运行。");
       return;
@@ -395,7 +401,7 @@ function App() {
       await submitFieldUpdate(repair.node, repair.field, repair.value);
     }
     if (repairs.length > 0) {
-      setStatus("已修正本地草稿，请保存流程后再运行。");
+      setStatus("已修正本地草稿，请再次运行。");
       return;
     }
 
