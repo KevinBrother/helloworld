@@ -376,6 +376,34 @@ describe("workbench model", () => {
     );
   });
 
+  it("reserves enough horizontal room for nested three-branch if nodes", () => {
+    const nestedModel = buildWorkbenchModel(nestedWideBranchDocument("if"));
+    const layout = buildCanvasLayout(nestedModel);
+    const outerFirstHeader = layout.nodes.find((node) => node.id === "outer_choice:outer_first:header")!;
+    const innerFirstHeader = layout.nodes.find((node) => node.id === "inner_choice:inner_first:header")!;
+    const innerSecondHeader = layout.nodes.find((node) => node.id === "inner_choice:inner_second:header")!;
+    const innerThirdHeader = layout.nodes.find((node) => node.id === "inner_choice:inner_third:header")!;
+
+    expect(innerFirstHeader.x).toBeGreaterThan(outerFirstHeader.x);
+    expect([outerFirstHeader.x, innerFirstHeader.x, innerSecondHeader.x, innerThirdHeader.x]).toEqual([
+      ...new Set([outerFirstHeader.x, innerFirstHeader.x, innerSecondHeader.x, innerThirdHeader.x]),
+    ]);
+  });
+
+  it("reserves enough horizontal room for nested three-branch parallel nodes", () => {
+    const nestedModel = buildWorkbenchModel(nestedWideBranchDocument("parallel"));
+    const layout = buildCanvasLayout(nestedModel);
+    const outerFirstHeader = layout.nodes.find((node) => node.id === "outer_parallel:outer_first:header")!;
+    const innerFirstHeader = layout.nodes.find((node) => node.id === "inner_parallel:inner_first:header")!;
+    const innerSecondHeader = layout.nodes.find((node) => node.id === "inner_parallel:inner_second:header")!;
+    const innerThirdHeader = layout.nodes.find((node) => node.id === "inner_parallel:inner_third:header")!;
+
+    expect(innerFirstHeader.x).toBeGreaterThan(outerFirstHeader.x);
+    expect([outerFirstHeader.x, innerFirstHeader.x, innerSecondHeader.x, innerThirdHeader.x]).toEqual([
+      ...new Set([outerFirstHeader.x, innerFirstHeader.x, innerSecondHeader.x, innerThirdHeader.x]),
+    ]);
+  });
+
   it("marks protected and editable nodes for explicit deletion", () => {
     expect(model.nodes.find((node) => node.id === "root")).toEqual(
       expect.objectContaining({ deletable: false, deleteMessage: "开始节点不能删除" }),
@@ -549,4 +577,53 @@ function nestedBranchDocument(kind: "if" | "parallel"): UIDocument {
       ],
     },
   } as UIDocument;
+}
+
+function nestedWideBranchDocument(kind: "if" | "parallel"): UIDocument {
+  const outerId = kind === "if" ? "outer_choice" : "outer_parallel";
+  const innerId = kind === "if" ? "inner_choice" : "inner_parallel";
+  const branchKind = kind === "if" ? "condition" : "parallel";
+  const defaultKind = kind === "if" ? "default" : "parallel";
+
+  return {
+    schemaVersion: "1.0.0",
+    workflowId: `${kind}_nested_wide_layout`,
+    root: {
+      id: "root",
+      kind: "sequence",
+      label: "Start",
+      children: [
+        {
+          id: outerId,
+          kind,
+          label: "Outer",
+          branches: [
+            {
+              id: "outer_first",
+              label: kind === "if" ? "条件 1" : "并行 1",
+              kind: branchKind,
+              children: [{ id: "outer_first_step", kind: "callBlock", label: "Outer First" }],
+            },
+            {
+              id: "outer_second",
+              label: kind === "if" ? "否则" : "并行 2",
+              kind: defaultKind,
+              children: [
+                {
+                  id: innerId,
+                  kind,
+                  label: "Inner",
+                  branches: [
+                    { id: "inner_first", label: kind === "if" ? "条件 1" : "并行 1", kind: branchKind, children: [] },
+                    { id: "inner_second", label: kind === "if" ? "条件 2" : "并行 2", kind: branchKind, children: [] },
+                    { id: "inner_third", label: kind === "if" ? "否则" : "并行 3", kind: defaultKind, children: [] },
+                  ],
+                },
+              ],
+            },
+          ],
+        },
+      ],
+    },
+  };
 }

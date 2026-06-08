@@ -302,7 +302,8 @@ export function buildCanvasLayout(model: WorkbenchModel): CanvasLayout {
   const insertControls: CanvasInsertControl[] = [];
   const placedStatements = new Set<string>();
   const hasBranches = model.nodes.some((node) => (node.kind === "if" || node.kind === "parallel") && node.raw.branches?.length);
-  const canvasWidth = hasBranches ? CANVAS_BRANCH_WIDTH : CANVAS_LINEAR_WIDTH;
+  const requiredBranchWidth = getFlowLaneSlotWidth(model.root.children ?? []) + CANVAS_NODE_WIDTH;
+  const canvasWidth = hasBranches ? Math.max(CANVAS_BRANCH_WIDTH, requiredBranchWidth) : CANVAS_LINEAR_WIDTH;
   const canvasCenterX = canvasWidth / 2;
 
   type PreviousPoint = {
@@ -384,7 +385,7 @@ export function buildCanvasLayout(model: WorkbenchModel): CanvasLayout {
 
     const headerY = y + CANVAS_NODE_HEIGHT + CANVAS_BRANCH_HEADER_GAP_Y;
     const firstChildY = headerY + CANVAS_BRANCH_HEADER_HEIGHT + CANVAS_BRANCH_NODE_GAP_Y;
-    const laneXs = getBranchLaneCenters(branches.length, x);
+    const laneXs = getBranchLaneCenters(branches, x);
     const joinId = `${uiNode.id}:join`;
     const branchEnds: PreviousPoint[] = [];
     let branchBottom = firstChildY + CANVAS_EMPTY_BRANCH_HEIGHT;
@@ -541,10 +542,31 @@ export function buildCanvasLayout(model: WorkbenchModel): CanvasLayout {
   };
 }
 
-function getBranchLaneCenters(count: number, centerX: number) {
-  if (count <= 1) return [centerX];
-  const firstLaneX = centerX - ((count - 1) * CANVAS_BRANCH_LANE_GAP_X) / 2;
-  return Array.from({ length: count }, (_, index) => firstLaneX + index * CANVAS_BRANCH_LANE_GAP_X);
+function getBranchLaneCenters(branches: NonNullable<UINode["branches"]>, centerX: number) {
+  if (branches.length <= 1) return [centerX];
+  const laneSlotWidths = branches.map(getBranchLaneSlotWidth);
+  const totalWidth = laneSlotWidths.reduce((sum, width) => sum + width, 0);
+  let cursorX = centerX - totalWidth / 2;
+  return laneSlotWidths.map((width) => {
+    const laneCenterX = cursorX + width / 2;
+    cursorX += width;
+    return laneCenterX;
+  });
+}
+
+function getFlowLaneSlotWidth(nodes: UINode[]) {
+  return Math.max(CANVAS_BRANCH_LANE_GAP_X, ...nodes.map(getNodeLaneSlotWidth));
+}
+
+function getNodeLaneSlotWidth(node: UINode): number {
+  if ((node.kind === "if" || node.kind === "parallel") && node.branches?.length) {
+    return Math.max(CANVAS_BRANCH_LANE_GAP_X, node.branches.map(getBranchLaneSlotWidth).reduce((sum, width) => sum + width, 0));
+  }
+  return CANVAS_BRANCH_LANE_GAP_X;
+}
+
+function getBranchLaneSlotWidth(branch: NonNullable<UINode["branches"]>[number]) {
+  return getFlowLaneSlotWidth(branch.children ?? []);
 }
 
 function flattenWorkbenchNodes(root: UINode, workflowInputValues: WorkflowInputValues, workflowOutputPorts: WorkbenchPort[]) {
