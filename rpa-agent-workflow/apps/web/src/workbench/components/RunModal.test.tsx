@@ -21,6 +21,8 @@ describe("RunModal", () => {
     );
 
     expect(html).toContain("运行");
+    expect(html).toContain("请先修正流程输入");
+    expect(html).not.toContain("当前工作流未同步到服务端，不能运行。");
     expect(html).not.toContain("测试");
     expect(html).not.toContain("disabled=\"\"");
   });

@@ -27,13 +27,14 @@ export function RunModal({
   onOpenSourceKeyChange,
   onRun,
 }: RunModalProps) {
+  const hasErrors = Object.keys(errors).length > 0;
   return (
     <div className="modal-backdrop" role="presentation">
       <section className="run-modal" role="dialog" aria-modal="true" aria-labelledby="run-title">
         <div className="modal-header">
           <div>
             <h2 id="run-title">运行流程</h2>
-            <p>{runMessage}</p>
+            <p>{hasErrors ? "请先修正流程输入" : runMessage}</p>
           </div>
           <button className="icon-button" aria-label="关闭运行" onClick={onClose}>
             <X size={18} />

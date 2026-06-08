@@ -28,6 +28,7 @@ export function ValueComboInput({
   onOpenChange,
 }: ValueComboInputProps) {
   const inputRef = useRef<HTMLInputElement>(null);
+  const [localError, setLocalError] = useState("");
   const activeSource = activeSourceId ? sourceOptions.find((source) => source.id === activeSourceId) : undefined;
   const activeSourceLabel = activeSource ? activeSource.id : activeSourceId;
   const hasLiteralOptions = Boolean(field.options?.length);
@@ -35,25 +36,33 @@ export function ValueComboInput({
   const canOpenMenu = hasLiteralOptions || hasReferenceOptions;
   const [draftValue, setDraftValue] = useState<string | null>(null);
   const displayValue = draftValue ?? String(activeSourceLabel ? `{{${activeSourceLabel}}}` : resolvedValue);
+  const visibleError = localError || error;
 
   const literalOptions = useMemo(() => field.options ?? [], [field.options]);
 
   useEffect(() => {
     setDraftValue(null);
+    setLocalError("");
   }, [field.path, field.value]);
 
   return (
     <div className={activeSourceId ? "value-combo linked" : "value-combo"}>
-      <div className={error ? "value-combo-control invalid" : "value-combo-control"}>
+      <div className={visibleError ? "value-combo-control invalid" : "value-combo-control"}>
         <input
-          aria-invalid={Boolean(error)}
-          aria-describedby={error ? `${field.key}-error` : undefined}
+          aria-invalid={Boolean(visibleError)}
+          aria-describedby={visibleError ? `${field.key}-error` : undefined}
           ref={inputRef}
           aria-label={`${field.label} value`}
           value={displayValue}
           onChange={(event) => {
+            const parsed = parseValueComboInput(event.target.value, field.type);
             setDraftValue(event.target.value);
-            onFieldChange(field, { kind: "literal", value: parseFieldInput(event.target.value, field.type) });
+            if (parsed.ok) {
+              setLocalError("");
+              onFieldChange(field, { kind: "literal", value: parsed.value });
+            } else {
+              setLocalError(parsed.error);
+            }
             if (canOpenMenu && event.target.value.includes("{{")) {
               onOpenChange(true);
             }
@@ -107,8 +116,14 @@ export function ValueComboInput({
                   type="button"
                   onMouseDown={(event) => event.preventDefault()}
                   onClick={() => {
+                    const parsed = parseValueComboInput(option, field.type);
+                    if (!parsed.ok) {
+                      setLocalError(parsed.error);
+                      return;
+                    }
                     setDraftValue(null);
-                    onFieldChange(field, { kind: "literal", value: parseFieldInput(option, field.type) });
+                    setLocalError("");
+                    onFieldChange(field, { kind: "literal", value: parsed.value });
                     onOpenChange(false);
                   }}
                 >
@@ -142,9 +157,9 @@ export function ValueComboInput({
           ) : null}
         </div>
       ) : null}
-      {error ? (
+      {visibleError ? (
         <span className="field-error" id={`${field.key}-error`}>
-          {error}
+          {visibleError}
         </span>
       ) : null}
     </div>
@@ -160,12 +175,14 @@ function ComboSection({ title, children }: { title: string; children: ReactNode 
   );
 }
 
-function parseFieldInput(value: string, type: WorkbenchField["type"]) {
-  if (value.trim() === "") return "";
+export function parseValueComboInput(value: string, type: WorkbenchField["type"]): { ok: true; value: unknown } | { ok: false; error: string } {
+  if (value.trim() === "") {
+    return type === "number" ? { ok: false, error: "必须是数字" } : { ok: true, value: "" };
+  }
   if (type === "number") {
     const parsed = Number(value);
-    return Number.isFinite(parsed) ? parsed : value;
+    return Number.isFinite(parsed) ? { ok: true, value: parsed } : { ok: false, error: "必须是数字" };
   }
-  if (type === "boolean") return value === "true";
-  return value;
+  if (type === "boolean") return { ok: true, value: value === "true" };
+  return { ok: true, value };
 }
