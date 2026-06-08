@@ -108,6 +108,54 @@ describe("workbench model", () => {
     ]);
   });
 
+  it("projects block metadata outputs and editable implicit return output declarations", () => {
+    const metadataModel = buildWorkbenchModel(fsListReturnDocument());
+    const listNode = metadataModel.nodes.find((node) => node.id === "fs_list")!;
+    const returnNode = metadataModel.nodes.find((node) => node.id === "return_outputs")!;
+
+    expect(listNode.outputRows.map((row) => ({
+      name: row.name,
+      type: row.type,
+      valueEditable: row.valueEditable,
+      allowDelete: row.allowDelete,
+    }))).toEqual([
+      { name: "entries", type: "array", valueEditable: false, allowDelete: false },
+      { name: "count", type: "number", valueEditable: false, allowDelete: false },
+    ]);
+    expect(metadataModel.sources.map((source) => source.id)).toContain("node.fs_list.entries");
+    expect(metadataModel.sources.map((source) => source.id)).toContain("node.fs_list.count");
+    expect(metadataModel.sources.map((source) => source.id)).not.toContain("node.fs_list.result");
+
+    expect(returnNode.outputRows.map((row) => ({
+      name: row.name,
+      type: row.type,
+      nameEditable: row.nameEditable,
+      typeEditable: row.typeEditable,
+      allowDelete: row.allowDelete,
+      portPath: row.portPath,
+      valuePath: row.valuePath,
+    }))).toEqual([
+      {
+        name: "finally_ran",
+        type: "boolean",
+        nameEditable: true,
+        typeEditable: true,
+        allowDelete: true,
+        portPath: "$.outputs.finally_ran",
+        valuePath: "$.body.statements[1].returns.finally_ran",
+      },
+      {
+        name: "last_item",
+        type: "string",
+        nameEditable: true,
+        typeEditable: true,
+        allowDelete: true,
+        portPath: "$.outputs.last_item",
+        valuePath: "$.body.statements[1].returns.last_item",
+      },
+    ]);
+  });
+
   it("models if condition as left, operator, and right inputs", () => {
     const branchNode = model.nodes.find((node) => node.id === "branch_by_threshold")!;
 
@@ -620,6 +668,67 @@ function nestedWideBranchDocument(kind: "if" | "parallel"): UIDocument {
                   ],
                 },
               ],
+            },
+          ],
+        },
+      ],
+    },
+  };
+}
+
+function fsListReturnDocument(): UIDocument {
+  const availableTokens = [
+    { group: "Global State", ref: "state.finally_ran", label: "finally_ran", type: "boolean", detail: "Global state" },
+    { group: "Global State", ref: "state.last_item", label: "last_item", type: "string", detail: "Global state" },
+    { group: "Upstream Outputs", ref: "node.fs_list.entries", label: "fs_list.entries", type: "array", detail: "fs.list" },
+    { group: "Upstream Outputs", ref: "node.fs_list.count", label: "fs_list.count", type: "number", detail: "fs.list" },
+  ];
+
+  return {
+    schemaVersion: "1.0.0",
+    workflowId: "sample_workflow",
+    root: {
+      id: "root",
+      kind: "sequence",
+      label: "Start",
+      metadata: { allowCustomInput: true },
+      children: [
+        {
+          id: "fs_list",
+          kind: "callBlock",
+          label: "fs.list",
+          path: "$.body.statements[0]",
+          metadata: {
+            outputs: [
+              { group: "Upstream Outputs", ref: "node.fs_list.entries", label: "fs_list.entries", type: "array", detail: "fs.list" },
+              { group: "Upstream Outputs", ref: "node.fs_list.count", label: "fs_list.count", type: "number", detail: "fs.list" },
+            ],
+          },
+          inspector: [
+            { path: "$.body.statements[0].inputs.path", label: "Input path", control: "expression", value: { kind: "literal", value: "" } },
+            { path: "$.body.statements[0].inputs.recursive", label: "Input recursive", control: "expression", value: { kind: "literal", value: false } },
+          ],
+        },
+        {
+          id: "return_outputs",
+          kind: "return",
+          label: "Return",
+          path: "$.body.statements[1]",
+          metadata: { allowCustomOutput: true },
+          inspector: [
+            {
+              path: "$.body.statements[1].returns.finally_ran",
+              label: "Return finally_ran",
+              control: "expression",
+              value: { kind: "ref", ref: "state.finally_ran" },
+              metadata: { availableTokens },
+            },
+            {
+              path: "$.body.statements[1].returns.last_item",
+              label: "Return last_item",
+              control: "expression",
+              value: { kind: "ref", ref: "state.last_item" },
+              metadata: { availableTokens },
             },
           ],
         },

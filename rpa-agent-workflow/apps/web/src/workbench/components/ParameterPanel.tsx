@@ -222,6 +222,7 @@ function ParameterRow({
   onTypeChange: (type: string) => void;
 }) {
   const field = row.field;
+  const valueField = field ? { ...field, key: row.name, label: row.name, type: row.type } : undefined;
   const sourceKey = `${node.id}:${row.valuePath ?? row.id}`;
   const error = field ? errors[field.key] : undefined;
 
@@ -255,14 +256,14 @@ function ParameterRow({
         <span aria-hidden="true" />
       )}
       <div className="parameter-value-cell">
-        {field && row.valueEditable ? (
+        {valueField && row.valueEditable ? (
           <ValueComboInput
-            activeSourceId={getFieldSourceId(field)}
+            activeSourceId={getFieldSourceId(valueField)}
             error={error}
-            field={field}
+            field={valueField}
             isOpen={openSourceKey === sourceKey}
-            resolvedValue={getResolvedFieldValue(field, model.sourcesById)}
-            sourceOptions={row.allowReference ? getSourceOptions(model.nodes, node.id, field) : []}
+            resolvedValue={getResolvedFieldValue(valueField, model.sourcesById)}
+            sourceOptions={row.allowReference ? getSourceOptions(model.nodes, node.id, valueField) : []}
             onFieldChange={onFieldChange}
             onOpenChange={(nextOpen) => onOpenSourceKeyChange(nextOpen ? sourceKey : null)}
           />

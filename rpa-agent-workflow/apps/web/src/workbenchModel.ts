@@ -598,13 +598,21 @@ function toWorkbenchNode(
   const fields = node.inspector ?? [];
   const inputPorts = fields.filter(isWorkflowInputPortField).map(toWorkbenchPort);
   const outputPorts = fields.filter(isWorkflowOutputPortField).map(toWorkbenchPort);
-  const nodeOutputPorts = node.kind === "return" && outputPorts.length === 0 ? workflowOutputPorts : outputPorts;
   const inputs = fields
     .filter(isInputField)
     .flatMap((field) => toInputFields(field, order === 0 && node.kind === "sequence", workflowInputValues));
-  const outputs = fields.filter(isOutputField).map((field) => toWorkbenchField(field, false, false));
+  const outputs = mergeWorkbenchFields(
+    fields.filter(isOutputField).map((field) => toWorkbenchField(field, false, false)),
+    metadataOutputFields(node),
+  );
   const allowCustomInput = metadataFlag(node.metadata, "allowCustomInput");
   const allowCustomOutput = metadataFlag(node.metadata, "allowCustomOutput");
+  const nodeOutputPorts =
+    node.kind === "return" && outputPorts.length === 0
+      ? workflowOutputPorts.length > 0
+        ? workflowOutputPorts
+        : outputs.map(outputPortFromReturnField)
+      : outputPorts;
 
   if (node.kind === "callBlock" && outputs.length === 0) {
     outputs.push({
@@ -664,6 +672,18 @@ function buildParameterRows(
   }
 
   return rows;
+}
+
+function mergeWorkbenchFields(primary: WorkbenchField[], fallback: WorkbenchField[]) {
+  const merged = [...primary];
+  const keys = new Set(primary.map((field) => field.key));
+  for (const field of fallback) {
+    if (!keys.has(field.key)) {
+      merged.push(field);
+      keys.add(field.key);
+    }
+  }
+  return merged;
 }
 
 function parameterRowFromPort(
@@ -773,6 +793,22 @@ function toWorkbenchPort(field: InspectorField): WorkbenchPort {
   };
 }
 
+function outputPortFromReturnField(field: WorkbenchField): WorkbenchPort {
+  const type = field.type === "unknown" ? "string" : field.type;
+  return {
+    key: field.key,
+    label: field.key,
+    type,
+    path: `$.outputs.${field.key}`,
+    value: {
+      name: field.key,
+      type: {
+        name: type,
+      },
+    },
+  };
+}
+
 function rootWorkflowOutputPorts(root: UINode) {
   return (root.inspector ?? []).filter(isWorkflowOutputPortField).map(toWorkbenchPort);
 }
@@ -831,6 +867,27 @@ function toInputFields(field: InspectorField, editableWorkflowInput = false, wor
   }
 
   return [toWorkbenchField(field, editableWorkflowInput, false, workflowInputValues)];
+}
+
+function metadataOutputFields(node: UINode): WorkbenchField[] {
+  const outputs = metadataRecords(node.metadata, "outputs");
+  if (outputs.length === 0) return [];
+
+  return outputs.flatMap((output) => {
+    const name = metadataOutputName(output);
+    if (!name) return [];
+    return [
+      {
+        key: name,
+        label: name,
+        type: normalizeType(typeof output.type === "string" ? output.type : ""),
+        control: "readonly" as const,
+        path: `${node.path ?? node.id}.outputs.${name}`,
+        value: undefined,
+        readonly: true,
+      },
+    ];
+  });
 }
 
 function buildSources(nodes: WorkbenchNode[]) {
@@ -909,6 +966,21 @@ function inferFieldType(field: InspectorField): FieldType {
     }
   }
 
+  const ref = expressionRef(field.value);
+  if (ref) {
+    const tokenType = tokenTypeForRef(field.metadata, ref);
+    if (tokenType) return tokenType;
+  }
+
+  if (isExpressionRecord(field.value) && field.value.kind === "literal") {
+    const literalValue = field.value.value;
+    if (typeof literalValue === "number") return "number";
+    if (typeof literalValue === "boolean") return "boolean";
+    if (typeof literalValue === "string") return "string";
+    if (Array.isArray(literalValue)) return "array";
+    if (isRecord(literalValue)) return "object";
+  }
+
   const key = fieldKey(field).toLowerCase();
   if (key.includes("operator")) return "string";
   if (key.includes("path")) return "path";
@@ -937,6 +1009,31 @@ function inferOptions(key: string, path: string) {
   if (key === "operator" && path.includes(".condition.")) return [">", ">=", "<", "<=", "=="];
   if (key === "operator") return ["+", "-", "*", "/"];
   return undefined;
+}
+
+function tokenTypeForRef(metadata: InspectorField["metadata"], ref: string): FieldType | undefined {
+  for (const token of metadataRecords(metadata, "availableTokens")) {
+    if (token.ref === ref && typeof token.type === "string") {
+      return normalizeType(token.type);
+    }
+  }
+  return undefined;
+}
+
+function metadataRecords(metadata: Record<string, unknown> | undefined, key: string): Record<string, unknown>[] {
+  const value = metadata?.[key];
+  if (!Array.isArray(value)) return [];
+  return value.filter(isRecord);
+}
+
+function metadataOutputName(output: Record<string, unknown>) {
+  if (typeof output.ref === "string") {
+    return output.ref.split(".").at(-1) ?? "";
+  }
+  if (typeof output.label === "string") {
+    return output.label.split(".").at(-1) ?? normalizeKey(output.label);
+  }
+  return "";
 }
 
 function fieldKey(field: InspectorField) {

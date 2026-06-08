@@ -46,6 +46,56 @@ describe("ParameterPanel", () => {
     expect(html).toContain("{{node.branch_by_threshold.result}}");
     expect(html).toContain("添加自定义输出");
   });
+
+  it("filters return reference choices by the editable row type", () => {
+    const typedReturnNode: WorkbenchNode = {
+      ...returnNode,
+      outputs: [
+        {
+          key: "finally_ran",
+          label: "finally_ran",
+          type: "boolean",
+          control: "reference",
+          path: "$.body.statements[1].returns.finally_ran",
+          value: { kind: "ref", ref: "state.finally_ran" },
+        },
+      ],
+      outputRows: [
+        {
+          ...returnNode.outputRows[0],
+          id: "output:$.outputs.finally_ran",
+          name: "finally_ran",
+          type: "number",
+          valuePath: "$.body.statements[1].returns.finally_ran",
+          portPath: "$.outputs.finally_ran",
+          value: { kind: "ref", ref: "state.finally_ran" },
+          field: {
+            key: "finally_ran",
+            label: "finally_ran",
+            type: "boolean",
+            control: "reference",
+            path: "$.body.statements[1].returns.finally_ran",
+            value: { kind: "ref", ref: "state.finally_ran" },
+          },
+          port: { key: "finally_ran", label: "finally_ran", type: "number", path: "$.outputs.finally_ran", value: { name: "finally_ran", type: { name: "number" } } },
+        },
+      ],
+    };
+    const html = renderToStaticMarkup(
+      <ParameterPanel
+        model={{ ...model, nodes: [startNode, fsListNode, typedReturnNode] }}
+        node={typedReturnNode}
+        openSourceKey="return_result:$.body.statements[1].returns.finally_ran"
+        onFieldChange={() => undefined}
+        onOpenSourceKeyChange={() => undefined}
+        onWorkflowPortsChange={() => undefined}
+      />,
+    );
+
+    expect(html).toContain("fs.list");
+    expect(html).toContain("count");
+    expect(html).not.toContain("entries");
+  });
 });
 
 const startNode: WorkbenchNode = {
@@ -118,6 +168,29 @@ const branchNode: WorkbenchNode = {
   deleteMessage: "",
   hasNestedChildren: false,
 };
+
+const fsListNode: WorkbenchNode = {
+  id: "fs_list",
+  kind: "callBlock",
+  label: "fs.list",
+  order: 1,
+  raw: { id: "fs_list", kind: "callBlock" },
+  inputs: [],
+  outputs: [
+    { key: "entries", label: "entries", type: "array", control: "readonly", path: "$.body.statements[0].outputs.entries", value: undefined, readonly: true },
+    { key: "count", label: "count", type: "number", control: "readonly", path: "$.body.statements[0].outputs.count", value: undefined, readonly: true },
+  ],
+  inputPorts: [],
+  outputPorts: [],
+  inputRows: [],
+  outputRows: [],
+  allowCustomInput: false,
+  allowCustomOutput: false,
+  deletable: true,
+  deleteMessage: "",
+  hasNestedChildren: false,
+};
+
 
 const returnNode: WorkbenchNode = {
   id: "return_result",
