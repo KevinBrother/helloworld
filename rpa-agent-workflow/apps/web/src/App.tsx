@@ -12,7 +12,7 @@ import { formatDiagnosticMessage, formatDiagnostics } from "./diagnosticMessages
 import { diagnosticErrorsForNode, findDiagnosticTarget } from "./diagnosticTargets";
 import { getRunAvailability } from "./runAvailability";
 import { reduceRunMessage, runWorkflowStream, type NodeRunStateMap } from "./runEvents";
-import { validateWorkflowRunInputs } from "./runInputValidation";
+import { validateWorkbenchNodeInputs, validateWorkflowRunInputs } from "./runInputValidation";
 import { findInvalidConditionOperatorRepairs } from "./runReadiness";
 import { buildWorkbenchModel, type InsertAnchor, type WorkbenchField, type WorkbenchNode, type WorkbenchPort } from "./workbenchModel";
 import { updateWorkflowPortsInDocument } from "./workflowBoundary";
@@ -66,10 +66,12 @@ export function WorkbenchApp() {
   );
   const workflowInputNode = useMemo(() => model?.nodes.find((node) => node.kind === "sequence" && node.order === 0), [model]);
   const runInputValidation = useMemo(() => validateWorkflowRunInputs(workflowInputNode?.inputs), [workflowInputNode]);
+  const workbenchInputValidation = useMemo(() => validateWorkbenchNodeInputs(model?.nodes ?? []), [model]);
   const selectedNodeDiagnosticErrors = useMemo(
     () => (model && selectedNode ? diagnosticErrorsForNode(model, selectedNode.id, diagnostics) : {}),
     [diagnostics, model, selectedNode],
   );
+  const selectedNodeRunErrors = selectedNode ? (workbenchInputValidation.errorsByNodeId[selectedNode.id] ?? {}) : {};
   const filteredBlocks = useMemo(() => {
     const query = blockQuery.trim().toLowerCase();
     const blockOptions = model?.blockOptions ?? [];
@@ -423,6 +425,17 @@ export function WorkbenchApp() {
       return;
     }
 
+    const blockInputValidation = validateWorkbenchNodeInputs(model.nodes);
+    if (!blockInputValidation.valid) {
+      setOpenSourceKey(null);
+      setRunModalOpen(false);
+      if (blockInputValidation.target) {
+        setSelectedNodeId(blockInputValidation.target.nodeId);
+      }
+      setStatus("请先修正节点必填参数");
+      return;
+    }
+
     setOpenSourceKey(null);
     setRunPending(true);
     setRunModalOpen(false);
@@ -485,6 +498,7 @@ export function WorkbenchApp() {
           <ParameterPanel
             errors={{
               ...selectedNodeDiagnosticErrors,
+              ...selectedNodeRunErrors,
               ...(selectedNode.id === workflowInputNode?.id ? runInputValidation.errors : {}),
             }}
             model={model}

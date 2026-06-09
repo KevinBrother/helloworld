@@ -236,6 +236,25 @@ describe("workbench model", () => {
     expect(durationRow.type).toBe("number");
   });
 
+  it("uses block catalog optional flags for input validation", () => {
+    const catalogModel = buildWorkbenchModel(fsListReturnDocument(), [
+      {
+        id: "fs.list",
+        namespace: "fs",
+        name: "list",
+        inputs: [
+          { name: "path", type: { name: "string" } },
+          { name: "recursive", type: { name: "boolean", optional: true } },
+        ],
+        outputs: [],
+      },
+    ]);
+    const listNode = catalogModel.nodes.find((node) => node.id === "fs_list")!;
+
+    expect(listNode.inputs.find((field) => field.key === "path")?.optional).toBe(false);
+    expect(listNode.inputs.find((field) => field.key === "recursive")?.optional).toBe(true);
+  });
+
   it("keeps the block library empty when the service catalog is unavailable", () => {
     const offlineModel = buildWorkbenchModel(sampleDocument as UIDocument);
 

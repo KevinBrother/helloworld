@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
-import { validateWorkflowRunInputs } from "./runInputValidation";
-import type { WorkbenchField } from "./workbenchModel";
+import { validateWorkbenchNodeInputs, validateWorkflowRunInputs } from "./runInputValidation";
+import type { WorkbenchField, WorkbenchNode } from "./workbenchModel";
 
 const fields: WorkbenchField[] = [
   field("left", "number", 12),
@@ -35,13 +35,69 @@ describe("validateWorkflowRunInputs", () => {
   });
 });
 
-function field(key: string, type: WorkbenchField["type"], value: unknown): WorkbenchField {
+describe("validateWorkbenchNodeInputs", () => {
+  it("rejects empty required block inputs before runtime execution", () => {
+    const result = validateWorkbenchNodeInputs([
+      node("fs_list", [
+        field("path", "path", "", { path: "$.body.statements[0].inputs.path" }),
+        field("recursive", "boolean", false, { optional: true, path: "$.body.statements[0].inputs.recursive" }),
+      ]),
+    ]);
+
+    expect(result.valid).toBe(false);
+    expect(result.target).toEqual({ nodeId: "fs_list", fieldKey: "path" });
+    expect(result.errorsByNodeId).toEqual({
+      fs_list: {
+        path: "必填",
+      },
+    });
+  });
+
+  it("allows empty optional block inputs", () => {
+    const result = validateWorkbenchNodeInputs([node("fs_list", [field("recursive", "boolean", "", { optional: true })])]);
+
+    expect(result).toEqual({
+      valid: true,
+      errorsByNodeId: {},
+      target: null,
+    });
+  });
+});
+
+function field(
+  key: string,
+  type: WorkbenchField["type"],
+  value: unknown,
+  options: { optional?: boolean; path?: string } = {},
+): WorkbenchField {
   return {
     key,
     label: key,
     type,
     control: "input",
-    path: `$.inputs.${key}`,
+    path: options.path ?? `$.inputs.${key}`,
     value: { kind: "literal", value },
+    optional: options.optional,
+  };
+}
+
+function node(id: string, inputs: WorkbenchField[]): WorkbenchNode {
+  return {
+    id,
+    kind: "callBlock",
+    label: id,
+    order: 1,
+    raw: { id, kind: "callBlock" },
+    inputs,
+    outputs: [],
+    inputPorts: [],
+    outputPorts: [],
+    inputRows: [],
+    outputRows: [],
+    allowCustomInput: false,
+    allowCustomOutput: false,
+    deletable: true,
+    deleteMessage: "",
+    hasNestedChildren: false,
   };
 }

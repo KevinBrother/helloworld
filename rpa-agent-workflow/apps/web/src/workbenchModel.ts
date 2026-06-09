@@ -11,6 +11,7 @@ export type WorkbenchField = {
   path: string;
   value: unknown;
   readonly?: boolean;
+  optional?: boolean;
   options?: string[];
 };
 
@@ -876,6 +877,7 @@ function applyBlockInputType(field: WorkbenchField, blockDefinition: BlockDefini
   return {
     ...field,
     type: normalizeType(port.type.name),
+    optional: Boolean(port.type.optional),
   };
 }
 

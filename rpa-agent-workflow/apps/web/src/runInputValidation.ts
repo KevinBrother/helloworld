@@ -1,9 +1,15 @@
-import type { WorkbenchField } from "./workbenchModel";
+import type { WorkbenchField, WorkbenchNode } from "./workbenchModel";
 
 export type RunInputValidation = {
   valid: boolean;
   errors: Record<string, string>;
   inputs: Record<string, unknown>;
+};
+
+export type WorkbenchNodeInputValidation = {
+  valid: boolean;
+  errorsByNodeId: Record<string, Record<string, string>>;
+  target: { nodeId: string; fieldKey: string } | null;
 };
 
 export function validateWorkflowRunInputs(fields: WorkbenchField[] | undefined): RunInputValidation {
@@ -50,6 +56,46 @@ export function validateWorkflowRunInputs(fields: WorkbenchField[] | undefined):
     errors,
     inputs,
   };
+}
+
+export function validateWorkbenchNodeInputs(nodes: WorkbenchNode[]): WorkbenchNodeInputValidation {
+  const errorsByNodeId: Record<string, Record<string, string>> = {};
+  let target: WorkbenchNodeInputValidation["target"] = null;
+
+  for (const node of nodes) {
+    if (node.kind !== "callBlock") continue;
+    for (const field of node.inputs) {
+      if (field.readonly || field.optional) continue;
+      const error = validateRequiredField(field);
+      if (!error) continue;
+      errorsByNodeId[node.id] = {
+        ...(errorsByNodeId[node.id] ?? {}),
+        [field.key]: error,
+      };
+      target ??= { nodeId: node.id, fieldKey: field.key };
+    }
+  }
+
+  return {
+    valid: Object.keys(errorsByNodeId).length === 0,
+    errorsByNodeId,
+    target,
+  };
+}
+
+function validateRequiredField(field: WorkbenchField) {
+  const value = literalValue(field.value);
+  const normalized = typeof value === "string" ? value.trim() : value;
+  if (normalized === "" || normalized === null || normalized === undefined) return "必填";
+  if (field.type === "number") {
+    const parsed = typeof normalized === "number" ? normalized : Number(normalized);
+    if (!Number.isFinite(parsed)) return "必须是数字";
+  }
+  if (field.type === "boolean") {
+    if (typeof normalized === "boolean" || normalized === "true" || normalized === "false") return null;
+    return "必须是 true 或 false";
+  }
+  return null;
 }
 
 function literalValue(value: unknown) {
