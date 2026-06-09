@@ -18,6 +18,48 @@ describe("run event state reducer", () => {
     expect(states.calculate_large_value).toBe("completed");
   });
 
+  it("keeps only the active serial statement running while the root sequence is open", () => {
+    let states: NodeRunStateMap = {};
+
+    states = reduceRunMessage(states, {
+      type: "trace",
+      event: { name: "statement.start", workflowId: "calculator", statementId: "root", statementKind: "sequence" },
+    });
+    states = reduceRunMessage(states, {
+      type: "trace",
+      event: { name: "statement.start", workflowId: "calculator", statementId: "first_delay", statementKind: "callBlock" },
+    });
+    states = reduceRunMessage(states, {
+      type: "trace",
+      event: { name: "statement.end", workflowId: "calculator", statementId: "first_delay", statementKind: "callBlock" },
+    });
+    states = reduceRunMessage(states, {
+      type: "trace",
+      event: { name: "statement.start", workflowId: "calculator", statementId: "second_log", statementKind: "callBlock" },
+    });
+
+    expect(states.root).not.toBe("running");
+    expect(states.first_delay).toBe("completed");
+    expect(states.second_log).toBe("running");
+    expect(Object.values(states).filter((state) => state === "running")).toHaveLength(1);
+  });
+
+  it("keeps parallel containers running with their active child statements", () => {
+    let states: NodeRunStateMap = {};
+
+    states = reduceRunMessage(states, {
+      type: "trace",
+      event: { name: "statement.start", workflowId: "parallel_workflow", statementId: "run_both", statementKind: "parallel" },
+    });
+    states = reduceRunMessage(states, {
+      type: "trace",
+      event: { name: "statement.start", workflowId: "parallel_workflow", statementId: "left_delay", statementKind: "callBlock" },
+    });
+
+    expect(states.run_both).toBe("running");
+    expect(states.left_delay).toBe("running");
+  });
+
   it("marks the server-reported failed node", () => {
     const states = reduceRunMessage(
       { calculate_large_value: "running" },

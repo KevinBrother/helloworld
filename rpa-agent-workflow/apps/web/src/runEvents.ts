@@ -9,7 +9,7 @@ export type RunStreamOutcome =
 
 export function reduceRunMessage(states: NodeRunStateMap, message: RunStreamMessage): NodeRunStateMap {
   if (message.type === "result") {
-    return Object.fromEntries(Object.entries(states).map(([nodeId, state]) => [nodeId, state === "running" ? "completed" : state]));
+    return completeRunningStates(states);
   }
 
   const event = message.event;
@@ -23,6 +23,9 @@ export function reduceRunMessage(states: NodeRunStateMap, message: RunStreamMess
   }
 
   if (event?.name === "statement.start") {
+    if (isPassiveContainerStatement(event.statementKind)) {
+      return states;
+    }
     return { ...states, [statementId]: "running" };
   }
 
@@ -31,6 +34,14 @@ export function reduceRunMessage(states: NodeRunStateMap, message: RunStreamMess
   }
 
   return states;
+}
+
+function completeRunningStates(states: NodeRunStateMap): NodeRunStateMap {
+  return Object.fromEntries(Object.entries(states).map(([nodeId, state]) => [nodeId, state === "running" ? "completed" : state]));
+}
+
+function isPassiveContainerStatement(statementKind?: string) {
+  return statementKind === "sequence";
 }
 
 export function runWorkflowStream(inputs: Record<string, unknown>, onMessage: (message: RunStreamMessage) => void): Promise<RunStreamOutcome> {
