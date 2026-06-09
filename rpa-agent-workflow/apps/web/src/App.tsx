@@ -6,6 +6,7 @@ import {
   buildUpdateWorkflowPortsOperation,
   type InsertNodeSpec,
 } from "./editOperations";
+import { formatDiagnosticMessage, formatDiagnostics } from "./diagnosticMessages";
 import { getRunAvailability } from "./runAvailability";
 import { reduceRunMessage, runWorkflowStream, type NodeRunStateMap } from "./runEvents";
 import { validateWorkflowRunInputs } from "./runInputValidation";
@@ -435,9 +436,9 @@ function App() {
       setRunLines((current) => appendRunLines(current, [`[${timestamp}] 运行完成`, ...formatRunLines(payload.result)], 18));
       setStatus("运行完成");
     } else {
-      const apiError = normalizeAPIError(outcome.diagnostics[0]?.message ?? "Workflow run failed");
+      const apiError = normalizeAPIError(new WorkflowRequestError(outcome.diagnostics[0]?.message ?? "Workflow run failed", outcome.diagnostics));
       setRunResult(null);
-      setDiagnostics(outcome.diagnostics.length > 0 ? outcome.diagnostics : apiError.diagnostics);
+      setDiagnostics(apiError.diagnostics);
       setRunLines((current) => appendRunLines(current, [`[${timestamp}] 运行失败：${apiError.message}`], 12));
       setStatus(apiError.message);
     }
@@ -680,9 +681,10 @@ async function responseDiagnostics(response: Response): Promise<Diagnostic[]> {
 
 function normalizeAPIError(error: unknown): { message: string; diagnostics: Diagnostic[]; network: boolean } {
   if (error instanceof WorkflowRequestError) {
+    const diagnostics = formatDiagnostics(error.diagnostics);
     return {
-      message: error.message,
-      diagnostics: error.diagnostics.length > 0 ? error.diagnostics : [{ severity: "error", code: "workflow.api", message: error.message }],
+      message: diagnostics[0]?.message ?? formatDiagnosticMessage({ severity: "error", code: "workflow.api", message: error.message }),
+      diagnostics: diagnostics.length > 0 ? diagnostics : [{ severity: "error", code: "workflow.api", message: error.message }],
       network: false,
     };
   }
