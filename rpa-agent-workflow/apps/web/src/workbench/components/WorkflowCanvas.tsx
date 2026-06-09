@@ -29,15 +29,35 @@ export function WorkflowCanvas({ model, nodeRunStates, selectedId, onSelect, onI
   const dragPanRef = useRef<{ pointerId: number; startClientX: number; startClientY: number; startScrollLeft: number; startScrollTop: number } | null>(null);
   const scaleRef = useRef(1);
   const [viewportSize, setViewportSize] = useState({ width: 0, height: 0 });
-  const [manualScale, setManualScale] = useState<number | null>(null);
+  const [currentScale, setCurrentScale] = useState<number | null>(null);
   const [isPanning, setIsPanning] = useState(false);
+  const resolvedScale = useMemo(
+    () =>
+      resolveCanvasScale({
+        currentScale,
+        layoutHeight: layout.height,
+        layoutWidth: layout.width,
+        mode: "stable",
+        viewportHeight: viewportSize.height,
+        viewportWidth: viewportSize.width,
+      }),
+    [currentScale, layout.height, layout.width, viewportSize.height, viewportSize.width],
+  );
   const stage = useMemo(
-    () => calculateCanvasStage(layout.width, layout.height, viewportSize.width, viewportSize.height, manualScale),
-    [layout.width, layout.height, manualScale, viewportSize.height, viewportSize.width],
+    () => calculateCanvasStage(layout.width, layout.height, viewportSize.width, viewportSize.height, resolvedScale),
+    [layout.width, layout.height, resolvedScale, viewportSize.height, viewportSize.width],
   );
   const fitScale = useMemo(
-    () => calculateCanvasFitScale(layout.width, layout.height, viewportSize.width, viewportSize.height),
-    [layout.width, layout.height, viewportSize.height, viewportSize.width],
+    () =>
+      resolveCanvasScale({
+        currentScale,
+        layoutHeight: layout.height,
+        layoutWidth: layout.width,
+        mode: "fit",
+        viewportHeight: viewportSize.height,
+        viewportWidth: viewportSize.width,
+      }),
+    [currentScale, layout.width, layout.height, viewportSize.height, viewportSize.width],
   );
   const zoomPercent = Math.round(stage.scale * 100);
   const stageStyle = {
@@ -54,6 +74,11 @@ export function WorkflowCanvas({ model, nodeRunStates, selectedId, onSelect, onI
   useLayoutEffect(() => {
     scaleRef.current = stage.scale;
   }, [stage.scale]);
+
+  useEffect(() => {
+    if (currentScale !== null || viewportSize.width <= 0 || viewportSize.height <= 0) return;
+    setCurrentScale(resolvedScale);
+  }, [currentScale, resolvedScale, viewportSize.height, viewportSize.width]);
 
   useLayoutEffect(() => {
     const element = scrollRef.current;
@@ -149,7 +174,7 @@ export function WorkflowCanvas({ model, nodeRunStates, selectedId, onSelect, onI
     const boundedScale = clampCanvasScale(nextScale);
     scaleRef.current = boundedScale;
     pendingScrollRef.current = getCurrentScrollCenter();
-    setManualScale(boundedScale);
+    setCurrentScale(boundedScale);
   };
 
   const zoomAtPoint = useCallback(
@@ -176,7 +201,7 @@ export function WorkflowCanvas({ model, nodeRunStates, selectedId, onSelect, onI
           top: scrollPosition.top,
         };
       }
-      setManualScale(boundedScale);
+      setCurrentScale(boundedScale);
     },
     [layout.height, layout.width, stage, viewportSize.height, viewportSize.width],
   );
@@ -195,8 +220,17 @@ export function WorkflowCanvas({ model, nodeRunStates, selectedId, onSelect, onI
   };
 
   const fitCanvas = () => {
+    const nextScale = resolveCanvasScale({
+      currentScale,
+      layoutHeight: layout.height,
+      layoutWidth: layout.width,
+      mode: "fit",
+      viewportHeight: viewportSize.height,
+      viewportWidth: viewportSize.width,
+    });
+    scaleRef.current = nextScale;
     pendingScrollRef.current = { mode: "center" };
-    setManualScale(null);
+    setCurrentScale(nextScale);
   };
 
   useEffect(() => {
@@ -261,7 +295,7 @@ export function WorkflowCanvas({ model, nodeRunStates, selectedId, onSelect, onI
         <button aria-label="放大画布" disabled={stage.scale >= CANVAS_MANUAL_MAX_SCALE} onClick={() => updateManualScale(calculateNextCanvasScale(scaleRef.current, 1))} title="放大画布" type="button">
           <Plus size={16} />
         </button>
-        <button aria-label="适配全量画布" disabled={manualScale === null || roundScale(stage.scale) === roundScale(fitScale)} onClick={fitCanvas} title="适配全量画布" type="button">
+        <button aria-label="适配全量画布" disabled={roundScale(stage.scale) === roundScale(fitScale)} onClick={fitCanvas} title="适配全量画布" type="button">
           <Maximize2 size={15} />
         </button>
       </div>
@@ -364,6 +398,28 @@ export function calculateCanvasStage(layoutWidth: number, layoutHeight: number, 
     stageHeight,
     stageWidth,
   };
+}
+
+export function resolveCanvasScale({
+  currentScale,
+  layoutHeight,
+  layoutWidth,
+  mode,
+  viewportHeight,
+  viewportWidth,
+}: {
+  currentScale: number | null;
+  layoutHeight: number;
+  layoutWidth: number;
+  mode: "fit" | "stable";
+  viewportHeight: number;
+  viewportWidth: number;
+}) {
+  if (mode === "fit" || currentScale === null) {
+    return calculateCanvasFitScale(layoutWidth, layoutHeight, viewportWidth, viewportHeight);
+  }
+
+  return clampCanvasScale(currentScale);
 }
 
 export function shouldZoomCanvasFromWheel(event: { ctrlKey: boolean; metaKey: boolean }) {

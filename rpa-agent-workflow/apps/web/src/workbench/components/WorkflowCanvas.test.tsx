@@ -2,7 +2,15 @@ import { renderToStaticMarkup } from "react-dom/server";
 import { describe, expect, it } from "vitest";
 import type { UIDocument } from "../../types";
 import { buildWorkbenchModel } from "../../workbenchModel";
-import { calculateCanvasStage, calculateNextCanvasScale, calculateSelectedNodeScrollPosition, calculateZoomScrollPosition, shouldZoomCanvasFromWheel, WorkflowCanvas } from "./WorkflowCanvas";
+import {
+  calculateCanvasStage,
+  calculateNextCanvasScale,
+  calculateSelectedNodeScrollPosition,
+  calculateZoomScrollPosition,
+  resolveCanvasScale,
+  shouldZoomCanvasFromWheel,
+  WorkflowCanvas,
+} from "./WorkflowCanvas";
 
 describe("WorkflowCanvas", () => {
   it("renders branch controls without labeling visual joins", () => {
@@ -90,6 +98,41 @@ describe("WorkflowCanvas", () => {
     expect(stage.scale).toBe(0.75);
     expect(stage.scaledWidth).toBe(1500);
     expect(stage.scaledHeight).toBe(900);
+  });
+
+  it("keeps the current canvas scale stable when surrounding panels resize the viewport", () => {
+    const initialFitScale = resolveCanvasScale({
+      currentScale: null,
+      layoutHeight: 1200,
+      layoutWidth: 1000,
+      mode: "stable",
+      viewportHeight: 700,
+      viewportWidth: 900,
+    });
+
+    expect(initialFitScale).toBe(0.503);
+
+    expect(
+      resolveCanvasScale({
+        currentScale: initialFitScale,
+        layoutHeight: 1200,
+        layoutWidth: 1000,
+        mode: "stable",
+        viewportHeight: 420,
+        viewportWidth: 900,
+      }),
+    ).toBe(initialFitScale);
+
+    expect(
+      resolveCanvasScale({
+        currentScale: initialFitScale,
+        layoutHeight: 1200,
+        layoutWidth: 1000,
+        mode: "fit",
+        viewportHeight: 420,
+        viewportWidth: 900,
+      }),
+    ).toBe(0.32);
   });
 
   it("clamps manual scale from 10% to 200%", () => {

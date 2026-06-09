@@ -44,3 +44,4 @@
 [x] 修复运行时 expected number 原样提示
 [x] 运行 block 参数错误时自动聚焦错误节点并标记字段
 [x] callBlock 参数类型优先使用 block catalog
+[x] 固定画布缩放不受运行输出面板尺寸变化影响
