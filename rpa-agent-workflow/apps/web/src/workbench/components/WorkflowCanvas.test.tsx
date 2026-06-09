@@ -2,7 +2,7 @@ import { renderToStaticMarkup } from "react-dom/server";
 import { describe, expect, it } from "vitest";
 import type { UIDocument } from "../../types";
 import { buildWorkbenchModel } from "../../workbenchModel";
-import { calculateCanvasStage, calculateNextCanvasScale, calculateZoomScrollPosition, shouldZoomCanvasFromWheel, WorkflowCanvas } from "./WorkflowCanvas";
+import { calculateCanvasStage, calculateNextCanvasScale, calculateSelectedNodeScrollPosition, calculateZoomScrollPosition, shouldZoomCanvasFromWheel, WorkflowCanvas } from "./WorkflowCanvas";
 
 describe("WorkflowCanvas", () => {
   it("renders branch controls without labeling visual joins", () => {
@@ -121,6 +121,19 @@ describe("WorkflowCanvas", () => {
 
     expect(scroll.left).toBe(338);
     expect(scroll.top).toBe(274);
+  });
+
+  it("centers a selected node inside the scaled canvas stage", () => {
+    const stage = calculateCanvasStage(1000, 800, 500, 400, 0.5);
+
+    expect(
+      calculateSelectedNodeScrollPosition({
+        node: { x: 400, y: 300, width: 200, height: 100 },
+        stage,
+        viewportHeight: 400,
+        viewportWidth: 500,
+      }),
+    ).toEqual({ left: 192, top: 167 });
   });
 });
 

@@ -24,6 +24,7 @@ export function WorkflowCanvas({ model, nodeRunStates, selectedId, onSelect, onI
   const layout = buildCanvasLayout(model);
   const scrollRef = useRef<HTMLDivElement>(null);
   const lastCenteredSignatureRef = useRef("");
+  const lastFocusedSelectedIdRef = useRef("");
   const pendingScrollRef = useRef<{ mode: "center" } | { mode: "preserveCenter"; xRatio: number; yRatio: number } | { mode: "scrollTo"; left: number; top: number } | null>(null);
   const dragPanRef = useRef<{ pointerId: number; startClientX: number; startClientY: number; startScrollLeft: number; startScrollTop: number } | null>(null);
   const scaleRef = useRef(1);
@@ -120,6 +121,29 @@ export function WorkflowCanvas({ model, nodeRunStates, selectedId, onSelect, onI
       behavior: "auto",
     });
   }, [layout.height, layout.width, stage.stageHeight, stage.stageWidth, viewportSize.height, viewportSize.width]);
+
+  useEffect(() => {
+    const element = scrollRef.current;
+    if (!element || viewportSize.width <= 0 || viewportSize.height <= 0) return;
+    if (lastFocusedSelectedIdRef.current === "") {
+      lastFocusedSelectedIdRef.current = selectedId;
+      return;
+    }
+    if (lastFocusedSelectedIdRef.current === selectedId) return;
+    lastFocusedSelectedIdRef.current = selectedId;
+
+    const selectedNode = layout.nodes.find((node) => node.role === "statement" && node.id === selectedId);
+    if (!selectedNode) return;
+    element.scrollTo({
+      ...calculateSelectedNodeScrollPosition({
+        node: selectedNode,
+        stage,
+        viewportHeight: viewportSize.height,
+        viewportWidth: viewportSize.width,
+      }),
+      behavior: "smooth",
+    });
+  }, [layout.nodes, selectedId, stage, viewportSize.height, viewportSize.width]);
 
   const updateManualScale = (nextScale: number) => {
     const boundedScale = clampCanvasScale(nextScale);
@@ -351,6 +375,23 @@ export function calculateNextCanvasScale(currentScale: number, direction: -1 | 1
 }
 
 type CanvasStage = ReturnType<typeof calculateCanvasStage>;
+
+export function calculateSelectedNodeScrollPosition({
+  node,
+  stage,
+  viewportHeight,
+  viewportWidth,
+}: {
+  node: { x: number; y: number; width: number; height: number };
+  stage: CanvasStage;
+  viewportHeight: number;
+  viewportWidth: number;
+}) {
+  return {
+    left: Math.max(0, Math.round(stage.offsetX + (node.x + node.width / 2) * stage.scale - viewportWidth / 2)),
+    top: Math.max(0, Math.round(stage.offsetY + (node.y + node.height / 2) * stage.scale - viewportHeight / 2)),
+  };
+}
 
 export function calculateZoomScrollPosition({
   clientHeight,

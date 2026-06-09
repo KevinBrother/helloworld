@@ -7,6 +7,7 @@ import {
   type InsertNodeSpec,
 } from "./editOperations";
 import { formatDiagnosticMessage, formatDiagnostics } from "./diagnosticMessages";
+import { diagnosticErrorsForNode, findDiagnosticTarget } from "./diagnosticTargets";
 import { getRunAvailability } from "./runAvailability";
 import { reduceRunMessage, runWorkflowStream, type NodeRunStateMap } from "./runEvents";
 import { validateWorkflowRunInputs } from "./runInputValidation";
@@ -65,6 +66,10 @@ function App() {
   );
   const workflowInputNode = useMemo(() => model?.nodes.find((node) => node.kind === "sequence" && node.order === 0), [model]);
   const runInputValidation = useMemo(() => validateWorkflowRunInputs(workflowInputNode?.inputs), [workflowInputNode]);
+  const selectedNodeDiagnosticErrors = useMemo(
+    () => (model && selectedNode ? diagnosticErrorsForNode(model, selectedNode.id, diagnostics) : {}),
+    [diagnostics, model, selectedNode],
+  );
   const filteredBlocks = useMemo(() => {
     const query = blockQuery.trim().toLowerCase();
     const blockOptions = model?.blockOptions ?? [];
@@ -76,6 +81,16 @@ function App() {
     setUIDocument(state.ui);
     setDiagnostics(state.diagnostics ?? []);
     setSelectedNodeId((current) => (findNode(state.ui.root, current) ? current : state.ui.root.id));
+  };
+
+  const applyDiagnostics = (nextDiagnostics: Diagnostic[]) => {
+    setDiagnostics(nextDiagnostics);
+    if (!model) return;
+    const target = findDiagnosticTarget(model, nextDiagnostics);
+    if (target) {
+      setOpenSourceKey(null);
+      setSelectedNodeId(target.nodeId);
+    }
   };
 
   const loadWorkflowService = async (options?: { cancelled?: () => boolean; retry?: boolean }) => {
@@ -233,7 +248,7 @@ function App() {
   const handleEditCommitError = (error: unknown) => {
     const apiError = normalizeAPIError(error);
     setSaveState("failed");
-    setDiagnostics(apiError.diagnostics);
+    applyDiagnostics(apiError.diagnostics);
     setStatus(apiError.message);
     if (apiError.network) {
       setServerAvailable(false);
@@ -438,7 +453,7 @@ function App() {
     } else {
       const apiError = normalizeAPIError(new WorkflowRequestError(outcome.diagnostics[0]?.message ?? "Workflow run failed", outcome.diagnostics));
       setRunResult(null);
-      setDiagnostics(apiError.diagnostics);
+      applyDiagnostics(apiError.diagnostics);
       setRunLines((current) => appendRunLines(current, [`[${timestamp}] 运行失败：${apiError.message}`], 12));
       setStatus(apiError.message);
     }
@@ -474,7 +489,10 @@ function App() {
             }}
           />
           <ParameterPanel
-            errors={selectedNode.id === workflowInputNode?.id ? runInputValidation.errors : {}}
+            errors={{
+              ...selectedNodeDiagnosticErrors,
+              ...(selectedNode.id === workflowInputNode?.id ? runInputValidation.errors : {}),
+            }}
             model={model}
             node={selectedNode}
             openSourceKey={openSourceKey}
