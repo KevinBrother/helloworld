@@ -1,4 +1,4 @@
-import { Badge, Input } from "@aientry/ui-components";
+import { Badge, Button, Input } from "@aientry/ui-components";
 import { Search } from "lucide-react";
 import type { WorkbenchModel } from "../../workbenchModel";
 
@@ -17,14 +17,14 @@ export function NodeLibrary({ blocks, query, onQueryChange }: NodeLibraryProps) 
       </label>
       <div className="block-list">
         {blocks.map((block) => (
-          <button className="block-option" key={block.key}>
+          <Button className="block-option" key={block.key} type="button" variant="ghost">
             <span>
               <strong>{block.key}</strong>
               <small>{block.detail}</small>
             </span>
             <Badge variant="secondary">{block.category}</Badge>
             {block.instances > 0 ? <Badge>{block.instances}</Badge> : null}
-          </button>
+          </Button>
         ))}
       </div>
     </aside>

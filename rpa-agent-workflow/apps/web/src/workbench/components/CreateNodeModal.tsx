@@ -1,11 +1,10 @@
 import {
   Button,
-  Card,
-  CardContent,
-  CardFooter,
-  CardHeader,
-  CardTitle,
   Dialog,
+  DialogContent,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
   Input,
 } from "@aientry/ui-components";
 import { GitBranch, ListChecks, Plus, Split } from "lucide-react";
@@ -38,12 +37,10 @@ export function CreateNodeModal({ blocks, feedback, pending, onClose, onConfirm 
 
   return (
     <Dialog open onOpenChange={(open) => !open && onClose()}>
-      <div className="modal-backdrop" role="presentation">
-        <Card aria-modal="true" className="node-edit-modal" role="dialog">
-          <CardHeader>
-            <CardTitle>新建节点</CardTitle>
-          </CardHeader>
-          <CardContent>
+      <DialogContent aria-describedby={undefined} className="node-edit-modal" showCloseButton={false}>
+        <DialogHeader className="node-modal-header">
+          <DialogTitle>新建节点</DialogTitle>
+        </DialogHeader>
 
         <div className="node-kind-picker" aria-label="选择节点类型">
           <Button className={kind === "callBlock" ? "selected" : ""} variant="outline" onClick={() => setKind("callBlock")} type="button">
@@ -67,18 +64,19 @@ export function CreateNodeModal({ blocks, feedback, pending, onClose, onConfirm 
             </label>
             <div className="modal-block-list">
               {filteredBlocks.map((block) => (
-                <button
+                <Button
                   className={selectedBlock === block.key ? "modal-block-option selected" : "modal-block-option"}
                   key={block.key}
                   onClick={() => setSelectedBlock(block.key)}
                   type="button"
+                  variant="ghost"
                 >
                   <span>
                     <strong>{block.key}</strong>
                     <small>{block.detail}</small>
                   </span>
                   <em>{block.category}</em>
-                </button>
+                </Button>
               ))}
               {filteredBlocks.length === 0 ? <p className="modal-empty">没有匹配的 block。</p> : null}
             </div>
@@ -95,9 +93,8 @@ export function CreateNodeModal({ blocks, feedback, pending, onClose, onConfirm 
             {feedback}
           </p>
         ) : null}
-          </CardContent>
 
-        <CardFooter className="modal-actions">
+        <DialogFooter className="modal-actions">
           <Button className="secondary-button" disabled={pending} variant="outline" onClick={onClose} type="button">
             取消
           </Button>
@@ -116,9 +113,8 @@ export function CreateNodeModal({ blocks, feedback, pending, onClose, onConfirm 
             <Plus size={18} />
             {pending ? "新增中" : "确认"}
           </Button>
-        </CardFooter>
-        </Card>
-      </div>
+        </DialogFooter>
+      </DialogContent>
     </Dialog>
   );
 }

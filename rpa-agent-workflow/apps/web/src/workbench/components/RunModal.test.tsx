@@ -1,11 +1,14 @@
-import { renderToStaticMarkup } from "react-dom/server";
+/* @vitest-environment jsdom */
+
+import { act, type ReactElement } from "react";
+import { createRoot } from "react-dom/client";
 import { describe, expect, it } from "vitest";
 import type { WorkbenchModel, WorkbenchNode } from "../../workbenchModel";
 import { RunModal } from "./RunModal";
 
 describe("RunModal", () => {
-  it("keeps the run action clickable so validation can report the exact blocker", () => {
-    const html = renderToStaticMarkup(
+  it("keeps the run action clickable so validation can report the exact blocker", async () => {
+    const html = await renderClientMarkup(
       <RunModal
         errors={{ dir: "必填" }}
         model={model}
@@ -27,8 +30,8 @@ describe("RunModal", () => {
     expect(html).not.toContain("disabled=\"\"");
   });
 
-  it("keeps the run action clickable while a run is pending", () => {
-    const html = renderToStaticMarkup(
+  it("keeps the run action clickable while a run is pending", async () => {
+    const html = await renderClientMarkup(
       <RunModal
         errors={{}}
         model={model}
@@ -48,6 +51,25 @@ describe("RunModal", () => {
     expect(html).not.toContain("disabled=\"\"");
   });
 });
+
+async function renderClientMarkup(element: ReactElement) {
+  (globalThis as { IS_REACT_ACT_ENVIRONMENT?: boolean }).IS_REACT_ACT_ENVIRONMENT = true;
+  const host = document.createElement("div");
+  document.body.append(host);
+  const root = createRoot(host);
+  await act(async () => {
+    root.render(element);
+    await new Promise((resolve) => setTimeout(resolve, 0));
+  });
+  const html = document.body.innerHTML;
+  await act(async () => {
+    root.unmount();
+    await new Promise((resolve) => setTimeout(resolve, 0));
+  });
+  host.remove();
+  document.body.innerHTML = "";
+  return html;
+}
 
 const workflowInputNode: WorkbenchNode = {
   id: "root",

@@ -2,6 +2,7 @@
 [x] 迁移 .local 文档和记录到 docs 并删除 .local 目录
 [x] 落盘 CLI/API 解耦、MySQL 存储与 Docker 部署架构文档
 [x] 重构前端为 Next.js 并接入 @aientry/ui-components
+[x] 补齐前端弹窗和列表基础控件的 ui-components 替换
 [x] 优化参数值编辑器，支持类型展示、手动值和引用变量一体化编辑
 [x] 调整 Run output 日志顺序为从上到下按时间展示
 [x] Test run 弹框展示与 start 节点一致的流程输入参数

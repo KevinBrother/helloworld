@@ -1,11 +1,10 @@
 import {
   Button,
-  Card,
-  CardContent,
-  CardFooter,
-  CardHeader,
-  CardTitle,
   Dialog,
+  DialogContent,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
 } from "@aientry/ui-components";
 import { Play, X } from "lucide-react";
 import type { WorkbenchField, WorkbenchModel, WorkbenchNode } from "../../workbenchModel";
@@ -39,18 +38,16 @@ export function RunModal({
   const hasErrors = Object.keys(errors).length > 0;
   return (
     <Dialog open onOpenChange={(open) => !open && onClose()}>
-      <div className="modal-backdrop" role="presentation">
-      <Card className="run-modal" role="dialog" aria-modal="true" aria-labelledby="run-title">
-        <CardHeader className="modal-header">
+      <DialogContent aria-describedby={undefined} className="run-modal" showCloseButton={false}>
+        <DialogHeader className="modal-header">
           <div>
-            <CardTitle id="run-title">运行流程</CardTitle>
+            <DialogTitle>运行流程</DialogTitle>
             <p>{hasErrors ? "请先修正流程输入" : runMessage}</p>
           </div>
           <Button className="icon-button" variant="outline" aria-label="关闭运行" onClick={onClose}>
             <X size={18} />
           </Button>
-        </CardHeader>
-        <CardContent>
+        </DialogHeader>
         <div className="run-inputs-panel">
           <div className="modal-section-title">
             <h3>流程输入</h3>
@@ -72,8 +69,7 @@ export function RunModal({
             )}
           </div>
         </div>
-        </CardContent>
-        <CardFooter className="modal-actions">
+        <DialogFooter className="modal-actions">
           <Button className="secondary-button" variant="outline" onClick={onClose}>
             取消
           </Button>
@@ -81,9 +77,8 @@ export function RunModal({
             <Play size={17} />
             {pending ? "运行中" : "运行"}
           </Button>
-        </CardFooter>
-      </Card>
-      </div>
+        </DialogFooter>
+      </DialogContent>
     </Dialog>
   );
 }
