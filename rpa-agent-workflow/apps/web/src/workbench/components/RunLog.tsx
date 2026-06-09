@@ -1,3 +1,4 @@
+import { Button } from "@aientry/ui-components";
 import { ChevronDown, ChevronUp } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import type { RunResult } from "../../types";
@@ -63,11 +64,11 @@ export function RunLog({ lines, open, result, onOpenChange }: RunLogProps) {
           }}
         />
       ) : null}
-      <button className="run-log-header" onClick={() => onOpenChange(!open)} aria-expanded={open}>
+      <Button className="run-log-header" variant="ghost" onClick={() => onOpenChange(!open)} aria-expanded={open}>
         <span>运行输出</span>
         {result?.returns ? <strong>{JSON.stringify(result.returns)}</strong> : null}
         {open ? <ChevronDown size={18} /> : <ChevronUp size={18} />}
-      </button>
+      </Button>
       {open ? (
         <div className="run-log-body" ref={bodyRef} style={{ height: bodyHeight }}>
           {lines.map((line, index) => (

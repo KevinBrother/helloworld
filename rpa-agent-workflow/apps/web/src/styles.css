@@ -1,3 +1,14 @@
+@import "tailwindcss";
+@import "@aientry/ui-components/dist/globals.css";
+@import "@fontsource/ibm-plex-sans/400.css";
+@import "@fontsource/ibm-plex-sans/500.css";
+@import "@fontsource/ibm-plex-mono/400.css";
+@import "@fontsource/ibm-plex-mono/500.css";
+
+@source "../../node_modules/@aientry/ui-components/dist/**/*.{js,ts,jsx,tsx}";
+
+@plugin "@tailwindcss/typography";
+
 :root {
   color-scheme: light;
   --bg: oklch(96% 0.007 205);

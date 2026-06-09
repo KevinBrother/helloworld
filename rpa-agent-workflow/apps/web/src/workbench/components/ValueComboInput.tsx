@@ -1,3 +1,4 @@
+import { Button, Input } from "@aientry/ui-components";
 import { ChevronDown, Link2 } from "lucide-react";
 import { useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import {
@@ -48,7 +49,7 @@ export function ValueComboInput({
   return (
     <div className={activeSourceId ? "value-combo linked" : "value-combo"}>
       <div className={visibleError ? "value-combo-control invalid" : "value-combo-control"}>
-        <input
+        <Input
           aria-invalid={Boolean(visibleError)}
           aria-describedby={visibleError ? `${field.key}-error` : undefined}
           ref={inputRef}
@@ -76,9 +77,10 @@ export function ValueComboInput({
           }}
         />
         {activeSourceId || hasReferenceOptions ? (
-          <button
+          <Button
             aria-label={`引用 ${field.label}`}
             className={activeSourceId ? "combo-link-button active" : "combo-link-button"}
+            variant="ghost"
             type="button"
             onMouseDown={(event) => event.preventDefault()}
             onClick={() => {
@@ -87,12 +89,13 @@ export function ValueComboInput({
             }}
           >
             <Link2 size={15} />
-          </button>
+          </Button>
         ) : null}
         {canOpenMenu ? (
-          <button
+          <Button
             aria-label={isOpen ? "关闭可选值" : "打开可选值"}
             className="combo-menu-button"
+            variant="ghost"
             type="button"
             onMouseDown={(event) => event.preventDefault()}
             onClick={() => {
@@ -101,7 +104,7 @@ export function ValueComboInput({
             }}
           >
             <ChevronDown size={15} />
-          </button>
+          </Button>
         ) : null}
       </div>
 
@@ -110,8 +113,9 @@ export function ValueComboInput({
           {hasLiteralOptions ? (
             <ComboSection title="可选值">
               {literalOptions.map((option) => (
-                <button
+                <Button
                   className={!activeSourceId && String(resolvedValue) === option ? "active" : ""}
+                  variant="ghost"
                   key={option}
                   type="button"
                   onMouseDown={(event) => event.preventDefault()}
@@ -128,7 +132,7 @@ export function ValueComboInput({
                   }}
                 >
                   <strong>{option}</strong>
-                </button>
+                </Button>
               ))}
             </ComboSection>
           ) : null}
@@ -136,8 +140,9 @@ export function ValueComboInput({
           {hasReferenceOptions ? (
             <ComboSection title="引用变量">
               {sourceOptions.map((source) => (
-                <button
+                <Button
                   className={activeSourceId === source.id ? "active" : ""}
+                  variant="ghost"
                   key={source.id}
                   type="button"
                   onMouseDown={(event) => event.preventDefault()}
@@ -151,7 +156,7 @@ export function ValueComboInput({
                   <strong>{source.output}</strong>
                   <code>{source.type}</code>
                   <em>{source.displayValue}</em>
-                </button>
+                </Button>
               ))}
             </ComboSection>
           ) : null}

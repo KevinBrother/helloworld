@@ -1,3 +1,5 @@
+"use client";
+
 import { useEffect, useMemo, useState } from "react";
 import {
   buildDeleteNodeOperation,
@@ -33,7 +35,7 @@ const DEFAULT_ACTOR = {
   kind: "human",
 };
 
-function App() {
+export function WorkbenchApp() {
   const [uiDocument, setUIDocument] = useState<UIDocument | null>(null);
   const [diagnostics, setDiagnostics] = useState<Diagnostic[]>([]);
   const [serverAvailable, setServerAvailable] = useState(false);
@@ -44,8 +46,6 @@ function App() {
   const [runLogOpen, setRunLogOpen] = useState(true);
   const [saveState, setSaveState] = useState<SaveState>("sample");
   const [status, setStatus] = useState("示例流程已加载");
-  const [serviceError, setServiceError] = useState("");
-  const [serviceRetrying, setServiceRetrying] = useState(true);
   const [blockQuery, setBlockQuery] = useState("");
   const [blockCatalog, setBlockCatalog] = useState<BlockDefinition[]>([]);
   const [openSourceKey, setOpenSourceKey] = useState<string | null>(null);
@@ -95,7 +95,6 @@ function App() {
 
   const loadWorkflowService = async (options?: { cancelled?: () => boolean; retry?: boolean }) => {
     if (options?.retry) {
-      setServiceRetrying(true);
       setStatus("正在检查流程服务");
     }
 
@@ -106,7 +105,6 @@ function App() {
       setBlockCatalog(blocks.blocks ?? []);
       setWorkflowSource(source);
       setServerAvailable(true);
-      setServiceError("");
 
       const draft = loadDraft(source);
       if (draft) {
@@ -130,12 +128,7 @@ function App() {
       setServerAvailable(false);
       setSaveState("sample");
       setBlockCatalog([]);
-      setServiceError(message);
       setStatus(message);
-    } finally {
-      if (!options?.cancelled?.()) {
-        setServiceRetrying(false);
-      }
     }
   };
 
@@ -145,6 +138,8 @@ function App() {
     return () => {
       cancelled = true;
     };
+    // The initial service load must run once for the URL captured at page open.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const submitFieldUpdate = async (node: WorkbenchNode, field: WorkbenchField, value: unknown) => {
@@ -252,7 +247,6 @@ function App() {
     setStatus(apiError.message);
     if (apiError.network) {
       setServerAvailable(false);
-      setServiceError(apiError.message);
     }
   };
 
@@ -531,7 +525,7 @@ function App() {
         />
       ) : null}
 
-      {pendingInsertAnchor ? (
+      {pendingInsertAnchor && model ? (
         <CreateNodeModal
           blocks={model.blockOptions}
           feedback={createNodeFeedback}
@@ -658,11 +652,6 @@ function isWorkflowInputPath(path: string | undefined): path is string {
   return typeof path === "string" && path.startsWith("$.inputs.");
 }
 
-function workflowInputKey(path: string | undefined) {
-  if (!isWorkflowInputPath(path)) return "";
-  return path.slice("$.inputs.".length);
-}
-
 async function requestJSON<T>(url: string, init?: RequestInit): Promise<T> {
   const response = await fetch(url, init);
   if (!response.ok) {
@@ -759,19 +748,6 @@ function appendRunLines(current: string[], next: string[], limit: number) {
   return [...current.filter((line) => line !== "暂无服务端运行记录。"), ...next].slice(-limit);
 }
 
-function getWorkflowRunInputs(model: ReturnType<typeof buildWorkbenchModel>) {
-  const startNode = model.nodes.find((node) => node.kind === "sequence" && node.order === 0);
-  if (!startNode) return {};
-  return Object.fromEntries(startNode.inputs.map((field) => [field.key, toRunInputValue(field.value)]));
-}
-
-function toRunInputValue(value: unknown): unknown {
-  if (isRecord(value) && value.kind === "literal") {
-    return value.value;
-  }
-  return value;
-}
-
 function makeOperationId(prefix: string) {
   return `${prefix}-${Date.now()}-${Math.random().toString(16).slice(2)}`;
 }
@@ -783,5 +759,3 @@ function formatError(error: unknown) {
 function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === "object" && value !== null && !Array.isArray(value);
 }
-
-export default App;

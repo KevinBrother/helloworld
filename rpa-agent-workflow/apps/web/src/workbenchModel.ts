@@ -1097,10 +1097,6 @@ function formatDisplayValue(value: unknown) {
   return JSON.stringify(value);
 }
 
-function pluralize(word: string, count: number) {
-  return count === 1 ? word : `${word}s`;
-}
-
 function isExpressionRecord(value: unknown): value is Record<string, unknown> {
   return isRecord(value) && typeof value.kind === "string";
 }

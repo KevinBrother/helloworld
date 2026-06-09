@@ -1,3 +1,12 @@
+import {
+  Button,
+  Input,
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@aientry/ui-components";
 import { useEffect, useRef, useState } from "react";
 import { Plus, Trash2 } from "lucide-react";
 import {
@@ -47,9 +56,9 @@ export function ParameterPanel({
         <div className="selected-node-actions">
           {node.branch ? <b>{node.branch}</b> : null}
           {node.deletable ? (
-            <button className="danger-icon-button" onClick={() => onDeleteNode?.(node)} title="删除节点" type="button">
+            <Button className="danger-icon-button" variant="destructive" onClick={() => onDeleteNode?.(node)} title="删除节点" type="button">
               <Trash2 size={16} />
-            </button>
+            </Button>
           ) : null}
         </div>
       </div>
@@ -189,10 +198,15 @@ function ParameterCard({
             />
           ))}
           {allowAdd ? (
-            <button className="secondary-button parameter-add-button" onClick={() => commitPorts([...draftPorts, newPort(direction, draftPorts.length)])} type="button">
+            <Button
+              className="secondary-button parameter-add-button"
+              variant="outline"
+              onClick={() => commitPorts([...draftPorts, newPort(direction, draftPorts.length)])}
+              type="button"
+            >
               <Plus size={15} />
               {addLabel}
-            </button>
+            </Button>
           ) : null}
         </div>
       </details>
@@ -234,31 +248,30 @@ function ParameterRow({
 
   return (
     <div className="parameter-row">
-      <input
+      <Input
         aria-label={`参数名 ${row.name}`}
         className="parameter-cell-input"
         disabled={!row.nameEditable}
         value={row.name}
         onChange={(event) => onNameChange(event.target.value)}
       />
-      <select
-        aria-label={`参数类型 ${row.name}`}
-        className="parameter-cell-select"
-        disabled={!row.typeEditable}
-        value={row.type}
-        onChange={(event) => onTypeChange(event.target.value)}
-      >
-        {PORT_TYPE_OPTIONS.map((option) => (
-          <option key={option} value={option}>
-            {option}
-          </option>
-        ))}
-      </select>
+      <Select disabled={!row.typeEditable} value={row.type} onValueChange={onTypeChange}>
+        <SelectTrigger aria-label={`参数类型 ${row.name}`} className="parameter-cell-select">
+          <SelectValue />
+        </SelectTrigger>
+        <SelectContent>
+          {PORT_TYPE_OPTIONS.map((option) => (
+            <SelectItem key={option} value={option}>
+              {option}
+            </SelectItem>
+          ))}
+        </SelectContent>
+      </Select>
       {showActions ? (
         row.allowDelete ? (
-          <button aria-label={`删除参数 ${row.name}`} className="danger-icon-button compact" onClick={onDelete} type="button">
+          <Button aria-label={`删除参数 ${row.name}`} className="danger-icon-button compact" variant="destructive" onClick={onDelete} type="button">
             <Trash2 size={15} />
-          </button>
+          </Button>
         ) : (
           <span aria-hidden="true" />
         )

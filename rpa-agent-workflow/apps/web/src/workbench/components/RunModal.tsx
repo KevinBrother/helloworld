@@ -1,3 +1,12 @@
+import {
+  Button,
+  Card,
+  CardContent,
+  CardFooter,
+  CardHeader,
+  CardTitle,
+  Dialog,
+} from "@aientry/ui-components";
 import { Play, X } from "lucide-react";
 import type { WorkbenchField, WorkbenchModel, WorkbenchNode } from "../../workbenchModel";
 import { ParameterFieldList } from "./ParameterPanel";
@@ -29,17 +38,19 @@ export function RunModal({
 }: RunModalProps) {
   const hasErrors = Object.keys(errors).length > 0;
   return (
-    <div className="modal-backdrop" role="presentation">
-      <section className="run-modal" role="dialog" aria-modal="true" aria-labelledby="run-title">
-        <div className="modal-header">
+    <Dialog open onOpenChange={(open) => !open && onClose()}>
+      <div className="modal-backdrop" role="presentation">
+      <Card className="run-modal" role="dialog" aria-modal="true" aria-labelledby="run-title">
+        <CardHeader className="modal-header">
           <div>
-            <h2 id="run-title">运行流程</h2>
+            <CardTitle id="run-title">运行流程</CardTitle>
             <p>{hasErrors ? "请先修正流程输入" : runMessage}</p>
           </div>
-          <button className="icon-button" aria-label="关闭运行" onClick={onClose}>
+          <Button className="icon-button" variant="outline" aria-label="关闭运行" onClick={onClose}>
             <X size={18} />
-          </button>
-        </div>
+          </Button>
+        </CardHeader>
+        <CardContent>
         <div className="run-inputs-panel">
           <div className="modal-section-title">
             <h3>流程输入</h3>
@@ -61,16 +72,18 @@ export function RunModal({
             )}
           </div>
         </div>
-        <div className="modal-actions">
-          <button className="secondary-button" onClick={onClose}>
+        </CardContent>
+        <CardFooter className="modal-actions">
+          <Button className="secondary-button" variant="outline" onClick={onClose}>
             取消
-          </button>
-          <button className="primary-button" onClick={onRun}>
+          </Button>
+          <Button className="primary-button" onClick={onRun}>
             <Play size={17} />
             {pending ? "运行中" : "运行"}
-          </button>
-        </div>
-      </section>
-    </div>
+          </Button>
+        </CardFooter>
+      </Card>
+      </div>
+    </Dialog>
   );
 }

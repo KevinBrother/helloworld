@@ -36,6 +36,7 @@ export function diagnosticErrorsForNode(model: WorkbenchModel, nodeId: string, d
 }
 
 function fieldForDiagnostic(node: WorkbenchNode, diagnostic: Diagnostic) {
-  if (!diagnostic.path) return null;
-  return [...node.inputs, ...node.outputs].find((field) => diagnostic.path === field.path || diagnostic.path.startsWith(`${field.path}.`)) ?? null;
+  const path = diagnostic.path;
+  if (!path) return null;
+  return [...node.inputs, ...node.outputs].find((field) => path === field.path || path.startsWith(`${field.path}.`)) ?? null;
 }

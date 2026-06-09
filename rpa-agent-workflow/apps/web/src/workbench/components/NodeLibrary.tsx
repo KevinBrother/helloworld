@@ -1,3 +1,4 @@
+import { Badge, Input } from "@aientry/ui-components";
 import { Search } from "lucide-react";
 import type { WorkbenchModel } from "../../workbenchModel";
 
@@ -12,7 +13,7 @@ export function NodeLibrary({ blocks, query, onQueryChange }: NodeLibraryProps) 
     <aside className="panel node-library">
       <label className="search-field">
         <Search size={16} />
-        <input value={query} onChange={(event) => onQueryChange(event.target.value)} placeholder="搜索模块或控制节点" />
+        <Input value={query} onChange={(event) => onQueryChange(event.target.value)} placeholder="搜索模块或控制节点" />
       </label>
       <div className="block-list">
         {blocks.map((block) => (
@@ -21,8 +22,8 @@ export function NodeLibrary({ blocks, query, onQueryChange }: NodeLibraryProps) 
               <strong>{block.key}</strong>
               <small>{block.detail}</small>
             </span>
-            <em>{block.category}</em>
-            {block.instances > 0 ? <b>{block.instances}</b> : null}
+            <Badge variant="secondary">{block.category}</Badge>
+            {block.instances > 0 ? <Badge>{block.instances}</Badge> : null}
           </button>
         ))}
       </div>

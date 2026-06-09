@@ -1,3 +1,13 @@
+import {
+  Button,
+  Card,
+  CardContent,
+  CardFooter,
+  CardHeader,
+  CardTitle,
+  Dialog,
+  Input,
+} from "@aientry/ui-components";
 import { GitBranch, ListChecks, Plus, Split } from "lucide-react";
 import { useMemo, useState } from "react";
 import type { BlockOption } from "../../workbenchModel";
@@ -27,31 +37,33 @@ export function CreateNodeModal({ blocks, feedback, pending, onClose, onConfirm 
   const canConfirm = kind === "callBlock" ? selectedBlock !== "" : branchCount >= 2;
 
   return (
-    <div className="modal-backdrop" role="presentation">
-      <section aria-modal="true" className="node-edit-modal" role="dialog">
-        <header>
-          <h2>新建节点</h2>
-        </header>
+    <Dialog open onOpenChange={(open) => !open && onClose()}>
+      <div className="modal-backdrop" role="presentation">
+        <Card aria-modal="true" className="node-edit-modal" role="dialog">
+          <CardHeader>
+            <CardTitle>新建节点</CardTitle>
+          </CardHeader>
+          <CardContent>
 
         <div className="node-kind-picker" aria-label="选择节点类型">
-          <button className={kind === "callBlock" ? "selected" : ""} onClick={() => setKind("callBlock")} type="button">
+          <Button className={kind === "callBlock" ? "selected" : ""} variant="outline" onClick={() => setKind("callBlock")} type="button">
             <ListChecks size={18} />
             动作
-          </button>
-          <button className={kind === "if" ? "selected" : ""} onClick={() => setKind("if")} type="button">
+          </Button>
+          <Button className={kind === "if" ? "selected" : ""} variant="outline" onClick={() => setKind("if")} type="button">
             <GitBranch size={18} />
             条件
-          </button>
-          <button className={kind === "parallel" ? "selected" : ""} onClick={() => setKind("parallel")} type="button">
+          </Button>
+          <Button className={kind === "parallel" ? "selected" : ""} variant="outline" onClick={() => setKind("parallel")} type="button">
             <Split size={18} />
             并行
-          </button>
+          </Button>
         </div>
 
         {kind === "callBlock" ? (
           <div className="node-modal-section">
             <label className="search-field compact">
-              <input autoFocus value={query} onChange={(event) => setQuery(event.target.value)} placeholder="搜索动作 block" />
+              <Input autoFocus value={query} onChange={(event) => setQuery(event.target.value)} placeholder="搜索动作 block" />
             </label>
             <div className="modal-block-list">
               {filteredBlocks.map((block) => (
@@ -74,7 +86,7 @@ export function CreateNodeModal({ blocks, feedback, pending, onClose, onConfirm 
         ) : (
           <label className="node-modal-section branch-count-field">
             <span>{kind === "if" ? "条件分支数量" : "并行分支数量"}</span>
-            <input min={2} step={1} type="number" value={branchCount} onChange={(event) => setBranchCount(Number(event.target.value))} />
+            <Input min={2} step={1} type="number" value={branchCount} onChange={(event) => setBranchCount(Number(event.target.value))} />
           </label>
         )}
 
@@ -83,12 +95,13 @@ export function CreateNodeModal({ blocks, feedback, pending, onClose, onConfirm 
             {feedback}
           </p>
         ) : null}
+          </CardContent>
 
-        <footer className="modal-actions">
-          <button className="secondary-button" disabled={pending} onClick={onClose} type="button">
+        <CardFooter className="modal-actions">
+          <Button className="secondary-button" disabled={pending} variant="outline" onClick={onClose} type="button">
             取消
-          </button>
-          <button
+          </Button>
+          <Button
             className="primary-button"
             disabled={pending || !canConfirm}
             onClick={() => {
@@ -102,9 +115,10 @@ export function CreateNodeModal({ blocks, feedback, pending, onClose, onConfirm 
           >
             <Plus size={18} />
             {pending ? "新增中" : "确认"}
-          </button>
-        </footer>
-      </section>
-    </div>
+          </Button>
+        </CardFooter>
+        </Card>
+      </div>
+    </Dialog>
   );
 }

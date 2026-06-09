@@ -1,3 +1,4 @@
+import { Button } from "@aientry/ui-components";
 import { Play, Save } from "lucide-react";
 
 export type SaveState = "sample" | "saved" | "saving" | "failed";
@@ -24,14 +25,14 @@ export function Header({
         <p>{status}</p>
       </div>
       <div className="header-actions">
-        <button className="secondary-button" onClick={onSave}>
+        <Button className="secondary-button" variant="outline" onClick={onSave}>
           <Save size={17} />
           保存流程
-        </button>
-        <button className="primary-button" onClick={onRun}>
+        </Button>
+        <Button className="primary-button" onClick={onRun}>
           <Play size={17} />
           {runPending ? "运行中" : "运行"}
-        </button>
+        </Button>
       </div>
     </header>
   );

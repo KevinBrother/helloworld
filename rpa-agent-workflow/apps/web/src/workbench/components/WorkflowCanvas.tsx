@@ -1,3 +1,4 @@
+import { Button } from "@aientry/ui-components";
 import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState, type CSSProperties, type PointerEvent } from "react";
 import { GitFork, Maximize2, Minus, Plus } from "lucide-react";
 import type { NodeRunState, NodeRunStateMap } from "../../runEvents";
@@ -288,16 +289,16 @@ export function WorkflowCanvas({ model, nodeRunStates, selectedId, onSelect, onI
   return (
     <section className="panel canvas-panel">
       <div className="canvas-zoom-controls" aria-label="画布缩放">
-        <button aria-label="缩小画布" disabled={stage.scale <= CANVAS_MANUAL_MIN_SCALE} onClick={() => updateManualScale(calculateNextCanvasScale(scaleRef.current, -1))} title="缩小画布" type="button">
+        <Button aria-label="缩小画布" disabled={stage.scale <= CANVAS_MANUAL_MIN_SCALE} variant="ghost" onClick={() => updateManualScale(calculateNextCanvasScale(scaleRef.current, -1))} title="缩小画布" type="button">
           <Minus size={16} />
-        </button>
+        </Button>
         <span className="canvas-zoom-value" aria-live="polite">{zoomPercent}%</span>
-        <button aria-label="放大画布" disabled={stage.scale >= CANVAS_MANUAL_MAX_SCALE} onClick={() => updateManualScale(calculateNextCanvasScale(scaleRef.current, 1))} title="放大画布" type="button">
+        <Button aria-label="放大画布" disabled={stage.scale >= CANVAS_MANUAL_MAX_SCALE} variant="ghost" onClick={() => updateManualScale(calculateNextCanvasScale(scaleRef.current, 1))} title="放大画布" type="button">
           <Plus size={16} />
-        </button>
-        <button aria-label="适配全量画布" disabled={roundScale(stage.scale) === roundScale(fitScale)} onClick={fitCanvas} title="适配全量画布" type="button">
+        </Button>
+        <Button aria-label="适配全量画布" disabled={roundScale(stage.scale) === roundScale(fitScale)} variant="ghost" onClick={fitCanvas} title="适配全量画布" type="button">
           <Maximize2 size={15} />
-        </button>
+        </Button>
       </div>
       <div className={`canvas-scroll ${isPanning ? "is-panning" : ""}`} onPointerCancel={stopDragPan} onPointerDown={startDragPan} onPointerMove={dragPan} onPointerUp={stopDragPan} ref={scrollRef}>
         <div className="workflow-stage" style={stageStyle}>
@@ -313,7 +314,7 @@ export function WorkflowCanvas({ model, nodeRunStates, selectedId, onSelect, onI
                 const point = getEdgeMidpoint(layout, edge.from, edge.to);
                 if (!point) return null;
                 return (
-                  <button
+                  <Button
                     aria-label={`在 ${edge.from} 和 ${edge.to} 之间新建节点`}
                     className="edge-insert-button"
                     key={`insert-${edge.id}`}
@@ -322,12 +323,12 @@ export function WorkflowCanvas({ model, nodeRunStates, selectedId, onSelect, onI
                     type="button"
                   >
                     <Plus size={16} />
-                  </button>
+                  </Button>
                 );
               })}
 
               {layout.insertControls.map((control) => (
-                <button
+                <Button
                   aria-label={control.label}
                   className={`edge-insert-button insert-control ${control.kind === "insertBranch" ? "branch-add" : ""}`}
                   key={control.id}
@@ -346,7 +347,7 @@ export function WorkflowCanvas({ model, nodeRunStates, selectedId, onSelect, onI
                 >
                   <Plus size={16} />
                   <span className="visually-hidden">{control.label}</span>
-                </button>
+                </Button>
               ))}
 
               {layout.nodes.map((layoutNode) => (
@@ -557,25 +558,25 @@ function CanvasNode({ node, runState, selected, onSelect }: { node?: WorkbenchNo
 
   if (isDecision) {
     return (
-      <button className={getCanvasNodeClassName(selected, runState, node.kind)} onClick={() => onSelect(node.id)}>
+      <Button className={getCanvasNodeClassName(selected, runState, node.kind)} variant="ghost" onClick={() => onSelect(node.id)}>
         <span className="decision-node-surface">{branchCount} 个分支条件</span>
-      </button>
+      </Button>
     );
   }
 
   if (isParallel) {
     return (
-      <button aria-label="并行分叉" className={getCanvasNodeClassName(selected, runState, node.kind)} onClick={() => onSelect(node.id)} title="并行分叉">
+      <Button aria-label="并行分叉" className={getCanvasNodeClassName(selected, runState, node.kind)} variant="ghost" onClick={() => onSelect(node.id)} title="并行分叉">
         <span className="parallel-split-icon parallel-split-icon-upright" aria-hidden="true">
           <GitFork size={26} />
         </span>
         <span className="visually-hidden">并行分叉</span>
-      </button>
+      </Button>
     );
   }
 
   return (
-    <button className={getCanvasNodeClassName(selected, runState, node.kind)} onClick={() => onSelect(node.id)}>
+    <Button className={getCanvasNodeClassName(selected, runState, node.kind)} variant="ghost" onClick={() => onSelect(node.id)}>
       <span>
         <span className="node-kind-row">
           <span className="node-kind">{getCanvasNodeKindLabel(node)}</span>
@@ -588,7 +589,7 @@ function CanvasNode({ node, runState, selected, onSelect }: { node?: WorkbenchNo
           ))}
         </div>
       </span>
-    </button>
+    </Button>
   );
 }
 
