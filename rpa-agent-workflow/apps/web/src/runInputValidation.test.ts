@@ -62,13 +62,36 @@ describe("validateWorkbenchNodeInputs", () => {
       target: null,
     });
   });
+
+  it("rejects references that are not available at runtime", () => {
+    const result = validateWorkbenchNodeInputs(
+      [
+        node("return_outputs", [], {
+          kind: "return",
+          outputs: [
+            field("finally_ran", "boolean", { kind: "ref", ref: "state.finally_ran" }, { path: "$.body.statements[1].returns.finally_ran", raw: true }),
+            field("count", "number", { kind: "ref", ref: "node.fs_list.count" }, { path: "$.body.statements[1].returns.count", raw: true }),
+          ],
+        }),
+      ],
+      new Map([["node.fs_list.count", {}]]),
+    );
+
+    expect(result.valid).toBe(false);
+    expect(result.target).toEqual({ nodeId: "return_outputs", fieldKey: "finally_ran" });
+    expect(result.errorsByNodeId).toEqual({
+      return_outputs: {
+        finally_ran: "引用不可用：state.finally_ran",
+      },
+    });
+  });
 });
 
 function field(
   key: string,
   type: WorkbenchField["type"],
   value: unknown,
-  options: { optional?: boolean; path?: string } = {},
+  options: { optional?: boolean; path?: string; raw?: boolean } = {},
 ): WorkbenchField {
   return {
     key,
@@ -76,20 +99,24 @@ function field(
     type,
     control: "input",
     path: options.path ?? `$.inputs.${key}`,
-    value: { kind: "literal", value },
+    value: options.raw ? value : { kind: "literal", value },
     optional: options.optional,
   };
 }
 
-function node(id: string, inputs: WorkbenchField[]): WorkbenchNode {
+function node(
+  id: string,
+  inputs: WorkbenchField[],
+  options: { kind?: string; outputs?: WorkbenchField[] } = {},
+): WorkbenchNode {
   return {
     id,
-    kind: "callBlock",
+    kind: options.kind ?? "callBlock",
     label: id,
     order: 1,
     raw: { id, kind: "callBlock" },
     inputs,
-    outputs: [],
+    outputs: options.outputs ?? [],
     inputPorts: [],
     outputPorts: [],
     inputRows: [],

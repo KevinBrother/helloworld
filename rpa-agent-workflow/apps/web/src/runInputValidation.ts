@@ -58,14 +58,26 @@ export function validateWorkflowRunInputs(fields: WorkbenchField[] | undefined):
   };
 }
 
-export function validateWorkbenchNodeInputs(nodes: WorkbenchNode[]): WorkbenchNodeInputValidation {
+export function validateWorkbenchNodeInputs(nodes: WorkbenchNode[], availableSources: Map<string, unknown> | undefined = new Map()): WorkbenchNodeInputValidation {
   const errorsByNodeId: Record<string, Record<string, string>> = {};
   let target: WorkbenchNodeInputValidation["target"] = null;
 
   for (const node of nodes) {
-    if (node.kind !== "callBlock") continue;
-    for (const field of node.inputs) {
-      if (field.readonly || field.optional) continue;
+    for (const field of [...node.inputs, ...node.outputs]) {
+      if (field.readonly) continue;
+      const ref = expressionRef(field.value);
+      if (ref) {
+        if (!availableSources?.has(ref)) {
+          const error = `引用不可用：${ref}`;
+          errorsByNodeId[node.id] = {
+            ...(errorsByNodeId[node.id] ?? {}),
+            [field.key]: error,
+          };
+          target ??= { nodeId: node.id, fieldKey: field.key };
+        }
+        continue;
+      }
+      if (node.kind !== "callBlock" || !node.inputs.includes(field) || field.optional) continue;
       const error = validateRequiredField(field);
       if (!error) continue;
       errorsByNodeId[node.id] = {
@@ -103,6 +115,13 @@ function literalValue(value: unknown) {
     return value.value;
   }
   return value;
+}
+
+function expressionRef(value: unknown) {
+  if (isRecord(value) && value.kind === "ref" && typeof value.ref === "string") {
+    return value.ref;
+  }
+  return undefined;
 }
 
 function isRecord(value: unknown): value is Record<string, unknown> {

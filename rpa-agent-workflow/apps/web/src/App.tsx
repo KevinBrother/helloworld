@@ -66,7 +66,10 @@ export function WorkbenchApp() {
   );
   const workflowInputNode = useMemo(() => model?.nodes.find((node) => node.kind === "sequence" && node.order === 0), [model]);
   const runInputValidation = useMemo(() => validateWorkflowRunInputs(workflowInputNode?.inputs), [workflowInputNode]);
-  const workbenchInputValidation = useMemo(() => validateWorkbenchNodeInputs(model?.nodes ?? []), [model]);
+  const workbenchInputValidation = useMemo(
+    () => validateWorkbenchNodeInputs(model?.nodes ?? [], model?.sourcesById),
+    [model],
+  );
   const selectedNodeDiagnosticErrors = useMemo(
     () => (model && selectedNode ? diagnosticErrorsForNode(model, selectedNode.id, diagnostics) : {}),
     [diagnostics, model, selectedNode],
@@ -425,14 +428,14 @@ export function WorkbenchApp() {
       return;
     }
 
-    const blockInputValidation = validateWorkbenchNodeInputs(model.nodes);
+    const blockInputValidation = validateWorkbenchNodeInputs(model.nodes, model.sourcesById);
     if (!blockInputValidation.valid) {
       setOpenSourceKey(null);
       setRunModalOpen(false);
       if (blockInputValidation.target) {
         setSelectedNodeId(blockInputValidation.target.nodeId);
       }
-      setStatus("请先修正节点必填参数");
+      setStatus(firstWorkbenchInputError(blockInputValidation) ?? "请先修正节点参数");
       return;
     }
 
@@ -760,6 +763,12 @@ function formatRunLines(result: RunResult | null | undefined) {
 
 function appendRunLines(current: string[], next: string[], limit: number) {
   return [...current.filter((line) => line !== "暂无服务端运行记录。"), ...next].slice(-limit);
+}
+
+function firstWorkbenchInputError(validation: ReturnType<typeof validateWorkbenchNodeInputs>) {
+  const target = validation.target;
+  if (!target) return null;
+  return validation.errorsByNodeId[target.nodeId]?.[target.fieldKey] ?? null;
 }
 
 function makeOperationId(prefix: string) {
