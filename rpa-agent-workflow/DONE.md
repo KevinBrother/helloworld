@@ -43,3 +43,4 @@
 [x] 修复串行运行时多个节点同时显示运行中
 [x] 修复运行时 expected number 原样提示
 [x] 运行 block 参数错误时自动聚焦错误节点并标记字段
+[x] callBlock 参数类型优先使用 block catalog

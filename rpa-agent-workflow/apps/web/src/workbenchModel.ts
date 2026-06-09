@@ -176,7 +176,8 @@ const CANVAS_BRANCH_HEADER_GAP_Y = 62;
 const CANVAS_BRANCH_NODE_GAP_Y = 54;
 
 export function buildWorkbenchModel(document: UIDocument, blockCatalog: BlockDefinition[] = []): WorkbenchModel {
-  const nodes = flattenWorkbenchNodes(document.root, workflowInputValuesFromDocument(document), rootWorkflowOutputPorts(document.root));
+  const blockCatalogById = new Map(blockCatalog.map((definition) => [definition.id, definition]));
+  const nodes = flattenWorkbenchNodes(document.root, workflowInputValuesFromDocument(document), rootWorkflowOutputPorts(document.root), blockCatalogById);
   const sources = buildSources(nodes);
   const instances = new Map<string, number>();
 
@@ -569,11 +570,16 @@ function getBranchLaneSlotWidth(branch: NonNullable<UINode["branches"]>[number])
   return getFlowLaneSlotWidth(branch.children ?? []);
 }
 
-function flattenWorkbenchNodes(root: UINode, workflowInputValues: WorkflowInputValues, workflowOutputPorts: WorkbenchPort[]) {
+function flattenWorkbenchNodes(
+  root: UINode,
+  workflowInputValues: WorkflowInputValues,
+  workflowOutputPorts: WorkbenchPort[],
+  blockCatalogById: Map<string, BlockDefinition>,
+) {
   const nodes: WorkbenchNode[] = [];
 
   const visit = (node: UINode, branch?: string) => {
-    nodes.push(toWorkbenchNode(node, nodes.length, branch, workflowInputValues, workflowOutputPorts));
+    nodes.push(toWorkbenchNode(node, nodes.length, branch, workflowInputValues, workflowOutputPorts, blockCatalogById));
     for (const child of node.children ?? []) {
       visit(child, branch);
     }
@@ -594,13 +600,15 @@ function toWorkbenchNode(
   branch: string | undefined,
   workflowInputValues: WorkflowInputValues,
   workflowOutputPorts: WorkbenchPort[],
+  blockCatalogById: Map<string, BlockDefinition>,
 ): WorkbenchNode {
   const fields = node.inspector ?? [];
+  const blockDefinition = node.kind === "callBlock" ? blockCatalogById.get(node.label ?? "") : undefined;
   const inputPorts = fields.filter(isWorkflowInputPortField).map(toWorkbenchPort);
   const outputPorts = fields.filter(isWorkflowOutputPortField).map(toWorkbenchPort);
   const inputs = fields
     .filter(isInputField)
-    .flatMap((field) => toInputFields(field, order === 0 && node.kind === "sequence", workflowInputValues));
+    .flatMap((field) => toInputFields(field, order === 0 && node.kind === "sequence", workflowInputValues, blockDefinition));
   const outputs = mergeWorkbenchFields(
     fields.filter(isOutputField).map((field) => toWorkbenchField(field, false, false)),
     metadataOutputFields(node),
@@ -820,7 +828,12 @@ function toWorkbenchField(
   };
 }
 
-function toInputFields(field: InspectorField, editableWorkflowInput = false, workflowInputValues: WorkflowInputValues = {}): WorkbenchField[] {
+function toInputFields(
+  field: InspectorField,
+  editableWorkflowInput = false,
+  workflowInputValues: WorkflowInputValues = {},
+  blockDefinition?: BlockDefinition,
+): WorkbenchField[] {
   if (field.label === "Condition" && isExpressionRecord(field.value) && field.value.kind === "binary") {
     const operatorValue = isRecord(field.value.operator) ? field.value.operator : { kind: "literal", value: String(field.value.op ?? ">") };
     return [
@@ -854,7 +867,16 @@ function toInputFields(field: InspectorField, editableWorkflowInput = false, wor
     ];
   }
 
-  return [toWorkbenchField(field, editableWorkflowInput, false, workflowInputValues)];
+  return [applyBlockInputType(toWorkbenchField(field, editableWorkflowInput, false, workflowInputValues), blockDefinition)];
+}
+
+function applyBlockInputType(field: WorkbenchField, blockDefinition: BlockDefinition | undefined): WorkbenchField {
+  const port = blockDefinition?.inputs?.find((input) => input.name === field.key);
+  if (!port) return field;
+  return {
+    ...field,
+    type: normalizeType(port.type.name),
+  };
 }
 
 function metadataOutputFields(node: UINode): WorkbenchField[] {

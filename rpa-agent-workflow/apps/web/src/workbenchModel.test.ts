@@ -217,6 +217,25 @@ describe("workbench model", () => {
     );
   });
 
+  it("uses block catalog input types instead of inferring from invalid literal values", () => {
+    const catalogModel = buildWorkbenchModel(delayDocument("1"), [
+      {
+        id: "core.delay",
+        namespace: "core",
+        name: "delay",
+        version: "1.0.0",
+        inputs: [{ name: "durationMs", type: { name: "number" } }],
+        outputs: [],
+      },
+    ]);
+    const delayNode = catalogModel.nodes.find((node) => node.id === "wait_before_list")!;
+    const durationField = delayNode.inputs.find((field) => field.key === "durationMs")!;
+    const durationRow = delayNode.inputRows.find((row) => row.name === "durationMs")!;
+
+    expect(durationField.type).toBe("number");
+    expect(durationRow.type).toBe("number");
+  });
+
   it("keeps the block library empty when the service catalog is unavailable", () => {
     const offlineModel = buildWorkbenchModel(sampleDocument as UIDocument);
 
@@ -771,7 +790,7 @@ function withCalculatorOutputMetadata(document: UIDocument): UIDocument {
   return clone;
 }
 
-function delayDocument(): UIDocument {
+function delayDocument(durationMs: unknown = 0): UIDocument {
   return {
     schemaVersion: "1.0.0",
     workflowId: "delay_workflow",
@@ -790,7 +809,7 @@ function delayDocument(): UIDocument {
               path: "$.body.statements[0].inputs.durationMs",
               label: "Input durationMs",
               control: "expression",
-              value: { kind: "literal", value: 0 },
+              value: { kind: "literal", value: durationMs },
             },
           ],
         },
