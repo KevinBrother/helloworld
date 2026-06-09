@@ -1185,6 +1185,22 @@ select.value-control {
   font-size: 0.78rem;
 }
 
+[data-slot="dialog-overlay"] {
+  position: fixed;
+  inset: 0;
+  z-index: 50;
+  background: oklch(18% 0.02 220 / 0.34);
+}
+
+.run-modal,
+.node-edit-modal {
+  position: fixed;
+  top: 50%;
+  left: 50%;
+  z-index: 51;
+  transform: translate(-50%, -50%);
+}
+
 .run-modal {
   width: min(720px, 100%);
   max-width: min(720px, calc(100vw - 2rem));
