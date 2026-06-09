@@ -8,7 +8,7 @@
     {
       "name": "left",
       "type": {
-        "name": "number"
+        "name": "string"
       }
     },
     {

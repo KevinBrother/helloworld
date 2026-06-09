@@ -43,6 +43,17 @@
     "kind": "sequence",
     "statements": [
       {
+        "id": "core_delay",
+        "kind": "callBlock",
+        "block": "core.delay",
+        "inputs": {
+          "durationMs": {
+            "kind": "literal",
+            "value": 10000
+          }
+        }
+      },
+      {
         "id": "list_input_dir",
         "kind": "callBlock",
         "block": "fs.list",
@@ -62,6 +73,10 @@
         "kind": "callBlock",
         "block": "fs.write_text",
         "inputs": {
+          "createDirs": {
+            "kind": "literal",
+            "value": true
+          },
           "path": {
             "kind": "ref",
             "ref": "input.outputPath"
@@ -69,10 +84,6 @@
           "text": {
             "kind": "literal",
             "value": "fs workflow completed"
-          },
-          "createDirs": {
-            "kind": "literal",
-            "value": true
           }
         }
       },

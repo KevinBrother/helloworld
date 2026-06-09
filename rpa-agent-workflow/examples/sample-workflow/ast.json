@@ -5,14 +5,14 @@
     "name": "Sample Workflow"
   },
   "state": {
-    "last_item": {
-      "type": {
-        "name": "string"
-      }
-    },
     "finally_ran": {
       "type": {
         "name": "boolean"
+      }
+    },
+    "last_item": {
+      "type": {
+        "name": "string"
       }
     }
   },
@@ -21,137 +21,31 @@
     "kind": "sequence",
     "statements": [
       {
-        "id": "start_log",
+        "id": "fs_list",
         "kind": "callBlock",
-        "block": "core.log",
+        "block": "fs.list",
         "inputs": {
-          "message": {
+          "path": {
             "kind": "literal",
-            "value": "starting sample workflow"
+            "value": ""
+          },
+          "recursive": {
+            "kind": "literal",
+            "value": false
           }
         }
-      },
-      {
-        "id": "if_log",
-        "kind": "if",
-        "condition": {
-          "kind": "literal",
-          "value": true
-        },
-        "then": [
-          {
-            "id": "then_log",
-            "kind": "callBlock",
-            "block": "core.log",
-            "inputs": {
-              "message": {
-                "kind": "literal",
-                "value": "if branch executed"
-              }
-            }
-          }
-        ],
-        "else": []
-      },
-      {
-        "id": "foreach_items",
-        "kind": "loop",
-        "loopKind": "foreach",
-        "iterable": {
-          "kind": "array",
-          "items": [
-            {
-              "kind": "literal",
-              "value": "first"
-            },
-            {
-              "kind": "literal",
-              "value": "second"
-            }
-          ]
-        },
-        "itemVar": "item",
-        "statements": [
-          {
-            "id": "assign_last_item",
-            "kind": "assign",
-            "target": "state.last_item",
-            "value": {
-              "kind": "ref",
-              "ref": "item"
-            }
-          }
-        ]
-      },
-      {
-        "id": "parallel_system_info",
-        "kind": "parallel",
-        "join": {
-          "strategy": "all",
-          "onError": "failFast"
-        },
-        "branches": [
-          {
-            "id": "os_branch",
-            "body": [
-              {
-                "id": "get_os_info",
-                "kind": "callBlock",
-                "block": "system.get_os_info"
-              }
-            ]
-          },
-          {
-            "id": "log_branch",
-            "body": [
-              {
-                "id": "parallel_log",
-                "kind": "callBlock",
-                "block": "core.log",
-                "inputs": {
-                  "message": {
-                    "kind": "literal",
-                    "value": "parallel branch executed"
-                  }
-                }
-              }
-            ]
-          }
-        ]
-      },
-      {
-        "id": "try_finally",
-        "kind": "try",
-        "statements": [],
-        "catches": [
-          {
-            "pattern": "*",
-            "body": []
-          }
-        ],
-        "finally": [
-          {
-            "id": "assign_finally",
-            "kind": "assign",
-            "target": "state.finally_ran",
-            "value": {
-              "kind": "literal",
-              "value": true
-            }
-          }
-        ]
       },
       {
         "id": "return_outputs",
         "kind": "return",
         "returns": {
-          "last_item": {
-            "kind": "ref",
-            "ref": "state.last_item"
-          },
           "finally_ran": {
             "kind": "ref",
             "ref": "state.finally_ran"
+          },
+          "last_item": {
+            "kind": "ref",
+            "ref": "state.last_item"
           }
         }
       }
