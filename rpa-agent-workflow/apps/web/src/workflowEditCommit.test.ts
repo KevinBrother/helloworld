@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import type { EditOperation, EditorStateResponse } from "./types";
-import { commitPendingEditOperations } from "./workflowEditCommit";
+import { commitPendingEditOperations, upsertPendingEditOperation } from "./workflowEditCommit";
 
 describe("workflow edit commit", () => {
   it("commits pending edit operations in order and returns the latest server state", async () => {
@@ -28,6 +28,26 @@ describe("workflow edit commit", () => {
     expect(calls).toBe(0);
     expect(latest).toBeNull();
   });
+
+  it("replaces older pending edits for the same field path with the latest value", () => {
+    const first = operation("update-duration-string");
+    const second = {
+      ...operation("update-duration-number"),
+      payload: { value: { kind: "literal", value: 1 } },
+    };
+    const other = {
+      ...operation("update-other-field"),
+      path: "$.body.statements[0].inputs.message",
+    };
+
+    const pending = upsertPendingEditOperation([first], second);
+    const nextPending = upsertPendingEditOperation(pending, other);
+
+    expect(nextPending).toHaveLength(2);
+    expect(nextPending[0]).toBe(second);
+    expect(nextPending[0].payload?.value).toEqual({ kind: "literal", value: 1 });
+    expect(nextPending[1]).toBe(other);
+  });
 });
 
 function operation(operationId: string): EditOperation {
@@ -35,9 +55,9 @@ function operation(operationId: string): EditOperation {
     schemaVersion: "1.0.0",
     operationId,
     type: "updateField",
-    targetNodeId: "root",
-    path: "$.inputs",
-    payload: { value: [] },
+    targetNodeId: "core_delay",
+    path: "$.body.statements[0].inputs.durationMs",
+    payload: { value: { kind: "literal", value: "1" } },
   };
 }
 

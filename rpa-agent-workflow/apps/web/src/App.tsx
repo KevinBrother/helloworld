@@ -15,7 +15,7 @@ import { findInvalidConditionOperatorRepairs } from "./runReadiness";
 import { buildWorkbenchModel, type InsertAnchor, type WorkbenchField, type WorkbenchNode, type WorkbenchPort } from "./workbenchModel";
 import { updateWorkflowPortsInDocument } from "./workflowBoundary";
 import { clearWorkflowDraft, loadWorkflowDraft, normalizeWorkflowDraftForServerUI, saveWorkflowDraft } from "./workflowDraft";
-import { commitPendingEditOperations } from "./workflowEditCommit";
+import { commitPendingEditOperations, upsertPendingEditOperation } from "./workflowEditCommit";
 import { workflowSourceFromSearch } from "./workflowSource";
 import { CreateNodeModal } from "./workbench/components/CreateNodeModal";
 import { DeleteNodeModal } from "./workbench/components/DeleteNodeModal";
@@ -165,7 +165,7 @@ function App() {
 
     const workflowRunInput = isWorkflowRunInputField(node, field);
     const nextDocument = workflowRunInput ? updateWorkflowRunInputValue(uiDocument, field.key, value) : updateFieldValue(uiDocument, node.id, field.path, value);
-    const nextOperations = workflowRunInput ? pendingOperations : [...pendingOperations, operation];
+    const nextOperations = workflowRunInput ? pendingOperations : upsertPendingEditOperation(pendingOperations, operation);
     setUIDocument(nextDocument);
     setPendingOperations(nextOperations);
 
