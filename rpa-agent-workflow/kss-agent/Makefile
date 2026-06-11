@@ -1,13 +1,19 @@
-.PHONY: run build test
+.PHONY: run run-chat-model run-chat-model-agent build test
 
-# Go 1.22.x on newer macOS can produce cgo binaries without LC_UUID.
-# External link mode keeps local runs compatible with dyld.
-run:
-	go run -ldflags='-linkmode=external' ./cmd
+# This project does not need cgo. Keeping it off avoids local macOS dyld issues
+# from transitive dependencies during go test/go run.
+run: run-chat-model
+
+run-chat-model:
+	CGO_ENABLED=0 go run ./cmd/new-chat-model
+
+run-chat-model-agent:
+	CGO_ENABLED=0 go run ./cmd/new-chat-model-agent
 
 build:
 	mkdir -p bin
-	go build -ldflags='-linkmode=external' -o bin/kss-agent ./cmd
+	CGO_ENABLED=0 go build -o bin/new-chat-model ./cmd/new-chat-model
+	CGO_ENABLED=0 go build -o bin/new-chat-model-agent ./cmd/new-chat-model-agent
 
 test:
-	go test -ldflags='-linkmode=external' ./...
+	CGO_ENABLED=0 go test ./...
