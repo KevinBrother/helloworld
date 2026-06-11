@@ -3,7 +3,6 @@ package app
 import (
 	"context"
 	"fmt"
-	"strings"
 
 	"github.com/cloudwego/eino-ext/components/model/openai"
 	"github.com/cloudwego/eino/components/model"
@@ -13,7 +12,7 @@ import (
 )
 
 const (
-	systemPrompt = "you are a helpful assistant."
+	systemPrompt = "you are a helpful assistant. 用中文回答"
 	userPrompt   = "what does the future AI App look like?"
 )
 
@@ -46,16 +45,7 @@ func newChatModel(ctx context.Context, cfg *config.Config) (model.ToolCallingCha
 }
 
 func modelError(cfg *config.Config, err error) error {
-	msg := err.Error()
-	if strings.Contains(msg, "invalid character '<'") || strings.Contains(msg, "looking for beginning of value") {
-		return fmt.Errorf(
-			"generate response: upstream returned non-JSON data; check NEW_API_BASE_URL=%q points to an OpenAI-compatible API base URL: %w",
-			cfg.BaseURL,
-			err,
-		)
-	}
-
-	return fmt.Errorf("generate response: %w", err)
+	return fmt.Errorf("[kss-agent error]: %w", err)
 }
 
 func generate(ctx context.Context, chatModel model.ToolCallingChatModel) (*schema.Message, error) {
