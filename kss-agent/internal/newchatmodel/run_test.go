@@ -30,7 +30,7 @@ func (m *recordingChatModel) WithTools([]*schema.ToolInfo) (model.ToolCallingCha
 func TestGenerateUsesSystemAndUserPrompts(t *testing.T) {
 	model := &recordingChatModel{}
 
-	msg, err := generate(context.Background(), model)
+	msg, err := generate(context.Background(), model, "You are a helpful assistant.", "what does the future AI App look like?")
 	if err != nil {
 		t.Fatalf("generate() error = %v", err)
 	}
@@ -44,7 +44,7 @@ func TestGenerateUsesSystemAndUserPrompts(t *testing.T) {
 	if len(model.lastInput) != 2 {
 		t.Fatalf("input length = %d, want 2", len(model.lastInput))
 	}
-	if got, want := model.lastInput[0].Content, "you are a helpful assistant. 用中文回答"; got != want {
+	if got, want := model.lastInput[0].Content, "You are a helpful assistant."; got != want {
 		t.Fatalf("system prompt = %q, want %q", got, want)
 	}
 	if got, want := model.lastInput[1].Content, "what does the future AI App look like?"; got != want {

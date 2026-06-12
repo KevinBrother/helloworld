@@ -10,7 +10,7 @@ import (
 	"kss-agent/internal/shared"
 )
 
-func Run(ctx context.Context) error {
+func Run(ctx context.Context, systemPrompt, userPrompt string) error {
 	cfg, err := shared.LoadConfig()
 	if err != nil {
 		return fmt.Errorf("load config: %w", err)
@@ -21,7 +21,7 @@ func Run(ctx context.Context) error {
 		return fmt.Errorf("create openai-compatible chat model: %w", err)
 	}
 
-	message, err := generate(ctx, chatModel)
+	message, err := generate(ctx, chatModel, systemPrompt, userPrompt)
 	if err != nil {
 		return shared.ModelError(err)
 	}
@@ -30,9 +30,9 @@ func Run(ctx context.Context) error {
 	return nil
 }
 
-func generate(ctx context.Context, chatModel model.BaseChatModel) (*schema.Message, error) {
+func generate(ctx context.Context, chatModel model.BaseChatModel, systemPrompt, userPrompt string) (*schema.Message, error) {
 	return chatModel.Generate(ctx, []*schema.Message{
-		schema.SystemMessage(shared.SystemPrompt),
-		schema.UserMessage(shared.UserPrompt),
+		schema.SystemMessage(systemPrompt),
+		schema.UserMessage(userPrompt),
 	})
 }

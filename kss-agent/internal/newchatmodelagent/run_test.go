@@ -30,7 +30,7 @@ func (m *agentRecordingModel) WithTools([]*schema.ToolInfo) (model.ToolCallingCh
 func TestRunUsesADKChatModelAgent(t *testing.T) {
 	model := &agentRecordingModel{}
 
-	msg, err := runWithModel(context.Background(), model)
+	msg, err := runWithModel(context.Background(), model, "You are a helpful assistant.", "what does the future AI App look like?")
 	if err != nil {
 		t.Fatalf("runWithModel() error = %v", err)
 	}
@@ -44,7 +44,7 @@ func TestRunUsesADKChatModelAgent(t *testing.T) {
 	if len(model.lastInput) != 2 {
 		t.Fatalf("input length = %d, want 2", len(model.lastInput))
 	}
-	if got, want := model.lastInput[0].Content, "you are a helpful assistant. 用中文回答"; got != want {
+	if got, want := model.lastInput[0].Content, "You are a helpful assistant."; got != want {
 		t.Fatalf("system prompt = %q, want %q", got, want)
 	}
 	if got, want := model.lastInput[1].Content, "what does the future AI App look like?"; got != want {
