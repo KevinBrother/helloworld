@@ -198,6 +198,9 @@
 
 - [ ] ai-agent
 
+- [ ] ai-base
+  ai 相关工程基础
+
 ## C语言
 
 - c-build
