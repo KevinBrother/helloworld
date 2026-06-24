@@ -1,6 +1,6 @@
 import unittest
 
-import test.online.llm_online as llm_online
+import test.model.online.llm_online as llm_online
 
 
 class LlmOnlineTests(unittest.TestCase):
