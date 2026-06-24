@@ -3,12 +3,12 @@
 uv sync
 
 
-uv run ./test/cuda.py
+uv run ./hf/cuda.py
 
 
 # export HF_TOKEN="你的以hf_开头的真实Token"
 
-uv run ./test/model/local/gpt.py
+uv run ./hf/model/local/gpt.py
 
 ```
 
