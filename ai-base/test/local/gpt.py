@@ -1,13 +1,13 @@
 from transformers import AutoTokenizer, AutoModelForCausalLM
-from huggingface_hub.constants import HF_HUB_CACHE
-print("模型实际下载到了这里：", HF_HUB_CACHE)
+
 
 # cache_path = "./my_models/Qwen3-0.6B"
 # tokenizer = AutoTokenizer.from_pretrained("Qwen/Qwen3-0.6B", cache_dir=cache_path)
 # model = AutoModelForCausalLM.from_pretrained("Qwen/Qwen3-0.6B", cache_dir=cache_path)
+model_name = "Qwen/Qwen3-0.6B"
 
-tokenizer = AutoTokenizer.from_pretrained("Qwen/Qwen3-0.6B")
-model = AutoModelForCausalLM.from_pretrained("Qwen/Qwen3-0.6B")
+tokenizer = AutoTokenizer.from_pretrained(model_name)
+model = AutoModelForCausalLM.from_pretrained(model_name)
 messages = [
     {"role": "user", "content": "Who are you?"},
 ]
