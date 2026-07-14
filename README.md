@@ -209,6 +209,10 @@
   - [x] cmake
   - [x] makefile
 
+## 运维
+
+- [ ] k8s
+
 ## 开发模式
 
 - [ ] devcontainer
