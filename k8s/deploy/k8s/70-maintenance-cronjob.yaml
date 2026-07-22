@@ -1,0 +1,56 @@
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: task-cleanup
+  namespace: task-demo
+  labels:
+    app.kubernetes.io/name: task-app
+    app.kubernetes.io/component: maintenance
+    app.kubernetes.io/part-of: k8s-task-demo
+spec:
+  schedule: "15 2 * * *"
+  concurrencyPolicy: Forbid
+  successfulJobsHistoryLimit: 1
+  failedJobsHistoryLimit: 2
+  jobTemplate:
+    spec:
+      backoffLimit: 2
+      ttlSecondsAfterFinished: 3600
+      template:
+        metadata:
+          labels:
+            app.kubernetes.io/name: task-app
+            app.kubernetes.io/component: maintenance
+            app.kubernetes.io/part-of: k8s-task-demo
+        spec:
+          restartPolicy: Never
+          containers:
+            - name: cleanup
+              image: postgres:16-alpine
+              imagePullPolicy: IfNotPresent
+              command:
+                - sh
+                - -c
+                - >-
+                  psql
+                  --host=postgres
+                  --username="$POSTGRES_USER"
+                  --dbname="$POSTGRES_DB"
+                  --set=ON_ERROR_STOP=1
+                  --command="DELETE FROM tasks WHERE status = 'completed' AND updated_at < NOW() - INTERVAL '30 days'"
+              env:
+                - name: PGPASSWORD
+                  valueFrom:
+                    secretKeyRef:
+                      name: task-demo-database
+                      key: POSTGRES_PASSWORD
+              envFrom:
+                - secretRef:
+                    name: task-demo-database
+              resources:
+                requests:
+                  cpu: 10m
+                  memory: 24Mi
+                limits:
+                  cpu: 100m
+                  memory: 64Mi

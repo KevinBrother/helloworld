@@ -1,0 +1,173 @@
+{{define "index"}}
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="color-scheme" content="light">
+  <title>Task Board</title>
+  <link rel="stylesheet" href="/static/app.css">
+  <script src="/static/app.js" defer></script>
+</head>
+<body>
+  <header class="app-header">
+    <div class="header-inner">
+      <a class="brand" href="/" aria-label="Task Board home">
+        <span class="brand-mark" aria-hidden="true">
+          <span></span><span></span><span></span>
+        </span>
+        <span>
+          <strong>Task Board</strong>
+          <small>Kubernetes practice workload</small>
+        </span>
+      </a>
+      <div class="runtime-state" aria-label="Application status">
+        <span class="runtime-dot" aria-hidden="true"></span>
+        <span>API ready</span>
+      </div>
+    </div>
+  </header>
+
+  <main class="workspace">
+    <section class="workspace-head" aria-labelledby="workspace-title">
+      <div>
+        <p class="eyebrow">WORK QUEUE / LOCAL CLUSTER</p>
+        <h1 id="workspace-title">Ship the next change.</h1>
+        <p class="workspace-copy">A small workload for practicing deployments, rollouts, persistence, and recovery.</p>
+      </div>
+      <dl class="summary" aria-label="Task summary">
+        <div>
+          <dt>Total</dt>
+          <dd data-total-count>{{len .Tasks}}</dd>
+        </div>
+        <div>
+          <dt>Complete</dt>
+          <dd data-completed-count>{{.CompletedCount}}</dd>
+        </div>
+      </dl>
+    </section>
+
+    <section class="create-panel" aria-labelledby="create-title">
+      <div class="section-label">
+        <span aria-hidden="true">01</span>
+        <div>
+          <h2 id="create-title">Create task</h2>
+          <p>Keep it concrete and observable.</p>
+        </div>
+      </div>
+      <form class="create-form" data-create-form aria-label="Create a task">
+        <label class="field field-title">
+          <span>Title</span>
+          <input name="title" type="text" maxlength="120" required autocomplete="off" placeholder="e.g. Verify rolling update">
+        </label>
+        <label class="field field-description">
+          <span>Description <small>optional</small></span>
+          <input name="description" type="text" maxlength="2000" autocomplete="off" placeholder="What should be inspected?">
+        </label>
+        <button class="button button-primary" type="submit">
+          <span class="button-symbol" aria-hidden="true">+</span>
+          Add task
+        </button>
+      </form>
+    </section>
+
+    <section class="queue" aria-labelledby="queue-title">
+      <div class="queue-toolbar">
+        <div class="section-label">
+          <span aria-hidden="true">02</span>
+          <div>
+            <h2 id="queue-title">Execution queue</h2>
+            <p data-visible-count>{{len .Tasks}} {{if eq (len .Tasks) 1}}task{{else}}tasks{{end}}</p>
+          </div>
+        </div>
+        <div class="filter-tabs" role="group" aria-label="Filter tasks">
+          <button type="button" class="filter-tab is-active" data-filter="" aria-pressed="true">All</button>
+          <button type="button" class="filter-tab" data-filter="pending" aria-pressed="false">Pending</button>
+          <button type="button" class="filter-tab" data-filter="completed" aria-pressed="false">Completed</button>
+        </div>
+      </div>
+
+      {{if .LoadError}}
+      <div class="inline-alert" role="alert">
+        <strong>Task data is temporarily unavailable.</strong>
+        <span>{{.LoadError}}</span>
+      </div>
+      {{end}}
+
+      <div class="task-list" data-task-list>
+        {{range .Tasks}}
+        <article class="task-item{{if eq .Status "completed"}} is-completed{{end}}" data-task-id="{{.ID}}" data-status="{{.Status}}">
+          <button class="status-control" type="button" data-action="toggle" aria-label="{{if eq .Status "completed"}}Reopen{{else}}Complete{{end}} task: {{.Title}}">
+            <span aria-hidden="true">{{if eq .Status "completed"}}✓{{end}}</span>
+          </button>
+          <div class="task-copy">
+            <div class="task-heading">
+              <h3>{{.Title}}</h3>
+              <span class="status-badge">{{.Status}}</span>
+            </div>
+            {{if .Description}}<p>{{.Description}}</p>{{end}}
+            <small>Updated <time datetime="{{.UpdatedAt.Format "2006-01-02T15:04:05Z07:00"}}">{{.UpdatedAt.Format "Jan 02, 15:04"}}</time></small>
+          </div>
+          <div class="task-actions">
+            <button class="icon-button" type="button" data-action="edit" title="Edit task" aria-label="Edit task: {{.Title}}">Edit</button>
+            <button class="icon-button icon-button-danger" type="button" data-action="delete" title="Delete task" aria-label="Delete task: {{.Title}}">Delete</button>
+          </div>
+        </article>
+        {{end}}
+      </div>
+
+      <div class="empty-state{{if .Tasks}} is-hidden{{end}}" data-empty-state>
+        <div class="empty-glyph" aria-hidden="true"><span></span><span></span><span></span></div>
+        <h3>No tasks in this view</h3>
+        <p>Create a task above or switch filters.</p>
+      </div>
+    </section>
+  </main>
+
+  <dialog class="task-dialog" data-edit-dialog>
+    <form method="dialog" class="dialog-frame" data-edit-form>
+      <div class="dialog-head">
+        <div>
+          <p class="eyebrow">EDIT WORK ITEM</p>
+          <h2>Update task</h2>
+        </div>
+        <button class="dialog-close" value="cancel" aria-label="Close edit dialog">×</button>
+      </div>
+      <input type="hidden" name="id">
+      <label class="field">
+        <span>Title</span>
+        <input name="title" type="text" maxlength="120" required>
+      </label>
+      <label class="field">
+        <span>Description <small>optional</small></span>
+        <textarea name="description" maxlength="2000" rows="4"></textarea>
+      </label>
+      <div class="dialog-actions">
+        <button class="button button-secondary" value="cancel">Cancel</button>
+        <button class="button button-primary" type="submit" value="default">Save changes</button>
+      </div>
+    </form>
+  </dialog>
+
+  <dialog class="task-dialog dialog-danger" data-delete-dialog>
+    <form method="dialog" class="dialog-frame" data-delete-form>
+      <div class="dialog-head">
+        <div>
+          <p class="eyebrow">DESTRUCTIVE ACTION</p>
+          <h2>Delete this task?</h2>
+        </div>
+        <button class="dialog-close" value="cancel" aria-label="Close delete dialog">×</button>
+      </div>
+      <input type="hidden" name="id">
+      <p class="dialog-copy">This removes <strong data-delete-title></strong> permanently. Kubernetes will not restore application data that you intentionally delete.</p>
+      <div class="dialog-actions">
+        <button class="button button-secondary" value="cancel">Keep task</button>
+        <button class="button button-danger" type="submit" value="default">Delete task</button>
+      </div>
+    </form>
+  </dialog>
+
+  <div class="toast-region" aria-live="polite" aria-atomic="true" data-toast-region></div>
+</body>
+</html>
+{{end}}

@@ -1,0 +1,8 @@
+# Reference settings used by scripts/cluster-up.sh.
+profile: k8s-demo
+driver: docker
+cpus: 4
+memory: 6144
+addons:
+  - ingress
+  - metrics-server

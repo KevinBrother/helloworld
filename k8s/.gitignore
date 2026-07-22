@@ -1,0 +1,5 @@
+.DS_Store
+.env
+deploy/k8s/11-secret.local.yaml
+coverage.out
+task-app

@@ -1,0 +1,22 @@
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: task-app
+  namespace: task-demo
+  labels:
+    app.kubernetes.io/name: task-app
+    app.kubernetes.io/component: application
+    app.kubernetes.io/part-of: k8s-task-demo
+spec:
+  ingressClassName: nginx
+  rules:
+    - host: task-demo.local
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: task-app
+                port:
+                  name: http
