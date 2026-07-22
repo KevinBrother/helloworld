@@ -26,6 +26,7 @@ flutter run
 
 # 指定平台运行
 flutter run -d chrome     # Web
+flutter run -d web-server --web-port=8080 # wsl 中运行 web
 flutter run -d macos       # macOS
 flutter run -d ios         # iOS 模拟器
 flutter run -d android     # Android 模拟器
