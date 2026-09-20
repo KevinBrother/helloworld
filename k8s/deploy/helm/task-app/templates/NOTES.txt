@@ -1,0 +1,15 @@
+1. Wait for the application:
+
+  kubectl rollout status deployment/{{ include "task-app.fullname" . }} -n {{ .Release.Namespace }}
+
+2. Open a local port-forward:
+
+  kubectl port-forward service/{{ include "task-app.fullname" . }} 8080:{{ .Values.service.port }} -n {{ .Release.Namespace }}
+
+  Then open http://127.0.0.1:8080
+
+{{- if .Values.ingress.enabled }}
+3. Ingress host:
+
+  {{ .Values.ingress.host }}
+{{- end }}

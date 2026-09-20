@@ -1,0 +1,56 @@
+{{- if .Values.maintenance.enabled }}
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: {{ include "task-app.fullname" . }}-cleanup
+  labels:
+    {{- include "task-app.labels" . | nindent 4 }}
+    app.kubernetes.io/component: maintenance
+spec:
+  schedule: {{ .Values.maintenance.schedule | quote }}
+  concurrencyPolicy: Forbid
+  successfulJobsHistoryLimit: 1
+  failedJobsHistoryLimit: 2
+  jobTemplate:
+    spec:
+      backoffLimit: 2
+      ttlSecondsAfterFinished: 3600
+      template:
+        metadata:
+          labels:
+            {{- include "task-app.selectorLabels" . | nindent 12 }}
+            app.kubernetes.io/component: maintenance
+        spec:
+          restartPolicy: Never
+          containers:
+            - name: cleanup
+              image: "{{ .Values.postgres.image.repository }}:{{ .Values.postgres.image.tag }}"
+              imagePullPolicy: {{ .Values.postgres.image.pullPolicy }}
+              command:
+                - sh
+                - -c
+                - >-
+                  psql
+                  --host={{ include "task-app.postgresName" . }}
+                  --username="$POSTGRES_USER"
+                  --dbname="$POSTGRES_DB"
+                  --set=ON_ERROR_STOP=1
+                  --command="DELETE FROM tasks WHERE status = 'completed' AND updated_at < NOW() - INTERVAL '{{ .Values.maintenance.completedTaskRetentionDays }} days'"
+              env:
+                - name: PGPASSWORD
+                  valueFrom:
+                    secretKeyRef:
+                      name: {{ include "task-app.fullname" . }}-database
+                      key: POSTGRES_PASSWORD
+              envFrom:
+                - secretRef:
+                    name: {{ include "task-app.fullname" . }}-database
+              resources:
+                requests:
+                  cpu: 10m
+                  memory: 24Mi
+                limits:
+                  cpu: 100m
+                  memory: 64Mi
+{{- end }}
+

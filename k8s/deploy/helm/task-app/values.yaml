@@ -1,0 +1,79 @@
+replicaCount: 2
+
+image:
+  repository: task-app
+  tag: dev
+  pullPolicy: Never
+
+nameOverride: ""
+fullnameOverride: ""
+
+config:
+  appEnv: kubernetes
+  httpAddr: ":8080"
+  shutdownTimeout: 10s
+
+serviceAccount:
+  create: true
+  name: ""
+
+service:
+  type: ClusterIP
+  port: 80
+  targetPort: 8080
+
+ingress:
+  enabled: true
+  className: nginx
+  host: task-demo.local
+  path: /
+  pathType: Prefix
+
+autoscaling:
+  enabled: true
+  minReplicas: 2
+  maxReplicas: 6
+  targetCPUUtilizationPercentage: 70
+  scaleDownStabilizationSeconds: 60
+
+resources:
+  requests:
+    cpu: 50m
+    memory: 48Mi
+  limits:
+    cpu: 300m
+    memory: 192Mi
+
+postgres:
+  enabled: true
+  image:
+    repository: postgres
+    tag: 16-alpine
+    pullPolicy: IfNotPresent
+  auth:
+    # Development-only defaults. Override these values outside local learning.
+    username: task
+    password: task
+    database: taskdb
+    databaseURL: ""
+  storage:
+    size: 1Gi
+    storageClassName: ""
+  resources:
+    requests:
+      cpu: 100m
+      memory: 128Mi
+    limits:
+      cpu: 500m
+      memory: 512Mi
+
+migration:
+  enabled: true
+  backoffLimit: 3
+  ttlSecondsAfterFinished: 3600
+
+maintenance:
+  enabled: true
+  schedule: "15 2 * * *"
+  completedTaskRetentionDays: 30
+
