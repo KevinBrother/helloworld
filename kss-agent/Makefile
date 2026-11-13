@@ -10,7 +10,7 @@ run-chat-model:
 	CGO_ENABLED=0 go run ./cmd/new-chat-model -- $(RUN_ARGS)
 
 run-chat-model-agent:
-	CGO_ENABLED=0 go run ./cmd/new-chat-model-agent -- $(RUN_ARGS)
+	CGO_ENABLED=0 go run ./cmd/new-chat-model-agent
 
 build:
 	mkdir -p bin
