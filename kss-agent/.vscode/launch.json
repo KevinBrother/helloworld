@@ -1,0 +1,17 @@
+{
+    "version": "0.2.0",
+    "configurations": [
+        {
+            "name": "Debug new-chat-model",
+            "type": "go",
+            "request": "launch",
+            "mode": "debug",
+            "program": "${workspaceFolder}/cmd/new-chat-model",
+            "cwd": "${workspaceFolder}",
+            "env": {
+                "CGO_ENABLED": "0"
+            },
+            "args": []
+        }
+    ]
+}
