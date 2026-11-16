@@ -11,6 +11,7 @@ import (
 	"github.com/cloudwego/eino/components/model"
 	"github.com/cloudwego/eino/schema"
 
+	"kss-agent/internal/agentconsole"
 	"kss-agent/internal/shared"
 )
 
@@ -67,54 +68,10 @@ func runWithModel(ctx context.Context, chatModel model.BaseChatModel, systemProm
 
 		// Each Run receives ALL previous turns; Runner does not persist this slice for us.
 		history = append(history, schema.UserMessage(question))
-		messages, err := runTurn(ctx, runner, history, output)
+		messages, err := agentconsole.RunTurn(ctx, runner, history, output)
 		if err != nil {
 			return fmt.Errorf("run agent: %w", err)
 		}
 		history = append(history, messages...)
 	}
-}
-
-func runTurn(ctx context.Context, runner *adk.Runner, history []*schema.Message, output io.Writer) ([]*schema.Message, error) {
-	// Cancel unfinished work if reading the stream or writing output fails.
-	ctx, cancel := context.WithCancel(ctx)
-	defer cancel()
-	events := runner.Run(ctx, history)
-	var messages []*schema.Message
-	for {
-		event, ok := events.Next()
-		if !ok {
-			break
-		}
-		if event == nil {
-			continue
-		}
-		if event.Err != nil {
-			return nil, event.Err
-		}
-		// Lifecycle/control events need not contain a message.
-		if event.Output == nil || event.Output.MessageOutput == nil {
-			continue
-		}
-		if _, err := fmt.Fprint(output, "assistant> "); err != nil {
-			// printMessage has not taken ownership of the reader yet.
-			messageOutput := event.Output.MessageOutput
-			if messageOutput.IsStreaming && messageOutput.MessageStream != nil {
-				messageOutput.MessageStream.Close()
-			}
-			return nil, err
-		}
-		message, err := printMessage(output, event.Output.MessageOutput)
-		if err != nil {
-			return nil, err
-		}
-		if _, err := fmt.Fprintln(output); err != nil {
-			return nil, err
-		}
-		messages = append(messages, message)
-	}
-	if len(messages) == 0 {
-		return nil, fmt.Errorf("agent returned no message output")
-	}
-	return messages, nil
 }

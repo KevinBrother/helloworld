@@ -1,4 +1,4 @@
-package newchatmodelagent
+package agentconsole
 
 import (
 	"errors"

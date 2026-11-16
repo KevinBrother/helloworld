@@ -25,6 +25,42 @@
                 "CGO_ENABLED": "0"
             },
             "args": []
+        },
+        {
+            "name": "Debug ch03 - 新建持久化会话",
+            "type": "go",
+            "request": "launch",
+            "mode": "debug",
+            "program": "${workspaceFolder}/cmd/memory-session",
+            "cwd": "${workspaceFolder}",
+            "console": "integratedTerminal",
+            "env": {
+                "CGO_ENABLED": "0"
+            },
+            "args": []
+        },
+        {
+            "name": "Debug ch03 - 恢复持久化会话",
+            "type": "go",
+            "request": "launch",
+            "mode": "debug",
+            "program": "${workspaceFolder}/cmd/memory-session",
+            "cwd": "${workspaceFolder}",
+            "console": "integratedTerminal",
+            "env": {
+                "CGO_ENABLED": "0"
+            },
+            "args": [
+                "--session",
+                "${input:sessionId}"
+            ]
+        }
+    ],
+    "inputs": [
+        {
+            "id": "sessionId",
+            "type": "promptString",
+            "description": "输入第三章会话 ID（可用 --list 查询；不存在的 ID 会新建）"
         }
     ]
 }

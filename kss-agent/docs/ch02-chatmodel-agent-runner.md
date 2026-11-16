@@ -84,7 +84,7 @@ Agent 和 Runner 在控制台启动时各创建一次；每个用户问题调用
 
 ## 3. 两层流：AgentEvent 与 MessageStream
 
-位置：`run.go` 的 `runTurn`，以及 `events.go` 的 `printMessage`。
+位置：`internal/agentconsole/turn.go` 的 `RunTurn`，以及 `internal/agentconsole/events.go` 的 `printMessage`。第三章加入后，这部分被提取为两章共享的代码。
 
 外层是 Agent 执行事件：
 
@@ -133,7 +133,7 @@ system → user → assistant → user
 | 断点 | 观察变量 | 应该看到什么 |
 | --- | --- | --- |
 | `runWithModel` 中追加 UserMessage 后 | `history` | 第二轮含第一轮完整问答 |
-| `runTurn` 的 `runner.Run` | `history`、`runner` | 同一个 Runner，新的本轮执行 |
+| `RunTurn` 的 `runner.Run` | `history`、`runner` | 同一个 Runner，新的本轮执行 |
 | `events.Next()` 后 | `event.Err`、`event.Output`、`event.AgentName` | 执行事件的外层结构 |
 | `printMessage` 的 `stream.Recv()` 后 | `chunk.Content`、`err` | 逐段内容，最终 EOF |
 | `ConcatMessages` 后 | `message` | 一条完整回复，供下一轮使用 |
@@ -148,7 +148,7 @@ system → user → assistant → user
 | `chatmodel.NewModel[M]` | `shared.NewChatModel` |
 | `NewTypedChatModelAgent[M]` | `NewChatModelAgent`（采用 `schema.Message`） |
 | `NewTypedRunner[M]` | `NewRunner` |
-| `helpers.PrintAndCollect` | `runTurn` + `printMessage` |
+| `helpers.PrintAndCollect` | `agentconsole.RunTurn` + `printMessage` |
 | `msgops.NewUser / NewAssistant` | `schema.UserMessage` + 合并后的模型回复 |
 
 上游当前同时演示 `schema.Message` 与 `schema.AgenticMessage`，并有 `msgops`、消息输入归一化等公共封装。本项目只沿用现有 `schema.Message` 的纯文本场景，不引入双类型切换或后续章节的工具协议处理。这样可以直接在本地看到事件读取与历史追加的细节。
