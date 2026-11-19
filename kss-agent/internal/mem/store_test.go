@@ -40,7 +40,6 @@ func TestSessionPersistsAndIsolatesHistory(t *testing.T) {
 	appendMessage(t, a, schema.AssistantMessage(strings.Repeat("你好", 40000), nil))
 	b := sessionFor(t, store, "other")
 	appendMessage(t, b, schema.UserMessage("不同会话"))
-	// A fresh Store forces a disk read, not a cached memory lookup.
 	restored := sessionFor(t, openStore(t, dir), "study")
 	got := restored.GetMessages()
 	if len(got) != 2 || got[0].Content != "我叫小曹\n我在学 Eino" || got[1].Content != strings.Repeat("你好", 40000) {

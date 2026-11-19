@@ -12,41 +12,28 @@ import (
 )
 
 const (
-	// DefaultDomain is the local OpenSandbox server address.
-	DefaultDomain = "localhost:8080"
-	// DefaultProtocol is the local OpenSandbox server protocol.
-	DefaultProtocol = "http"
-	// DefaultImage is the default code-interpreter image (pinned, not :latest).
-	DefaultImage = "opensandbox/code-interpreter:v1.1.0"
-	// DefaultTTL is how long an idle sandbox lives on the server.
-	DefaultTTL = 15 * time.Minute
-	// DefaultRunTimeout bounds a single execution.
+	DefaultDomain     = "localhost:8080"
+	DefaultProtocol   = "http"
+	DefaultImage      = "opensandbox/code-interpreter:v1.1.0"
+	DefaultTTL        = 15 * time.Minute
 	DefaultRunTimeout = 60 * time.Second
 
 	healthCheckTimeout = 5 * time.Second
 	closeTimeout       = 10 * time.Second
+
+	execdPort = 44772
 )
 
-// Config describes how to reach and configure the OpenSandbox server.
 type Config struct {
-	// Domain is the control-plane address, e.g. "localhost:8080".
-	Domain string
-	// Protocol is "http" or "https".
-	Protocol string
-	// APIKey is optional; local servers started with
-	// OPENSANDBOX_INSECURE_SERVER=YES do not need one.
-	APIKey string
-	// Image is the code-interpreter image.
-	Image string
-	// TTL is the sandbox time-to-live; the server enforces it even if the
-	// client dies.
-	TTL time.Duration
-	// RunTimeout bounds one execution.
+	Domain     string
+	Protocol   string
+	APIKey     string
+	Image      string
+	TTL        time.Duration
 	RunTimeout time.Duration
+	OnCreate   func(id, endpoint string)
 }
 
-// LoadConfigFromEnv reads SANDBOX_* variables and falls back to the SDK's
-// OPEN_SANDBOX_* variables and then to defaults.
 func LoadConfigFromEnv() (Config, error) {
 	cfg := Config{
 		Domain:     firstNonEmpty(os.Getenv("SANDBOX_DOMAIN"), os.Getenv("OPEN_SANDBOX_DOMAIN"), DefaultDomain),
@@ -88,8 +75,6 @@ func firstNonEmpty(values ...string) string {
 	return ""
 }
 
-// OpenSandboxRunner executes code through the OpenSandbox Go SDK. One sandbox
-// is created lazily on first use and reused for later executions; Close kills it.
 type OpenSandboxRunner struct {
 	cfg Config
 
@@ -98,8 +83,6 @@ type OpenSandboxRunner struct {
 	closed      bool
 }
 
-// NewOpenSandboxRunner validates cfg and returns a runner. No network calls
-// happen until the first Run.
 func NewOpenSandboxRunner(cfg Config) (*OpenSandboxRunner, error) {
 	cfg.Domain = strings.TrimSpace(cfg.Domain)
 	if cfg.Domain == "" {
@@ -128,7 +111,6 @@ func NewOpenSandboxRunner(cfg Config) (*OpenSandboxRunner, error) {
 	return &OpenSandboxRunner{cfg: cfg}, nil
 }
 
-// Run validates the request, then executes it in a reused sandbox.
 func (r *OpenSandboxRunner) Run(ctx context.Context, req Request) (Result, error) {
 	if err := Validate(&req); err != nil {
 		return Result{}, err
@@ -144,8 +126,6 @@ func (r *OpenSandboxRunner) Run(ctx context.Context, req Request) (Result, error
 	}
 	runCtx, cancel := context.WithTimeout(ctx, r.cfg.RunTimeout)
 	defer cancel()
-	// SkipAccumulation keeps the SDK from buffering unbounded output in memory;
-	// the collector keeps only the bytes we can actually return.
 	collector := newExecutionCollector(MaxOutputBytes)
 	execution, err := interpreter.Execute(runCtx, req.Language, req.Code, collector.handlers())
 	if err != nil {
@@ -154,7 +134,6 @@ func (r *OpenSandboxRunner) Run(ctx context.Context, req Request) (Result, error
 	return mapExecution(execution, collector), nil
 }
 
-// Close kills the sandbox. It is safe to call multiple times.
 func (r *OpenSandboxRunner) Close() error {
 	r.mu.Lock()
 	defer r.mu.Unlock()
@@ -170,10 +149,8 @@ func (r *OpenSandboxRunner) Close() error {
 	return nil
 }
 
-// Domain reports the configured server address (no credentials).
 func (r *OpenSandboxRunner) Domain() string { return r.cfg.Domain }
 
-// Image reports the configured sandbox image.
 func (r *OpenSandboxRunner) Image() string { return r.cfg.Image }
 
 func (r *OpenSandboxRunner) ensureLocked(ctx context.Context) (*opensandbox.CodeInterpreter, error) {
@@ -201,7 +178,32 @@ func (r *OpenSandboxRunner) ensureLocked(ctx context.Context) (*opensandbox.Code
 		return nil, fmt.Errorf("create sandbox: %w", err)
 	}
 	r.interpreter = interpreter
+	r.notifyCreatedLocked(ctx, interpreter)
 	return interpreter, nil
+}
+
+func (r *OpenSandboxRunner) notifyCreatedLocked(ctx context.Context, interpreter *opensandbox.CodeInterpreter) {
+	if r.cfg.OnCreate == nil {
+		return
+	}
+	endpoint := ""
+	epCtx, cancel := context.WithTimeout(ctx, healthCheckTimeout)
+	defer cancel()
+	if ep, err := interpreter.GetEndpoint(epCtx, execdPort); err == nil {
+		endpoint = endpointURL(r.cfg.Protocol, ep.Endpoint)
+	}
+	r.cfg.OnCreate(interpreter.ID(), endpoint)
+}
+
+func endpointURL(protocol, endpoint string) string {
+	endpoint = strings.TrimSpace(endpoint)
+	if endpoint == "" {
+		return ""
+	}
+	if strings.Contains(endpoint, "://") {
+		return endpoint
+	}
+	return strings.TrimSuffix(protocol, "://") + "://" + endpoint
 }
 
 func (r *OpenSandboxRunner) killLocked(ctx context.Context) error {
@@ -215,9 +217,6 @@ func (r *OpenSandboxRunner) killLocked(ctx context.Context) error {
 	return nil
 }
 
-// mapExecution converts an SDK execution into the backend-independent Result.
-// A non-nil collector supplies stdout/stderr/results captured with bounded
-// memory; without it the execution's own accumulated messages are used.
 func mapExecution(execution *opensandbox.Execution, collector *executionCollector) Result {
 	if execution == nil {
 		return Result{}
@@ -266,8 +265,6 @@ func messagesText(messages []opensandbox.OutputMessage) string {
 	return b.String()
 }
 
-// executionCollector bounds the bytes kept from a streaming execution so a
-// program that prints forever cannot exhaust the agent process memory.
 type executionCollector struct {
 	mu        sync.Mutex
 	limit     int

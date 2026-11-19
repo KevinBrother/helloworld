@@ -10,7 +10,6 @@ import (
 	"github.com/cloudwego/eino/schema"
 )
 
-// These structs are the model-facing JSON contract; Backend request types have no JSON tags.
 type directoryArgs struct {
 	Path string `json:"path" jsonschema:"description=Absolute directory path"`
 }
@@ -43,8 +42,6 @@ type manualBackend interface {
 	filesystem.StreamingShell
 }
 
-// newManualTools explicitly constructs EVERY tool. No filesystem middleware or DeepAgent.
-// This intentionally small adapter returns raw content / JSON results, not DeepAgent formatting.
 func newManualTools(ctx context.Context, backend manualBackend, allowShell bool) ([]tool.BaseTool, error) {
 	ls, err := utils.InferTool("ls", "List entries in an absolute directory. Does not recurse.",
 		func(ctx context.Context, args directoryArgs) ([]filesystem.FileInfo, error) {
@@ -121,7 +118,6 @@ func newManualTools(ctx context.Context, backend manualBackend, allowShell bool)
 				if err != nil {
 					return nil, err
 				}
-				// Conversion owns the upstream reader; closing the result also closes stream.
 				return schema.StreamReaderWithConvert(stream, func(chunk *filesystem.ExecuteResponse) (string, error) {
 					if chunk == nil {
 						return "", schema.ErrNoValue
@@ -141,7 +137,6 @@ func newManualTools(ctx context.Context, backend manualBackend, allowShell bool)
 		}
 		tools = append(tools, execute)
 	}
-	// Fail during construction instead of waiting until the first model request.
 	for _, item := range tools {
 		if _, err := item.Info(ctx); err != nil {
 			return nil, fmt.Errorf("inspect manual tool: %w", err)

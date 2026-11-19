@@ -1,6 +1,3 @@
-// Package calculator evaluates arithmetic expressions with a small,
-// dependency-free recursive-descent parser. It is intentionally not an
-// interpreter: there are no variables, no assignment and no side effects.
 package calculator
 
 import (
@@ -13,18 +10,10 @@ import (
 )
 
 const (
-	// maxExpressionBytes bounds the raw input size.
 	maxExpressionBytes = 512
-	// maxNestingDepth bounds parentheses and call nesting.
-	maxNestingDepth = 64
+	maxNestingDepth    = 64
 )
 
-// Evaluate parses and evaluates one arithmetic expression.
-//
-// Supported grammar: + - * / % ^ (right-associative), unary signs,
-// parentheses, the constants pi and e, and the functions sqrt, abs, floor,
-// ceil, round, min, max and pow. Errors include the byte offset of the
-// offending token when one is available.
 func Evaluate(expression string) (float64, error) {
 	if len(expression) > maxExpressionBytes {
 		return 0, fmt.Errorf("expression too long: %d bytes (max %d)", len(expression), maxExpressionBytes)
@@ -346,7 +335,7 @@ func (p *parser) call(name string, pos int) (float64, error) {
 	if err := p.enter(); err != nil {
 		return 0, err
 	}
-	if err := p.next(); err != nil { // consume '('
+	if err := p.next(); err != nil {
 		return 0, err
 	}
 	var args []float64
@@ -370,7 +359,7 @@ func (p *parser) call(name string, pos int) (float64, error) {
 		return 0, fmt.Errorf("expected \")\" at %d", p.tok.pos)
 	}
 	p.depth--
-	if err := p.next(); err != nil { // consume ')'
+	if err := p.next(); err != nil {
 		return 0, err
 	}
 	return applyFunction(strings.ToLower(name), pos, args)

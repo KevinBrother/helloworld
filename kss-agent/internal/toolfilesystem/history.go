@@ -5,7 +5,6 @@ import (
 	"github.com/cloudwego/eino/schema"
 )
 
-// validateHistory rejects interrupted tool batches rather than replaying file effects.
 func validateHistory(messages []*schema.Message) error {
 	pending := map[string]string{}
 	for i, message := range messages {

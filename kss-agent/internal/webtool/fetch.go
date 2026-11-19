@@ -1,11 +1,3 @@
-// Package webtool provides two constrained web tools for agents: web_fetch
-// (read-only page fetching) and web_search (provider-hosted search).
-//
-// web_fetch is not a general-purpose HTTP client: only GET is supported, only
-// http/https URLs are accepted, and requests to loopback, private, link-local,
-// multicast and unspecified addresses are refused at dial time. Responses are
-// size limited and wrapped in explicit "untrusted external content" markers so
-// a model can tell fetched data apart from instructions.
 package webtool
 
 import (
@@ -24,26 +16,18 @@ import (
 	"github.com/cloudwego/eino/components/tool/utils"
 )
 
-// ToolName is the name the model sees.
 const ToolName = "web_fetch"
 
 const (
-	// DefaultTimeout bounds the whole request, including redirects and body read.
-	DefaultTimeout = 15 * time.Second
-	// DefaultMaxBytes bounds how much of the response body is read.
-	DefaultMaxBytes = 32 << 10 // 32 KiB
+	DefaultTimeout  = 15 * time.Second
+	DefaultMaxBytes = 32 << 10
 	maxRedirects    = 5
 	dialTimeout     = 10 * time.Second
 )
 
-// Options configures the tool. The zero value applies safe defaults.
 type Options struct {
-	// Timeout bounds the whole request. Defaults to DefaultTimeout.
-	Timeout time.Duration
-	// MaxBytes bounds the response body. Defaults to DefaultMaxBytes.
-	MaxBytes int64
-	// AllowPrivateNetwork disables the private/loopback address guard.
-	// Only use it for tests or a fully trusted network. Defaults to false.
+	Timeout             time.Duration
+	MaxBytes            int64
 	AllowPrivateNetwork bool
 }
 
@@ -51,7 +35,6 @@ type getArgs struct {
 	URL string `json:"url" jsonschema:"description=Absolute http:// or https:// URL to fetch (GET only, read-only)"`
 }
 
-// NewFetchTool builds the web_fetch tool.
 func NewFetchTool(opts Options) (tool.BaseTool, error) {
 	if opts.Timeout <= 0 {
 		opts.Timeout = DefaultTimeout
@@ -94,7 +77,6 @@ func newClient(opts Options) *http.Client {
 
 	return &http.Client{
 		Timeout: opts.Timeout,
-		// No proxy: a proxy could forward requests to blocked addresses.
 		Transport: &http.Transport{
 			DialContext:           dialer.DialContext,
 			TLSHandshakeTimeout:   dialTimeout,

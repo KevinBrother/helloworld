@@ -12,7 +12,6 @@ import (
 	"github.com/cloudwego/eino/schema"
 )
 
-// Only the external model is replaced; tests execute the real Agent and Runner.
 type recordingModel struct {
 	inputs    [][]*schema.Message
 	streamErr error

@@ -10,35 +10,24 @@ import (
 	"github.com/cloudwego/eino/components/tool/utils"
 )
 
-// SearchToolName is the tool name the model sees for hosted web search.
 const SearchToolName = "web_search"
 
 const (
-	// maxSearchAnswerChars bounds how much of the provider summary is shown.
 	maxSearchAnswerChars = 4000
-	// maxSearchSources bounds how many cited sources are shown.
-	maxSearchSources = 8
+	maxSearchSources     = 8
 )
 
-// Source is one cited web source returned by a Searcher.
 type Source struct {
-	Title string
-	URL   string
-	// Snippet is optional context; some providers return only title and URL.
+	Title   string
+	URL     string
 	Snippet string
 }
 
-// SearchResult is a provider-independent search outcome.
 type SearchResult struct {
 	Answer  string
 	Sources []Source
 }
 
-// Searcher turns one query into a summary plus cited sources.
-//
-// Implementations may call a hosted search API, a paid search service, or a
-// local meta-search engine. The tool layer only validates, formats and marks
-// the output as untrusted.
 type Searcher interface {
 	Search(ctx context.Context, query string) (SearchResult, error)
 }
@@ -47,7 +36,6 @@ type searchArgs struct {
 	Query string `json:"query" jsonschema:"description=Natural-language search query; include key words and enough context to disambiguate"`
 }
 
-// NewSearchTool builds the web_search tool backed by searcher.
 func NewSearchTool(searcher Searcher) (tool.BaseTool, error) {
 	if searcher == nil {
 		return nil, fmt.Errorf("web_search: searcher is nil")
@@ -112,7 +100,6 @@ func formatSearchResult(result SearchResult) string {
 	return builder.String()
 }
 
-// truncateUTF8 cuts s to at most n bytes without splitting a rune.
 func truncateUTF8(s string, n int) string {
 	if len(s) <= n {
 		return s

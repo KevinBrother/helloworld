@@ -29,7 +29,6 @@ func parseOptions(args []string, output io.Writer) (toolfilesystem.Options, erro
 	flags.StringVar(&opts.SessionID, "session", "", "session ID (empty creates a new session)")
 	flags.StringVar(&opts.SessionDir, "session-dir", shared.DefaultSessionDir(), "directory for JSONL session files (default: SESSION_DIR or data/sessions)")
 	flags.StringVar(&opts.ProjectRoot, "project-root", os.Getenv("PROJECT_ROOT"), "project directory for path context (NOT a sandbox)")
-	// Empty selects the filesystem agent's own default, not the generic chat prompt.
 	flags.StringVar(&opts.Instruction, "instruction", strings.TrimSpace(os.Getenv("SYSTEM_PROMPT")), "system prompt (default: filesystem assistant; project path context is always appended)")
 	flags.BoolVar(&opts.AllowShell, "allow-shell", false, "allow unrestricted local shell execution; filesystem writes are already enabled")
 	if err := flags.Parse(args); err != nil {

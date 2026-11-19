@@ -8,11 +8,6 @@ import (
 	"time"
 )
 
-// TestOpenSandboxRunnerE2E exercises a real OpenSandbox server. It only runs
-// when SANDBOX_E2E=1, e.g.:
-//
-//	OPENSANDBOX_INSECURE_SERVER=YES opensandbox-server --config ~/.sandbox.toml
-//	SANDBOX_E2E=1 CGO_ENABLED=0 go test ./internal/sandbox -run E2E -v
 func TestOpenSandboxRunnerE2E(t *testing.T) {
 	if os.Getenv("SANDBOX_E2E") != "1" {
 		t.Skip("set SANDBOX_E2E=1 to run against a real OpenSandbox server")
@@ -59,5 +54,45 @@ func TestOpenSandboxRunnerE2E(t *testing.T) {
 	}
 	if !strings.Contains(res.Stdout, "ts-ok") {
 		t.Fatalf("typescript stdout = %q", res.Stdout)
+	}
+}
+
+func TestOpenSandboxRunnerReportsIdentityE2E(t *testing.T) {
+	if os.Getenv("SANDBOX_E2E") != "1" {
+		t.Skip("set SANDBOX_E2E=1 to run against a real OpenSandbox server")
+	}
+	cfg, err := LoadConfigFromEnv()
+	if err != nil {
+		t.Fatal(err)
+	}
+	var events int
+	var gotID, gotEndpoint string
+	cfg.OnCreate = func(id, endpoint string) {
+		events++
+		gotID, gotEndpoint = id, endpoint
+	}
+	runner, err := NewOpenSandboxRunner(cfg)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer func() {
+		if err := runner.Close(); err != nil {
+			t.Logf("close: %v", err)
+		}
+	}()
+
+	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Minute)
+	defer cancel()
+	if _, err := runner.Run(ctx, Request{Language: "python", Code: "print(1)"}); err != nil {
+		t.Fatalf("run: %v", err)
+	}
+	if events != 1 {
+		t.Fatalf("OnCreate calls = %d, want 1", events)
+	}
+	if gotID == "" {
+		t.Fatal("OnCreate id is empty")
+	}
+	if !strings.Contains(gotEndpoint, "://") || !strings.Contains(gotEndpoint, "/proxy/") {
+		t.Fatalf("OnCreate endpoint = %q, want a scheme and /proxy/ path", gotEndpoint)
 	}
 }

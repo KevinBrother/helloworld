@@ -9,8 +9,6 @@ import (
 	"github.com/cloudwego/eino/schema"
 )
 
-// printMessage consumes the message once: display chunks now, retain a complete
-// message for the next turn. Calling GetMessage after Recv would reread a spent stream.
 func printMessage(output io.Writer, variant *adk.MessageVariant) (*schema.Message, error) {
 	if !variant.IsStreaming {
 		if variant.Message == nil {

@@ -1,4 +1,3 @@
-// Package mem implements application-owned conversation persistence, not an Eino component.
 package mem
 
 import (
@@ -16,8 +15,6 @@ import (
 
 var validID = regexp.MustCompile(`^[A-Za-z0-9_-]{1,128}$`)
 
-// Store owns a session directory and an in-process cache. Do not share a session
-// between concurrent processes or independently cached Stores.
 type Store struct {
 	dir   string
 	mu    sync.Mutex
@@ -40,7 +37,6 @@ func NewStore(dir string) (*Store, error) {
 	return &Store{dir: dir, cache: make(map[string]*Session)}, nil
 }
 
-// GetOrCreate generates an ID when empty; an explicit missing ID creates a session.
 func (s *Store) GetOrCreate(id string) (*Session, error) {
 	s.mu.Lock()
 	defer s.mu.Unlock()

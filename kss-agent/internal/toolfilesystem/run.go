@@ -20,29 +20,19 @@ import (
 )
 
 type Options struct {
-	SessionID   string
-	SessionDir  string
-	ProjectRoot string
-	Instruction string
-	AllowShell  bool
-	// Searcher supplies web_search. run() fills it for the CLI entry; a nil
-	// value means no web_search tool (manual entry and tests).
-	Searcher webtool.Searcher
-	// AllowCode asks run() to build a run_code runner from SANDBOX_*
-	// configuration. It is used by the DeepAgent CLI only; tests and other
-	// entries inject SandboxRunner directly.
-	AllowCode bool
-	// SandboxRunner supplies run_code. A nil value means no run_code tool.
+	SessionID     string
+	SessionDir    string
+	ProjectRoot   string
+	Instruction   string
+	AllowShell    bool
+	Searcher      webtool.Searcher
+	AllowCode     bool
 	SandboxRunner sandbox.Runner
-	// StartupHints are capability lines printed by the console before the
-	// prompt. Each entry owns its own text: an entry that does not register a
-	// tool must not advertise it.
-	StartupHints []string
+	StartupHints  []string
 }
 
 type agentFactory func(context.Context, model.BaseChatModel, Options) (adk.ResumableAgent, error)
 
-// run loads the common model configuration; each entry supplies its own fixed agent factory.
 func run(ctx context.Context, opts Options, input io.Reader, output io.Writer, createAgent agentFactory, command string) error {
 	root, err := resolveRoot(opts.ProjectRoot)
 	if err != nil {
@@ -57,7 +47,6 @@ func run(ctx context.Context, opts Options, input io.Reader, output io.Writer, c
 	if err != nil {
 		return fmt.Errorf("create model: %w", err)
 	}
-	// Reuse the model endpoint for hosted web search; no extra credential needed.
 	searcher, err := webtool.NewHostedSearcher(webtool.HostedOptions{
 		BaseURL: cfg.BaseURL,
 		APIKey:  cfg.APIKey,
@@ -72,6 +61,7 @@ func run(ctx context.Context, opts Options, input io.Reader, output io.Writer, c
 		if err != nil {
 			return fmt.Errorf("load sandbox config: %w", err)
 		}
+		sandboxCfg.OnCreate = sandboxEventHandler(output)
 		runner, err := sandbox.NewOpenSandboxRunner(sandboxCfg)
 		if err != nil {
 			return fmt.Errorf("create code runner: %w", err)
@@ -88,9 +78,6 @@ func run(ctx context.Context, opts Options, input io.Reader, output io.Writer, c
 	return runErr
 }
 
-// capabilityHints describes the tools this entry really registers. Manual
-// entries leave StartupHints empty, so they never advertise flags or tools
-// that belong to the DeepAgent CLI.
 func capabilityHints(opts Options) []string {
 	hints := []string{"联网工具: web_fetch（抓取页面）与 web_search（托管搜索，每次搜索额外消耗一轮模型调用）\n"}
 	if opts.SandboxRunner == nil {
@@ -103,6 +90,19 @@ func capabilityHints(opts Options) []string {
 		return append(hints, fmt.Sprintf("代码执行: 已启用（OpenSandbox %s，镜像 %s）\n", info.Domain(), info.Image()))
 	}
 	return append(hints, "代码执行: 已启用\n")
+}
+
+func sandboxEventHandler(output io.Writer) func(id, endpoint string) {
+	return func(id, endpoint string) {
+		if output == nil {
+			return
+		}
+		if endpoint == "" {
+			_, _ = fmt.Fprintf(output, "[代码沙箱] 已创建: id=%s\n", id)
+			return
+		}
+		_, _ = fmt.Fprintf(output, "[代码沙箱] 已创建: id=%s endpoint=%s\n", id, endpoint)
+	}
 }
 
 func runConsole(ctx context.Context, chatModel model.BaseChatModel, opts Options, input io.Reader, output io.Writer, createAgent agentFactory, command string) error {
@@ -166,7 +166,6 @@ func runConsole(ctx context.Context, chatModel model.BaseChatModel, opts Options
 		if err := validateHistory(messages); err != nil {
 			return fmt.Errorf("invalid tool turn: %w", err)
 		}
-		// Commit only complete successful turns; the JSONL store is not batch-atomic.
 		for _, message := range messages {
 			if err := session.Append(message); err != nil {
 				return fmt.Errorf("save turn: %w", err)

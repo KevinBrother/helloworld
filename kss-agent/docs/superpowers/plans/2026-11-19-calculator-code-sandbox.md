@@ -97,3 +97,11 @@ git diff --check && git status --short
 - 未处理（记录）：E2E 未断言容器清理（依赖 TTL 兜底）。`.vscode/launch.json` 已恢复原有 4 空格格式，只追加 11 行新配置（最小 diff）。
 
 复审结果：`gofmt -l .` 无输出、`CGO_ENABLED=0 go vet ./...` 通过、`make test` 全绿、`make build` 5 个、`git diff --check` 干净；`SANDBOX_E2E=1` 真实沙箱复跑 `PASS (14.18s)`。
+
+## 追加：控制台打印沙箱身份（2026-11-19）
+
+用户确认加一行旁路信息，方便把 `run_code` 和 `docker ps` 里的容器对上：
+
+- `sandbox.Config` 增加 `OnCreate func(id, endpoint string)`；`OpenSandboxRunner.ensureLocked` 在创建/重建后调用，`GetEndpoint(44772)` best-effort 取端点（失败只打印 id，不影响执行）。
+- `toolfilesystem/run.go` 用 `sandboxEventHandler(output)` 接线：`[代码沙箱] 已创建: id=… endpoint=http://…/proxy/44772`；该信息不进入工具结果，模型看不到。
+- 测试：`TestEndpointURL`、`TestSandboxEventHandlerReportsIdentity`、`TestOpenSandboxRunnerReportsIdentityE2E`（真实服务器 PASS）。复审：gofmt/vet/make test/make build/diff-check 全绿。

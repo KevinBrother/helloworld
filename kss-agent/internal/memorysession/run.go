@@ -80,11 +80,9 @@ func runWithModel(ctx context.Context, chatModel model.BaseChatModel, opts Optio
 		if question == "" {
 			break
 		}
-		// Save user intent before invoking the model, even if the model later fails.
 		if err := session.Append(schema.UserMessage(question)); err != nil {
 			return fmt.Errorf("save user message: %w", err)
 		}
-		// The bridge from application-owned persistence into Eino is still a message slice.
 		history := session.GetMessages()
 		messages, err := agentconsole.RunTurn(ctx, runner, history, output)
 		if err != nil {
@@ -99,7 +97,6 @@ func runWithModel(ctx context.Context, chatModel model.BaseChatModel, opts Optio
 	if err := scanner.Err(); err != nil {
 		return fmt.Errorf("read input: %w", err)
 	}
-	// Quote the directory for the user's shell; spaces and apostrophes are valid paths.
 	quotedDir := "'" + strings.ReplaceAll(dir, "'", "'\"'\"'") + "'"
 	_, err = fmt.Fprintf(output, "\n会话已保存: %s\n恢复命令（项目根目录执行）:\nCGO_ENABLED=0 go run ./cmd/memory-session --session %s --session-dir %s\n", session.ID, session.ID, quotedDir)
 	return err

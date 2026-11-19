@@ -115,6 +115,8 @@ Eino DeepAgent (cmd/tool-filesystem)
 
 命令行：`--allow-code`（默认 false）。启动信息打印 domain 与镜像，不打印 key。
 
+沙箱创建/重建时通过 `sandbox.Config.OnCreate(id, endpoint)` 在控制台打印沙箱身份（`[代码沙箱] 已创建: id=… endpoint=…`）：这是面向人的旁路信息（side channel），endpoint 通过 `GetEndpoint(44772)` best-effort 获取，失败不影响执行，也绝不进入模型上下文。
+
 ## 安全边界
 
 - 代码在远端沙箱内执行：读不到 agent 的 `.env`、工作区、模型 key。

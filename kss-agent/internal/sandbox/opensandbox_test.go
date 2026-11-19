@@ -268,3 +268,25 @@ func TestMapExecutionWithCollectorUsesCollectedOutput(t *testing.T) {
 		t.Fatalf("exit code = %v, want 0", res.ExitCode)
 	}
 }
+
+func TestEndpointURL(t *testing.T) {
+	cases := []struct {
+		name     string
+		protocol string
+		endpoint string
+		want     string
+	}{
+		{"adds scheme", "http", "127.0.0.1:52269/proxy/44772", "http://127.0.0.1:52269/proxy/44772"},
+		{"keeps existing scheme", "http", "http://127.0.0.1:52269/proxy/44772", "http://127.0.0.1:52269/proxy/44772"},
+		{"https", "https", "sandbox.example.com:8443/proxy/44772", "https://sandbox.example.com:8443/proxy/44772"},
+		{"empty", "http", "", ""},
+		{"trims spaces", "http", "  127.0.0.1:1/x  ", "http://127.0.0.1:1/x"},
+	}
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			if got := endpointURL(tc.protocol, tc.endpoint); got != tc.want {
+				t.Fatalf("endpointURL(%q, %q) = %q, want %q", tc.protocol, tc.endpoint, got, tc.want)
+			}
+		})
+	}
+}

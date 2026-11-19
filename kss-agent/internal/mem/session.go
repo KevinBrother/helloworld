@@ -13,7 +13,6 @@ import (
 	"github.com/cloudwego/eino/schema"
 )
 
-// maxRecordBytes includes the newline; use the same bound for writing and reading.
 const maxRecordBytes = 16 * 1024 * 1024
 
 type Session struct {
@@ -32,7 +31,6 @@ type sessionHeader struct {
 	MessageKind string    `json:"message_kind"`
 }
 
-// Append persists a complete message before updating the in-memory history.
 func (s *Session) Append(message *schema.Message) error {
 	s.mu.Lock()
 	defer s.mu.Unlock()
@@ -50,7 +48,6 @@ func (s *Session) Append(message *schema.Message) error {
 	if len(data) > maxRecordBytes {
 		return fmt.Errorf("message exceeds %d byte record limit", maxRecordBytes)
 	}
-	// Own the saved value: later mutations of the input must not change history.
 	var saved schema.Message
 	if err := json.Unmarshal(data, &saved); err != nil {
 		return err
@@ -69,7 +66,6 @@ func (s *Session) Append(message *schema.Message) error {
 		writeErr = f.Sync()
 	}
 	if writeErr != nil {
-		// Roll back a failed append when possible. Crashes are detected on next load.
 		rollbackErr := f.Truncate(info.Size())
 		return errors.Join(writeErr, rollbackErr, f.Close())
 	}
@@ -80,7 +76,6 @@ func (s *Session) Append(message *schema.Message) error {
 	return nil
 }
 
-// GetMessages returns a slice snapshot. Treat the messages it contains as read-only.
 func (s *Session) GetMessages() []*schema.Message {
 	s.mu.Lock()
 	defer s.mu.Unlock()
@@ -143,7 +138,6 @@ func loadSession(path, id string) (*Session, error) {
 	if info.Size() == 0 {
 		return nil, fmt.Errorf("empty session file")
 	}
-	// Without this check an append could join a truncated final line with new JSON.
 	var last [1]byte
 	if _, err := f.ReadAt(last[:], info.Size()-1); err != nil {
 		return nil, err

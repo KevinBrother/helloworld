@@ -18,7 +18,6 @@ import (
 	"kss-agent/internal/webtool"
 )
 
-// Only replace the external LLM: real DeepAgent, Runner, Backend and Store execute.
 type scriptedModel struct {
 	replies []*schema.Message
 	inputs  [][]*schema.Message
@@ -46,7 +45,6 @@ func (m *scriptedModel) Stream(_ context.Context, input []*schema.Message, opts 
 	}
 	reply := m.replies[0]
 	m.replies = m.replies[1:]
-	// Simulate an OpenAI-style fragmented JSON argument stream.
 	if len(reply.ToolCalls) > 0 {
 		call := reply.ToolCalls[0]
 		idx := 0
@@ -295,7 +293,6 @@ func TestMultipleTurnsRetainToolMessages(t *testing.T) {
 	}
 }
 
-// DeepAgent tests deliberately bind the DeepAgent constructor, just like its CLI.
 func runWithModel(ctx context.Context, chatModel model.BaseChatModel, opts Options, input io.Reader, output io.Writer) error {
 	return runConsole(ctx, chatModel, opts, input, output, newAgent, "tool-filesystem")
 }
@@ -514,5 +511,46 @@ func TestRunCodeToolEndToEnd(t *testing.T) {
 	}
 	if runner.calls[0].Language != "python" || runner.calls[0].Code != "print(6*7)" {
 		t.Fatalf("runner request = %+v", runner.calls[0])
+	}
+}
+
+func TestSandboxEventHandlerReportsIdentity(t *testing.T) {
+	cases := []struct {
+		name     string
+		id       string
+		endpoint string
+		want     []string
+		notWant  string
+	}{
+		{
+			name:     "id and endpoint",
+			id:       "sandbox-4ba894f6",
+			endpoint: "http://127.0.0.1:52269/proxy/44772",
+			want:     []string{"[代码沙箱]", "id=sandbox-4ba894f6", "endpoint=http://127.0.0.1:52269/proxy/44772"},
+		},
+		{
+			name:    "id only",
+			id:      "sandbox-4ba894f6",
+			want:    []string{"id=sandbox-4ba894f6"},
+			notWant: "endpoint=",
+		},
+	}
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			var out bytes.Buffer
+			sandboxEventHandler(&out)(tc.id, tc.endpoint)
+			got := out.String()
+			for _, want := range tc.want {
+				if !strings.Contains(got, want) {
+					t.Fatalf("output missing %q: %q", want, got)
+				}
+			}
+			if tc.notWant != "" && strings.Contains(got, tc.notWant) {
+				t.Fatalf("output leaked %q: %q", tc.notWant, got)
+			}
+			if strings.Count(got, "\n") != 1 || !strings.HasSuffix(got, "\n") {
+				t.Fatalf("output should be one line, got %q", got)
+			}
+		})
 	}
 }

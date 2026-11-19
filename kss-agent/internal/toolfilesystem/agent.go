@@ -20,7 +20,6 @@ import (
 	"kss-agent/internal/webtool"
 )
 
-// resolveRoot supplies path context, NOT a filesystem security boundary.
 func resolveRoot(root string) (string, error) {
 	if root == "" {
 		root = os.Getenv("PROJECT_ROOT")
@@ -75,7 +74,6 @@ func newAgent(ctx context.Context, chatModel model.BaseChatModel, opts Options) 
 		Description: "A learning assistant with local filesystem tools, a pure calculate tool, a constrained web_fetch tool, an optional hosted web_search tool, an optional sandboxed run_code tool and persistent conversation history.",
 		ChatModel:   chatModel, Instruction: filesystemInstruction(opts), Backend: backend,
 		MaxIteration: 50, WithoutGeneralSubAgent: true,
-		// Auto-registered filesystem tools come from Backend; custom tools enter here.
 		ToolsConfig: adk.ToolsConfig{
 			ToolsNodeConfig: compose.ToolsNodeConfig{
 				Tools: tools,
@@ -100,7 +98,6 @@ func filesystemInstruction(opts Options) string {
 	return instruction + fmt.Sprintf("\n\n当前项目根目录（PROJECT_ROOT）: %s\n文件工具请使用绝对路径；用户给出相对路径时基于此目录解析。不要假定 Shell 的工作目录。仅操作用户明确授权的文件；写入前说明意图，避免破坏已有数据。此目录只是路径上下文，不是沙箱。", opts.ProjectRoot)
 }
 
-// Run is the DeepAgent example entry: Backend automatically supplies filesystem tools.
 func Run(ctx context.Context, opts Options, input io.Reader, output io.Writer) error {
 	return run(ctx, opts, input, output, newAgent, "tool-filesystem")
 }

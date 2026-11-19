@@ -13,8 +13,6 @@ type codeArgs struct {
 	Code     string `json:"code" jsonschema:"description=Source code to execute in the sandbox"`
 }
 
-// NewTool builds the run_code tool around a Runner. The sandbox is the only
-// execution path: failures never fall back to the host shell.
 func NewTool(runner Runner) (tool.BaseTool, error) {
 	if runner == nil {
 		return nil, fmt.Errorf("sandbox runner is required")
@@ -27,9 +25,6 @@ func NewTool(runner Runner) (tool.BaseTool, error) {
 	return utils.InferTool(CodeToolName, description, func(ctx context.Context, args codeArgs) (string, error) {
 		req := Request{Language: args.Language, Code: args.Code}
 		if err := Validate(&req); err != nil {
-			// Invalid arguments are the model's mistake, not an infrastructure
-			// failure. Return them as a normal tool result so the model can
-			// correct itself instead of terminating the whole turn.
 			return fmt.Sprintf("error: %v", err), nil
 		}
 		res, err := runner.Run(ctx, req)

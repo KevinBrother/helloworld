@@ -13,31 +13,19 @@ import (
 )
 
 const (
-	// defaultHostedTimeout bounds one hosted search request.
-	defaultHostedTimeout = 60 * time.Second
-	// maxHostedResponseBytes bounds how much of the provider response is read.
-	maxHostedResponseBytes = 1 << 20 // 1 MiB
-	// hostedMaxOutputTokens asks the provider for a short summary instead of a page.
-	hostedMaxOutputTokens = 600
+	defaultHostedTimeout   = 60 * time.Second
+	maxHostedResponseBytes = 1 << 20
+	hostedMaxOutputTokens  = 600
 )
 
-// HostedOptions configures a Searcher that delegates to a model provider's
-// server-side web_search tool (OpenAI-compatible Responses API).
 type HostedOptions struct {
-	// BaseURL is the API root, e.g. https://api.example.com/v1.
-	BaseURL string
-	// APIKey authenticates the request.
-	APIKey string
-	// Model is the model that runs the hosted search.
-	Model string
-	// Timeout bounds one search request. Defaults to defaultHostedTimeout.
-	Timeout time.Duration
-	// HTTPClient overrides the default client (useful for tests). When set, its
-	// own timeout and transport apply instead of Timeout.
+	BaseURL    string
+	APIKey     string
+	Model      string
+	Timeout    time.Duration
 	HTTPClient *http.Client
 }
 
-// HostedSearcher is a Searcher backed by the provider's hosted web search.
 type HostedSearcher struct {
 	endpoint string
 	apiKey   string
@@ -54,8 +42,7 @@ type hostedRequest struct {
 	Input           string       `json:"input"`
 	Tools           []hostedTool `json:"tools"`
 	MaxOutputTokens int          `json:"max_output_tokens"`
-	// Store is false so the provider does not keep the search prompt or result.
-	Store bool `json:"store"`
+	Store           bool         `json:"store"`
 }
 
 type hostedResponse struct {
@@ -77,8 +64,6 @@ type hostedResponse struct {
 	} `json:"output"`
 }
 
-// NewHostedSearcher builds a Searcher that asks the provider's model to run a
-// hosted web search. It reuses the same endpoint, key and model as chat.
 func NewHostedSearcher(opts HostedOptions) (*HostedSearcher, error) {
 	base := strings.TrimSpace(opts.BaseURL)
 	if base == "" {
@@ -119,8 +104,6 @@ func NewHostedSearcher(opts HostedOptions) (*HostedSearcher, error) {
 	}, nil
 }
 
-// Search asks the provider to search for query and returns its summary with
-// cited sources. The provider runs the search server side; no HTML is fetched.
 func (h *HostedSearcher) Search(ctx context.Context, query string) (SearchResult, error) {
 	query = strings.TrimSpace(query)
 	if query == "" {

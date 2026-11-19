@@ -145,7 +145,6 @@ func TestManualFileToolAdapters(t *testing.T) {
 	}
 }
 
-// Replace only the Shell boundary: this verifies streaming conversion without running commands.
 type recordingShellBackend struct {
 	manualBackend
 	request *filesystem.ExecuteRequest

@@ -15,7 +15,6 @@ import (
 	"kss-agent/internal/shared"
 )
 
-// Run starts chapter 2's console conversation. History lives only for this call.
 func Run(ctx context.Context, systemPrompt string, input io.Reader, output io.Writer) error {
 	cfg, err := shared.LoadConfig()
 	if err != nil {
@@ -38,10 +37,8 @@ func runWithModel(ctx context.Context, chatModel model.BaseChatModel, systemProm
 	if err != nil {
 		return fmt.Errorf("create agent: %w", err)
 	}
-	// Runner is the execution entrypoint. Streaming selects the model's Stream path.
 	runner := adk.NewRunner(ctx, adk.RunnerConfig{Agent: agent, EnableStreaming: true})
 
-	// Instruction is supplied by the agent; history contains only conversation messages.
 	history := make([]*schema.Message, 0, 16)
 	scanner := bufio.NewScanner(input)
 	scanner.Buffer(make([]byte, 4096), 1024*1024)
@@ -66,7 +63,6 @@ func runWithModel(ctx context.Context, chatModel model.BaseChatModel, systemProm
 			return nil
 		}
 
-		// Each Run receives ALL previous turns; Runner does not persist this slice for us.
 		history = append(history, schema.UserMessage(question))
 		messages, err := agentconsole.RunTurn(ctx, runner, history, output)
 		if err != nil {
