@@ -14,6 +14,7 @@ import (
 	"github.com/cloudwego/eino/components/model"
 	"github.com/cloudwego/eino/schema"
 	"kss-agent/internal/mem"
+	"kss-agent/internal/sandbox"
 	"kss-agent/internal/webtool"
 )
 
@@ -139,7 +140,7 @@ func TestShellIsOptInAndInstructionKeepsAbsoluteRoot(t *testing.T) {
 			for _, tool := range m.tools {
 				names[tool.Name] = true
 			}
-			for _, name := range []string{"ls", "read_file", "write_file", "edit_file", "glob", "grep", "write_todos", "web_fetch"} {
+			for _, name := range []string{"ls", "read_file", "write_file", "edit_file", "glob", "grep", "write_todos", "web_fetch", "calculate"} {
 				if !names[name] {
 					t.Errorf("missing tool %s", name)
 				}
@@ -338,6 +339,9 @@ func TestWebSearchToolRegistrationFollowsSearcher(t *testing.T) {
 			if !names["web_fetch"] {
 				t.Fatalf("web_fetch missing: %v", names)
 			}
+			if !names["calculate"] {
+				t.Fatalf("calculate missing: %v", names)
+			}
 			wantSearch := tc.searcher != nil
 			if names["web_search"] != wantSearch {
 				t.Fatalf("web_search registered=%v, want %v (tools=%v)", names["web_search"], wantSearch, names)
@@ -353,6 +357,7 @@ func TestWebSearchToolEndToEnd(t *testing.T) {
 		Sources: []webtool.Source{{Title: "Go", URL: "https://go.dev"}},
 	}}
 	opts.Searcher = searcher
+	opts.StartupHints = capabilityHints(opts)
 	m := &scriptedModel{replies: []*schema.Message{
 		toolCall("web_search", map[string]any{"query": "latest go release"}),
 		schema.AssistantMessage("最新版本是 1.27.4", nil),
@@ -397,5 +402,117 @@ func TestWebSearchToolEndToEnd(t *testing.T) {
 	}
 	if msgs[3].Content != "最新版本是 1.27.4" {
 		t.Fatalf("final answer: %+v", msgs[3])
+	}
+}
+
+type fakeSandboxRunner struct {
+	result sandbox.Result
+	err    error
+	calls  []sandbox.Request
+	closed int
+}
+
+func (f *fakeSandboxRunner) Run(_ context.Context, req sandbox.Request) (sandbox.Result, error) {
+	f.calls = append(f.calls, req)
+	return f.result, f.err
+}
+
+func (f *fakeSandboxRunner) Close() error {
+	f.closed++
+	return nil
+}
+
+func intExitCode(v int) *int { return &v }
+
+func TestCodeToolRegistrationFollowsRunner(t *testing.T) {
+	for _, tc := range []struct {
+		name   string
+		runner sandbox.Runner
+	}{
+		{"with sandbox runner", &fakeSandboxRunner{}},
+		{"without sandbox runner", nil},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			opts := fixtureOptions(t)
+			opts.SandboxRunner = tc.runner
+			m := &scriptedModel{replies: []*schema.Message{schema.AssistantMessage("ok", nil)}}
+			if err := runWithModel(context.Background(), m, opts, strings.NewReader("你好\n"), io.Discard); err != nil {
+				t.Fatal(err)
+			}
+			names := toolNames(t, m)
+			wantCode := tc.runner != nil
+			if names["run_code"] != wantCode {
+				t.Fatalf("run_code registered=%v, want %v (tools=%v)", names["run_code"], wantCode, names)
+			}
+			if !names["calculate"] || !names["web_fetch"] {
+				t.Fatalf("calculate/web_fetch must always be registered: %v", names)
+			}
+		})
+	}
+}
+
+func TestConsoleReportsCodeExecutionState(t *testing.T) {
+	realRunner, err := sandbox.NewOpenSandboxRunner(sandbox.Config{
+		Domain:   "localhost:8080",
+		Protocol: "http",
+		Image:    "example/code:1",
+		APIKey:   "must-not-be-printed",
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	for _, tc := range []struct {
+		name        string
+		runner      sandbox.Runner
+		want        []string
+		notExpected string
+	}{
+		{"disabled", nil, []string{"代码执行: 关闭", "--allow-code"}, ""},
+		{"enabled without metadata", &fakeSandboxRunner{}, []string{"代码执行: 已启用"}, ""},
+		{"enabled with real runner", realRunner, []string{"代码执行: 已启用", "OpenSandbox localhost:8080", "example/code:1"}, "must-not-be-printed"},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			opts := fixtureOptions(t)
+			opts.SandboxRunner = tc.runner
+			opts.StartupHints = capabilityHints(opts)
+			m := &scriptedModel{replies: []*schema.Message{schema.AssistantMessage("ok", nil)}}
+			var out bytes.Buffer
+			if err := runWithModel(context.Background(), m, opts, strings.NewReader("你好\n"), &out); err != nil {
+				t.Fatal(err)
+			}
+			for _, want := range tc.want {
+				if !strings.Contains(out.String(), want) {
+					t.Fatalf("startup info missing %q:\n%s", want, out.String())
+				}
+			}
+			if tc.notExpected != "" && strings.Contains(out.String(), tc.notExpected) {
+				t.Fatalf("startup info leaked %q:\n%s", tc.notExpected, out.String())
+			}
+		})
+	}
+}
+
+func TestRunCodeToolEndToEnd(t *testing.T) {
+	opts := fixtureOptions(t)
+	runner := &fakeSandboxRunner{result: sandbox.Result{Stdout: "42\n", ExitCode: intExitCode(0)}}
+	opts.SandboxRunner = runner
+	m := &scriptedModel{replies: []*schema.Message{
+		toolCall("run_code", map[string]any{"language": "python", "code": "print(6*7)"}),
+		schema.AssistantMessage("结果是 42", nil),
+	}}
+	var out bytes.Buffer
+	if err := runWithModel(context.Background(), m, opts, strings.NewReader("算一下\n"), &out); err != nil {
+		t.Fatal(err)
+	}
+	for _, want := range []string{"[tool call] run_code", "tool> run_code:", "language: python", "exit code: 0", "42", "assistant> 结果是 42"} {
+		if !strings.Contains(out.String(), want) {
+			t.Errorf("output missing %q:\n%s", want, out.String())
+		}
+	}
+	if len(runner.calls) != 1 {
+		t.Fatalf("runner calls = %d, want 1", len(runner.calls))
+	}
+	if runner.calls[0].Language != "python" || runner.calls[0].Code != "print(6*7)" {
+		t.Fatalf("runner request = %+v", runner.calls[0])
 	}
 }

@@ -15,6 +15,8 @@ import (
 	"github.com/cloudwego/eino/components/tool"
 	"github.com/cloudwego/eino/compose"
 
+	"kss-agent/internal/calculator"
+	"kss-agent/internal/sandbox"
 	"kss-agent/internal/webtool"
 )
 
@@ -49,7 +51,11 @@ func newAgent(ctx context.Context, chatModel model.BaseChatModel, opts Options) 
 	if err != nil {
 		return nil, fmt.Errorf("create web_fetch tool: %w", err)
 	}
-	tools := []tool.BaseTool{webFetcher}
+	calculateTool, err := calculator.NewTool()
+	if err != nil {
+		return nil, fmt.Errorf("create calculate tool: %w", err)
+	}
+	tools := []tool.BaseTool{webFetcher, calculateTool}
 	if opts.Searcher != nil {
 		searchTool, err := webtool.NewSearchTool(opts.Searcher)
 		if err != nil {
@@ -57,9 +63,16 @@ func newAgent(ctx context.Context, chatModel model.BaseChatModel, opts Options) 
 		}
 		tools = append(tools, searchTool)
 	}
+	if opts.SandboxRunner != nil {
+		runCodeTool, err := sandbox.NewTool(opts.SandboxRunner)
+		if err != nil {
+			return nil, fmt.Errorf("create run_code tool: %w", err)
+		}
+		tools = append(tools, runCodeTool)
+	}
 	cfg := &deep.Config{
 		Name:        "Ch04ToolFilesystemAgent",
-		Description: "A learning assistant with local filesystem tools, a constrained web_fetch tool, an optional hosted web_search tool and persistent conversation history.",
+		Description: "A learning assistant with local filesystem tools, a pure calculate tool, a constrained web_fetch tool, an optional hosted web_search tool, an optional sandboxed run_code tool and persistent conversation history.",
 		ChatModel:   chatModel, Instruction: filesystemInstruction(opts), Backend: backend,
 		MaxIteration: 50, WithoutGeneralSubAgent: true,
 		// Auto-registered filesystem tools come from Backend; custom tools enter here.

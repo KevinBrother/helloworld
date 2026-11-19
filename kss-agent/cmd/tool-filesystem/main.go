@@ -32,6 +32,7 @@ func parseOptions(args []string, output io.Writer) (toolfilesystem.Options, erro
 	// Empty selects the filesystem agent's own default, not the generic chat prompt.
 	flags.StringVar(&opts.Instruction, "instruction", strings.TrimSpace(os.Getenv("SYSTEM_PROMPT")), "system prompt (default: filesystem assistant; project path context is always appended)")
 	flags.BoolVar(&opts.AllowShell, "allow-shell", false, "allow unrestricted local shell execution; filesystem writes are already enabled")
+	flags.BoolVar(&opts.AllowCode, "allow-code", false, "allow sandboxed code execution via run_code (requires a running OpenSandbox server)")
 	if err := flags.Parse(args); err != nil {
 		return opts, err
 	}

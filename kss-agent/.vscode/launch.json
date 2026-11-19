@@ -76,6 +76,17 @@
             "console": "integratedTerminal",
             "env": { "CGO_ENABLED": "0" },
             "args": ["--project-root", "${workspaceFolder}"]
+        },
+        {
+            "name": "Debug ch04 - 工具与文件系统（代码沙箱已启用）",
+            "type": "go",
+            "request": "launch",
+            "mode": "debug",
+            "program": "${workspaceFolder}/cmd/tool-filesystem",
+            "cwd": "${workspaceFolder}",
+            "console": "integratedTerminal",
+            "env": { "CGO_ENABLED": "0" },
+            "args": ["--project-root", "${workspaceFolder}", "--allow-code"]
         }
     ],
     "inputs": [

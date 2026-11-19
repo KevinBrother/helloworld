@@ -32,15 +32,15 @@ func TestDeepEntryRejectsAgentSelector(t *testing.T) {
 func TestParseOptions(t *testing.T) {
 	t.Setenv("SESSION_DIR", "")
 	t.Setenv("PROJECT_ROOT", "/from-env")
-	opts, err := parseOptions([]string{"--session", "demo", "--project-root", "/from-flag", "--allow-shell"}, io.Discard)
-	if err != nil || opts.ProjectRoot != "/from-flag" || opts.SessionID != "demo" || !opts.AllowShell {
+	opts, err := parseOptions([]string{"--session", "demo", "--project-root", "/from-flag", "--allow-shell", "--allow-code"}, io.Discard)
+	if err != nil || opts.ProjectRoot != "/from-flag" || opts.SessionID != "demo" || !opts.AllowShell || !opts.AllowCode {
 		t.Fatalf("opts=%+v err=%v", opts, err)
 	}
 	opts, err = parseOptions(nil, io.Discard)
-	if err != nil || opts.ProjectRoot != "/from-env" || opts.SessionDir != "data/sessions" || opts.AllowShell {
+	if err != nil || opts.ProjectRoot != "/from-env" || opts.SessionDir != "data/sessions" || opts.AllowShell || opts.AllowCode {
 		t.Fatalf("defaults=%+v err=%v", opts, err)
 	}
-	for _, args := range [][]string{{"question"}, {"--unknown"}, {"--allow-shell=invalid"}} {
+	for _, args := range [][]string{{"question"}, {"--unknown"}, {"--allow-shell=invalid"}, {"--allow-code=invalid"}} {
 		if _, err := parseOptions(args, io.Discard); err == nil {
 			t.Fatalf("accepted %v", args)
 		}

@@ -74,7 +74,7 @@ func TestManualToolRegistration(t *testing.T) {
 			for _, info := range m.tools {
 				names[info.Name] = true
 			}
-			for _, name := range []string{"ls", "read_file", "write_file", "edit_file", "glob", "grep"} {
+			for _, name := range []string{"ls", "read_file", "write_file", "edit_file", "glob", "grep", "calculate"} {
 				if !names[name] {
 					t.Errorf("missing %s", name)
 				}
@@ -82,7 +82,7 @@ func TestManualToolRegistration(t *testing.T) {
 			if names["execute"] != allow || names["write_todos"] || names["task"] {
 				t.Fatalf("tools=%v", names)
 			}
-			want := 6
+			want := 7
 			if allow {
 				want++
 			}
@@ -219,11 +219,17 @@ func TestManualEntryHasNoWebTools(t *testing.T) {
 	if err := runManualWithModel(context.Background(), m, opts, strings.NewReader("你好\n"), &out); err != nil {
 		t.Fatal(err)
 	}
-	if strings.Contains(out.String(), "联网工具") {
-		t.Fatalf("manual entry must not advertise web tools:\n%s", out.String())
+	for _, line := range []string{"联网工具", "代码执行", "--allow-code"} {
+		if strings.Contains(out.String(), line) {
+			t.Fatalf("manual entry must not advertise %q:\n%s", line, out.String())
+		}
+	}
+	names := toolNames(t, m)
+	if !names["calculate"] {
+		t.Fatalf("manual entry must register the calculator: %v", names)
 	}
 	for _, info := range m.tools {
-		if info.Name == "web_fetch" || info.Name == "web_search" {
+		if info.Name == "web_fetch" || info.Name == "web_search" || info.Name == "run_code" {
 			t.Fatalf("manual entry must not register %s", info.Name)
 		}
 	}

@@ -3,6 +3,7 @@ module kss-agent
 go 1.22.6
 
 require (
+	github.com/alibaba/OpenSandbox/sdks/sandbox/go v1.2.1
 	github.com/cloudwego/eino v0.9.5
 	github.com/cloudwego/eino-ext/adk/backend/local v0.2.4
 	github.com/cloudwego/eino-ext/components/model/openai v0.1.13
@@ -39,6 +40,7 @@ require (
 	github.com/yargevad/filepathx v1.0.0 // indirect
 	golang.org/x/arch v0.11.0 // indirect
 	golang.org/x/exp v0.0.0-20230713183714-613f0c0eb8a1 // indirect
+	golang.org/x/sync v0.8.0 // indirect
 	golang.org/x/sys v0.29.0 // indirect
 	gopkg.in/yaml.v3 v3.0.1 // indirect
 )

@@ -3,6 +3,7 @@ package toolfilesystem
 import (
 	"bufio"
 	"context"
+	"errors"
 	"fmt"
 	"io"
 	"path/filepath"
@@ -13,6 +14,7 @@ import (
 	"github.com/cloudwego/eino/schema"
 	"kss-agent/internal/agentconsole"
 	"kss-agent/internal/mem"
+	"kss-agent/internal/sandbox"
 	"kss-agent/internal/shared"
 	"kss-agent/internal/webtool"
 )
@@ -26,6 +28,16 @@ type Options struct {
 	// Searcher supplies web_search. run() fills it for the CLI entry; a nil
 	// value means no web_search tool (manual entry and tests).
 	Searcher webtool.Searcher
+	// AllowCode asks run() to build a run_code runner from SANDBOX_*
+	// configuration. It is used by the DeepAgent CLI only; tests and other
+	// entries inject SandboxRunner directly.
+	AllowCode bool
+	// SandboxRunner supplies run_code. A nil value means no run_code tool.
+	SandboxRunner sandbox.Runner
+	// StartupHints are capability lines printed by the console before the
+	// prompt. Each entry owns its own text: an entry that does not register a
+	// tool must not advertise it.
+	StartupHints []string
 }
 
 type agentFactory func(context.Context, model.BaseChatModel, Options) (adk.ResumableAgent, error)
@@ -55,7 +67,42 @@ func run(ctx context.Context, opts Options, input io.Reader, output io.Writer, c
 		return fmt.Errorf("create web search: %w", err)
 	}
 	opts.Searcher = searcher
-	return runConsole(ctx, chatModel, opts, input, output, createAgent, command)
+	if opts.AllowCode {
+		sandboxCfg, err := sandbox.LoadConfigFromEnv()
+		if err != nil {
+			return fmt.Errorf("load sandbox config: %w", err)
+		}
+		runner, err := sandbox.NewOpenSandboxRunner(sandboxCfg)
+		if err != nil {
+			return fmt.Errorf("create code runner: %w", err)
+		}
+		opts.SandboxRunner = runner
+	}
+	opts.StartupHints = capabilityHints(opts)
+	runErr := runConsole(ctx, chatModel, opts, input, output, createAgent, command)
+	if opts.SandboxRunner != nil {
+		if closeErr := opts.SandboxRunner.Close(); closeErr != nil {
+			runErr = errors.Join(runErr, closeErr)
+		}
+	}
+	return runErr
+}
+
+// capabilityHints describes the tools this entry really registers. Manual
+// entries leave StartupHints empty, so they never advertise flags or tools
+// that belong to the DeepAgent CLI.
+func capabilityHints(opts Options) []string {
+	hints := []string{"联网工具: web_fetch（抓取页面）与 web_search（托管搜索，每次搜索额外消耗一轮模型调用）\n"}
+	if opts.SandboxRunner == nil {
+		return append(hints, "代码执行: 关闭（--allow-code 需要本机 OpenSandbox 服务）\n")
+	}
+	if info, ok := opts.SandboxRunner.(interface {
+		Domain() string
+		Image() string
+	}); ok {
+		return append(hints, fmt.Sprintf("代码执行: 已启用（OpenSandbox %s，镜像 %s）\n", info.Domain(), info.Image()))
+	}
+	return append(hints, "代码执行: 已启用\n")
 }
 
 func runConsole(ctx context.Context, chatModel model.BaseChatModel, opts Options, input io.Reader, output io.Writer, createAgent agentFactory, command string) error {
@@ -90,11 +137,7 @@ func runConsole(ctx context.Context, chatModel model.BaseChatModel, opts Options
 		return err
 	}
 	runner := adk.NewRunner(ctx, adk.RunnerConfig{Agent: agent, EnableStreaming: true})
-	webTools := ""
-	if opts.Searcher != nil {
-		webTools = "联网工具: web_fetch（抓取页面）与 web_search（托管搜索，每次搜索额外消耗一轮模型调用）\n"
-	}
-	if _, err := fmt.Fprintf(output, "第四章：工具与文件系统\n程序入口: %s\n会话 ID: %s\n已加载 %d 条消息\n项目目录: %s\n存储目录: %s\n%sShell 执行: %t\n注意：本地文件工具可读写真实文件，项目目录不是沙箱；关闭 Shell 不会禁用文件写入。\n空行或 Ctrl+D 退出。\n", command, session.ID, len(session.GetMessages()), root, dir, webTools, opts.AllowShell); err != nil {
+	if _, err := fmt.Fprintf(output, "第四章：工具与文件系统\n程序入口: %s\n会话 ID: %s\n已加载 %d 条消息\n项目目录: %s\n存储目录: %s\n%sShell 执行: %t\n注意：本地文件工具可读写真实文件，项目目录不是沙箱；关闭 Shell 不会禁用文件写入。\n空行或 Ctrl+D 退出。\n", command, session.ID, len(session.GetMessages()), root, dir, strings.Join(opts.StartupHints, ""), opts.AllowShell); err != nil {
 		return err
 	}
 	scanner := bufio.NewScanner(input)
