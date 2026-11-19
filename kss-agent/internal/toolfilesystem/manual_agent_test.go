@@ -211,3 +211,20 @@ func TestManualExecuteStreamsOutputAndExitCode(t *testing.T) {
 func runManualWithModel(ctx context.Context, chatModel model.BaseChatModel, opts Options, input io.Reader, output io.Writer) error {
 	return runConsole(ctx, chatModel, opts, input, output, newManualAgent, "manual-tools")
 }
+
+func TestManualEntryHasNoWebTools(t *testing.T) {
+	opts := fixtureOptions(t)
+	m := &scriptedModel{replies: []*schema.Message{schema.AssistantMessage("ok", nil)}}
+	var out bytes.Buffer
+	if err := runManualWithModel(context.Background(), m, opts, strings.NewReader("你好\n"), &out); err != nil {
+		t.Fatal(err)
+	}
+	if strings.Contains(out.String(), "联网工具") {
+		t.Fatalf("manual entry must not advertise web tools:\n%s", out.String())
+	}
+	for _, info := range m.tools {
+		if info.Name == "web_fetch" || info.Name == "web_search" {
+			t.Fatalf("manual entry must not register %s", info.Name)
+		}
+	}
+}

@@ -12,6 +12,10 @@ import (
 	"github.com/cloudwego/eino/adk"
 	"github.com/cloudwego/eino/adk/prebuilt/deep"
 	"github.com/cloudwego/eino/components/model"
+	"github.com/cloudwego/eino/components/tool"
+	"github.com/cloudwego/eino/compose"
+
+	"kss-agent/internal/webtool"
 )
 
 // resolveRoot supplies path context, NOT a filesystem security boundary.
@@ -41,11 +45,29 @@ func newAgent(ctx context.Context, chatModel model.BaseChatModel, opts Options) 
 	if err != nil {
 		return nil, fmt.Errorf("create local backend: %w", err)
 	}
+	webFetcher, err := webtool.NewFetchTool(webtool.Options{})
+	if err != nil {
+		return nil, fmt.Errorf("create web_fetch tool: %w", err)
+	}
+	tools := []tool.BaseTool{webFetcher}
+	if opts.Searcher != nil {
+		searchTool, err := webtool.NewSearchTool(opts.Searcher)
+		if err != nil {
+			return nil, fmt.Errorf("create web_search tool: %w", err)
+		}
+		tools = append(tools, searchTool)
+	}
 	cfg := &deep.Config{
 		Name:        "Ch04ToolFilesystemAgent",
-		Description: "A learning assistant with local filesystem tools and persistent conversation history.",
+		Description: "A learning assistant with local filesystem tools, a constrained web_fetch tool, an optional hosted web_search tool and persistent conversation history.",
 		ChatModel:   chatModel, Instruction: filesystemInstruction(opts), Backend: backend,
 		MaxIteration: 50, WithoutGeneralSubAgent: true,
+		// Auto-registered filesystem tools come from Backend; custom tools enter here.
+		ToolsConfig: adk.ToolsConfig{
+			ToolsNodeConfig: compose.ToolsNodeConfig{
+				Tools: tools,
+			},
+		},
 	}
 	if opts.AllowShell {
 		cfg.StreamingShell = backend

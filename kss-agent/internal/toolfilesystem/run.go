@@ -14,6 +14,7 @@ import (
 	"kss-agent/internal/agentconsole"
 	"kss-agent/internal/mem"
 	"kss-agent/internal/shared"
+	"kss-agent/internal/webtool"
 )
 
 type Options struct {
@@ -22,6 +23,9 @@ type Options struct {
 	ProjectRoot string
 	Instruction string
 	AllowShell  bool
+	// Searcher supplies web_search. run() fills it for the CLI entry; a nil
+	// value means no web_search tool (manual entry and tests).
+	Searcher webtool.Searcher
 }
 
 type agentFactory func(context.Context, model.BaseChatModel, Options) (adk.ResumableAgent, error)
@@ -41,6 +45,16 @@ func run(ctx context.Context, opts Options, input io.Reader, output io.Writer, c
 	if err != nil {
 		return fmt.Errorf("create model: %w", err)
 	}
+	// Reuse the model endpoint for hosted web search; no extra credential needed.
+	searcher, err := webtool.NewHostedSearcher(webtool.HostedOptions{
+		BaseURL: cfg.BaseURL,
+		APIKey:  cfg.APIKey,
+		Model:   cfg.Model,
+	})
+	if err != nil {
+		return fmt.Errorf("create web search: %w", err)
+	}
+	opts.Searcher = searcher
 	return runConsole(ctx, chatModel, opts, input, output, createAgent, command)
 }
 
@@ -76,7 +90,11 @@ func runConsole(ctx context.Context, chatModel model.BaseChatModel, opts Options
 		return err
 	}
 	runner := adk.NewRunner(ctx, adk.RunnerConfig{Agent: agent, EnableStreaming: true})
-	if _, err := fmt.Fprintf(output, "第四章：工具与文件系统\n程序入口: %s\n会话 ID: %s\n已加载 %d 条消息\n项目目录: %s\n存储目录: %s\nShell 执行: %t\n注意：本地文件工具可读写真实文件，项目目录不是沙箱；关闭 Shell 不会禁用文件写入。\n空行或 Ctrl+D 退出。\n", command, session.ID, len(session.GetMessages()), root, dir, opts.AllowShell); err != nil {
+	webTools := ""
+	if opts.Searcher != nil {
+		webTools = "联网工具: web_fetch（抓取页面）与 web_search（托管搜索，每次搜索额外消耗一轮模型调用）\n"
+	}
+	if _, err := fmt.Fprintf(output, "第四章：工具与文件系统\n程序入口: %s\n会话 ID: %s\n已加载 %d 条消息\n项目目录: %s\n存储目录: %s\n%sShell 执行: %t\n注意：本地文件工具可读写真实文件，项目目录不是沙箱；关闭 Shell 不会禁用文件写入。\n空行或 Ctrl+D 退出。\n", command, session.ID, len(session.GetMessages()), root, dir, webTools, opts.AllowShell); err != nil {
 		return err
 	}
 	scanner := bufio.NewScanner(input)

@@ -14,6 +14,7 @@ import (
 	"github.com/cloudwego/eino/components/model"
 	"github.com/cloudwego/eino/schema"
 	"kss-agent/internal/mem"
+	"kss-agent/internal/webtool"
 )
 
 // Only replace the external LLM: real DeepAgent, Runner, Backend and Store execute.
@@ -138,7 +139,7 @@ func TestShellIsOptInAndInstructionKeepsAbsoluteRoot(t *testing.T) {
 			for _, tool := range m.tools {
 				names[tool.Name] = true
 			}
-			for _, name := range []string{"ls", "read_file", "write_file", "edit_file", "glob", "grep", "write_todos"} {
+			for _, name := range []string{"ls", "read_file", "write_file", "edit_file", "glob", "grep", "write_todos", "web_fetch"} {
 				if !names[name] {
 					t.Errorf("missing tool %s", name)
 				}
@@ -296,4 +297,105 @@ func TestMultipleTurnsRetainToolMessages(t *testing.T) {
 // DeepAgent tests deliberately bind the DeepAgent constructor, just like its CLI.
 func runWithModel(ctx context.Context, chatModel model.BaseChatModel, opts Options, input io.Reader, output io.Writer) error {
 	return runConsole(ctx, chatModel, opts, input, output, newAgent, "tool-filesystem")
+}
+
+type fakeWebSearcher struct {
+	result webtool.SearchResult
+	err    error
+	calls  int
+}
+
+func (f *fakeWebSearcher) Search(context.Context, string) (webtool.SearchResult, error) {
+	f.calls++
+	return f.result, f.err
+}
+
+func toolNames(t *testing.T, m *scriptedModel) map[string]bool {
+	t.Helper()
+	names := map[string]bool{}
+	for _, info := range m.tools {
+		names[info.Name] = true
+	}
+	return names
+}
+
+func TestWebSearchToolRegistrationFollowsSearcher(t *testing.T) {
+	for _, tc := range []struct {
+		name     string
+		searcher webtool.Searcher
+	}{
+		{"with hosted search", &fakeWebSearcher{}},
+		{"without hosted search", nil},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			opts := fixtureOptions(t)
+			opts.Searcher = tc.searcher
+			m := &scriptedModel{replies: []*schema.Message{schema.AssistantMessage("ok", nil)}}
+			if err := runWithModel(context.Background(), m, opts, strings.NewReader("你好\n"), io.Discard); err != nil {
+				t.Fatal(err)
+			}
+			names := toolNames(t, m)
+			if !names["web_fetch"] {
+				t.Fatalf("web_fetch missing: %v", names)
+			}
+			wantSearch := tc.searcher != nil
+			if names["web_search"] != wantSearch {
+				t.Fatalf("web_search registered=%v, want %v (tools=%v)", names["web_search"], wantSearch, names)
+			}
+		})
+	}
+}
+
+func TestWebSearchToolEndToEnd(t *testing.T) {
+	opts := fixtureOptions(t)
+	searcher := &fakeWebSearcher{result: webtool.SearchResult{
+		Answer:  "Go 1.27.4 is current.",
+		Sources: []webtool.Source{{Title: "Go", URL: "https://go.dev"}},
+	}}
+	opts.Searcher = searcher
+	m := &scriptedModel{replies: []*schema.Message{
+		toolCall("web_search", map[string]any{"query": "latest go release"}),
+		schema.AssistantMessage("最新版本是 1.27.4", nil),
+	}}
+	var out bytes.Buffer
+	if err := runWithModel(context.Background(), m, opts, strings.NewReader("查一下 Go 最新版本\n\n"), &out); err != nil {
+		t.Fatal(err)
+	}
+	if searcher.calls != 1 {
+		t.Fatalf("searcher calls = %d, want 1", searcher.calls)
+	}
+	for _, want := range []string{
+		"联网工具",
+		"web_search",
+		"Go 1.27.4 is current.",
+		"https://go.dev",
+		"[tool call] web_search",
+		"tool> web_search:",
+		"assistant> 最新版本是 1.27.4",
+	} {
+		if !strings.Contains(out.String(), want) {
+			t.Errorf("output missing %q:\n%s", want, out.String())
+		}
+	}
+	store, err := mem.NewStore(opts.SessionDir)
+	if err != nil {
+		t.Fatal(err)
+	}
+	session, err := store.GetOrCreate(opts.SessionID)
+	if err != nil {
+		t.Fatal(err)
+	}
+	msgs := session.GetMessages()
+	if len(msgs) != 4 {
+		t.Fatalf("history = %+v", msgs)
+	}
+	if msgs[1].Role != schema.Assistant || len(msgs[1].ToolCalls) != 1 || msgs[1].ToolCalls[0].Function.Name != "web_search" {
+		t.Fatalf("assistant tool call: %+v", msgs[1])
+	}
+	if msgs[2].Role != schema.Tool || msgs[2].ToolCallID != "call-1" || !strings.Contains(msgs[2].Content, "https://go.dev") {
+		t.Fatalf("tool result: %+v", msgs[2])
+	}
+	if msgs[3].Content != "最新版本是 1.27.4" {
+		t.Fatalf("final answer: %+v", msgs[3])
+	}
 }
