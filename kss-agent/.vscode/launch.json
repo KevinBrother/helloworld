@@ -54,6 +54,28 @@
                 "--session",
                 "${input:sessionId}"
             ]
+        },
+        {
+            "name": "Debug ch04 - 工具与文件系统（Shell 关闭）",
+            "type": "go",
+            "request": "launch",
+            "mode": "debug",
+            "program": "${workspaceFolder}/cmd/tool-filesystem",
+            "cwd": "${workspaceFolder}",
+            "console": "integratedTerminal",
+            "env": { "CGO_ENABLED": "0" },
+            "args": ["--project-root", "${workspaceFolder}"]
+        },
+        {
+            "name": "Debug ch04 - ChatModelAgent 手动注册工具（Shell 关闭）",
+            "type": "go",
+            "request": "launch",
+            "mode": "debug",
+            "program": "${workspaceFolder}/cmd/manual-tools",
+            "cwd": "${workspaceFolder}",
+            "console": "integratedTerminal",
+            "env": { "CGO_ENABLED": "0" },
+            "args": ["--project-root", "${workspaceFolder}"]
         }
     ],
     "inputs": [

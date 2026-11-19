@@ -31,3 +31,14 @@ func TestResolveUserPromptUsesEnv(t *testing.T) {
 		t.Fatalf("ResolveUserPrompt() = %q, want %q", got, want)
 	}
 }
+
+func TestDefaultSessionDir(t *testing.T) {
+	t.Setenv(envSessionDir, "  /custom/sessions  ")
+	if got, want := DefaultSessionDir(), "/custom/sessions"; got != want {
+		t.Fatalf("DefaultSessionDir() = %q, want %q", got, want)
+	}
+	t.Setenv(envSessionDir, "  ")
+	if got, want := DefaultSessionDir(), DefaultSessionDirPath; got != want {
+		t.Fatalf("DefaultSessionDir() = %q, want %q", got, want)
+	}
+}

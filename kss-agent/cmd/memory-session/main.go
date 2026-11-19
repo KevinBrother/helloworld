@@ -5,7 +5,6 @@ import (
 	"flag"
 	"fmt"
 	"os"
-	"strings"
 	"text/tabwriter"
 	"time"
 
@@ -23,14 +22,10 @@ func main() {
 
 func run() error {
 	shared.LoadDotEnv()
-	dir := strings.TrimSpace(os.Getenv("SESSION_DIR"))
-	if dir == "" {
-		dir = "data/sessions"
-	}
 	var opts memorysession.Options
 	var list bool
 	flag.StringVar(&opts.SessionID, "session", "", "session ID (empty creates a new session)")
-	flag.StringVar(&opts.SessionDir, "session-dir", dir, "directory for JSONL session files")
+	flag.StringVar(&opts.SessionDir, "session-dir", shared.DefaultSessionDir(), "directory for JSONL session files")
 	flag.StringVar(&opts.Instruction, "instruction", shared.DefaultInstruction(), "system prompt")
 	flag.BoolVar(&list, "list", false, "list saved sessions without contacting the model")
 	flag.Parse()

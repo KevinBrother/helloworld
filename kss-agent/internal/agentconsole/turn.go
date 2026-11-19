@@ -30,7 +30,11 @@ func RunTurn(ctx context.Context, runner *adk.Runner, history []*schema.Message,
 		if event.Output == nil || event.Output.MessageOutput == nil {
 			continue
 		}
-		if _, err := fmt.Fprint(output, "assistant> "); err != nil {
+		prefix := "assistant> "
+		if event.Output.MessageOutput.Role == schema.Tool {
+			prefix = "tool> " + event.Output.MessageOutput.ToolName + ": "
+		}
+		if _, err := fmt.Fprint(output, prefix); err != nil {
 			// printMessage has not taken ownership of the reader yet.
 			messageOutput := event.Output.MessageOutput
 			if messageOutput.IsStreaming && messageOutput.MessageStream != nil {
@@ -44,6 +48,12 @@ func RunTurn(ctx context.Context, runner *adk.Runner, history []*schema.Message,
 		}
 		if _, err := fmt.Fprintln(output); err != nil {
 			return nil, err
+		}
+		// Print arguments only after stream chunks have been concatenated.
+		for _, call := range message.ToolCalls {
+			if _, err := fmt.Fprintf(output, "[tool call] %s id=%s args=%s\n", call.Function.Name, call.ID, call.Function.Arguments); err != nil {
+				return nil, err
+			}
 		}
 		messages = append(messages, message)
 	}
