@@ -5,7 +5,7 @@
 | `cmd/new-chat-model` | ChatModel 单轮调用 | `make run` |
 | `cmd/new-chat-model-agent` | 第二章：ChatModelAgent、Runner、事件流、控制台多轮历史 | `make run-chat-model-agent` |
 | `cmd/memory-session` | 第三章：Memory、Session、JSONL 持久化与恢复 | `make run-memory-session` |
-| [tool-filesystem](cmd/tool-filesystem/main.go) | 第四章：DeepAgent 自动注册文件工具，外加 `calculate`、`web_search`/`web_fetch` 与可选沙箱 `run_code` | `make run-tool-filesystem` |
+| [tool-filesystem](cmd/tool-filesystem/main.go) | 第四章：DeepAgent 自动注册文件工具，外加 `calculate`、`web_search`/`web_fetch` 与可选沙箱 `run_code`；第五章：内置 safe-tools 与限流重试 | `make run-tool-filesystem` |
 | [manual-tools](cmd/manual-tools/main.go) | 第四章对照：ChatModelAgent 逐个定义、适配并注册 Tool | `make run-manual-tools` |
 
 在项目根目录的 `.env` 中配置 `NEW_API_BASE_URL`、`NEW_API_KEY`、`NEW_API_MODEL`，格式参考 `.env.example`。`SYSTEM_PROMPT` 可选；`USER_PROMPT` 供第一个单轮示例使用。
@@ -31,6 +31,9 @@ CGO_ENABLED=0 go run ./cmd/tool-filesystem --session <会话ID>
 # 启用沙箱代码执行（run_code）：先启动本机 OpenSandbox 服务，见下文
 CGO_ENABLED=0 go run ./cmd/tool-filesystem --allow-code
 
+# 第五章 Middleware 默认开启（safe-tools 恒定启用）；--max-retries 0 关闭限流重试
+CGO_ENABLED=0 go run ./cmd/tool-filesystem --max-retries 0
+
 # 对照：ChatModelAgent 手动注册相同类别的文件工具
 CGO_ENABLED=0 go run ./cmd/manual-tools
 # 恢复手动版会话：使用独立入口
@@ -47,7 +50,7 @@ make build
 
 第三章在 VS Code 选择 **Debug ch03 - 新建持久化会话** 或 **Debug ch03 - 恢复持久化会话**。默认存储于 `data/sessions`（已加入 gitignore）；可用 `SESSION_DIR` 或 `--session-dir` 自定义目录，恢复时必须使用同一目录。自定义目录需要自行加入 gitignore。
 
-第四章先看 [工具与文件系统学习笔记](docs/ch04-tool-filesystem.md)：包括建议演示顺序、代码阅读路线、协议持久化和安全边界。**`PROJECT_ROOT` 不是沙箱；Shell 默认关闭，但文件写入默认可用。** `grep` 还需要本机安装 `rg`。第三、四章的会话统一保存在 `data/sessions`，可通过 `SESSION_DIR` 或 `--session-dir` 修改。
+第四章先看 [工具与文件系统学习笔记](docs/ch04-tool-filesystem.md)：包括建议演示顺序、代码阅读路线、协议持久化和安全边界；第五章的 Middleware 扩展见 [Middleware 学习笔记](docs/ch05-middleware.md)，入口仍是 `cmd/tool-filesystem`。**`PROJECT_ROOT` 不是沙箱；Shell 默认关闭，但文件写入默认可用。** `grep` 还需要本机安装 `rg`。第三、四章的会话统一保存在 `data/sessions`，可通过 `SESSION_DIR` 或 `--session-dir` 修改。
 
 `calculate` 是纯 Go 表达式求值器，无额外依赖，两个入口都注册。`run_code` 通过 [OpenSandbox](https://github.com/opensandbox-group/OpenSandbox) 在一次性容器里执行代码，默认关闭，只加在 DeepAgent 版；启用前先在本机准备服务：
 
@@ -78,7 +81,7 @@ internal/
   calculator/                  纯 Go 表达式求值器与 calculate 工具
   sandbox/                     run_code 契约、工具层与 OpenSandbox runner（含 E2E 测试）
   webtool/                     web_search（托管搜索）与 web_fetch（受限抓取）
-  toolfilesystem/              第四章 DeepAgent/手动 ChatModelAgent、工具与协议校验
+  toolfilesystem/              第四章 DeepAgent/手动 ChatModelAgent、工具与协议校验；第五章 Middleware
   memorysession/               第三章控制台与持久化编排
   mem/                         Session、Store 与 JSONL 文件
 data/sessions/                 运行时会话文件（不提交）

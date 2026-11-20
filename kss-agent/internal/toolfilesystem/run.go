@@ -28,6 +28,7 @@ type Options struct {
 	Searcher      webtool.Searcher
 	AllowCode     bool
 	SandboxRunner sandbox.Runner
+	MaxRetries    int
 	StartupHints  []string
 }
 
@@ -80,6 +81,7 @@ func run(ctx context.Context, opts Options, input io.Reader, output io.Writer, c
 
 func capabilityHints(opts Options) []string {
 	hints := []string{"联网工具: web_fetch（抓取页面）与 web_search（托管搜索，每次搜索额外消耗一轮模型调用）\n"}
+	hints = append(hints, middlewareHints(opts)...)
 	if opts.SandboxRunner == nil {
 		return append(hints, "代码执行: 关闭（--allow-code 需要本机 OpenSandbox 服务）\n")
 	}
@@ -90,6 +92,16 @@ func capabilityHints(opts Options) []string {
 		return append(hints, fmt.Sprintf("代码执行: 已启用（OpenSandbox %s，镜像 %s）\n", info.Domain(), info.Image()))
 	}
 	return append(hints, "代码执行: 已启用\n")
+}
+
+func middlewareHints(opts Options) []string {
+	hints := []string{"中间件: safe-tools 已启用（工具错误转为 [tool error] 交给模型自纠）\n"}
+	if opts.MaxRetries > 0 {
+		hints = append(hints, fmt.Sprintf("模型重试: 最多 %d 次（仅限流）\n", opts.MaxRetries))
+	} else {
+		hints = append(hints, "模型重试: 关闭\n")
+	}
+	return hints
 }
 
 func sandboxEventHandler(output io.Writer) func(id, endpoint string) {
@@ -137,7 +149,7 @@ func runConsole(ctx context.Context, chatModel model.BaseChatModel, opts Options
 		return err
 	}
 	runner := adk.NewRunner(ctx, adk.RunnerConfig{Agent: agent, EnableStreaming: true})
-	if _, err := fmt.Fprintf(output, "第四章：工具与文件系统\n程序入口: %s\n会话 ID: %s\n已加载 %d 条消息\n项目目录: %s\n存储目录: %s\n%sShell 执行: %t\n注意：本地文件工具可读写真实文件，项目目录不是沙箱；关闭 Shell 不会禁用文件写入。\n空行或 Ctrl+D 退出。\n", command, session.ID, len(session.GetMessages()), root, dir, strings.Join(opts.StartupHints, ""), opts.AllowShell); err != nil {
+	if _, err := fmt.Fprintf(output, "DeepAgent：工具、文件系统与 Middleware\n程序入口: %s\n会话 ID: %s\n已加载 %d 条消息\n项目目录: %s\n存储目录: %s\n%sShell 执行: %t\n注意：本地文件工具可读写真实文件，项目目录不是沙箱；关闭 Shell 不会禁用文件写入。\n空行或 Ctrl+D 退出。\n", command, session.ID, len(session.GetMessages()), root, dir, strings.Join(opts.StartupHints, ""), opts.AllowShell); err != nil {
 		return err
 	}
 	scanner := bufio.NewScanner(input)
@@ -179,7 +191,11 @@ func runConsole(ctx context.Context, chatModel model.BaseChatModel, opts Options
 	if opts.AllowShell {
 		shellFlag = " --allow-shell"
 	}
-	_, err = fmt.Fprintf(output, "\n会话已保存: %s\n恢复命令（项目根目录执行；自定义 instruction 请自行补充）:\nCGO_ENABLED=0 go run ./cmd/%s --session %s --session-dir %s --project-root %s%s\n", session.ID, command, session.ID, shellQuote(dir), shellQuote(root), shellFlag)
+	middlewareFlag := ""
+	if opts.MaxRetries > 0 {
+		middlewareFlag = fmt.Sprintf(" --max-retries=%d", opts.MaxRetries)
+	}
+	_, err = fmt.Fprintf(output, "\n会话已保存: %s\n恢复命令（项目根目录执行；自定义 instruction 请自行补充）:\nCGO_ENABLED=0 go run ./cmd/%s --session %s --session-dir %s --project-root %s%s%s\n", session.ID, command, session.ID, shellQuote(dir), shellQuote(root), shellFlag, middlewareFlag)
 	return err
 }
 

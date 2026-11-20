@@ -3,7 +3,10 @@ package main
 import (
 	"flag"
 	"io"
+	"strings"
 	"testing"
+
+	"kss-agent/internal/toolfilesystem"
 )
 
 func TestInstructionUsesAgentDefaultUnlessExplicitlyConfigured(t *testing.T) {
@@ -59,5 +62,23 @@ func TestSessionDirComesFromEnvironmentUnlessFlagged(t *testing.T) {
 	opts, err = parseOptions([]string{"--session-dir", "/from-flag"}, io.Discard)
 	if err != nil || opts.SessionDir != "/from-flag" {
 		t.Fatalf("flag session dir: %+v, %v", opts, err)
+	}
+}
+
+func TestMiddlewareFlags(t *testing.T) {
+	opts, err := parseOptions(nil, io.Discard)
+	if err != nil || opts.MaxRetries != toolfilesystem.DefaultMaxRetries {
+		t.Fatalf("defaults=%+v err=%v", opts, err)
+	}
+	opts, err = parseOptions([]string{"--max-retries", "0"}, io.Discard)
+	if err != nil || opts.MaxRetries != 0 {
+		t.Fatalf("disabled=%+v err=%v", opts, err)
+	}
+	opts, err = parseOptions([]string{"--max-retries", "2"}, io.Discard)
+	if err != nil || opts.MaxRetries != 2 {
+		t.Fatalf("custom=%+v err=%v", opts, err)
+	}
+	if _, err := parseOptions([]string{"--max-retries", "-1"}, io.Discard); err == nil || !strings.Contains(err.Error(), "-1") {
+		t.Fatalf("negative retries err=%v", err)
 	}
 }

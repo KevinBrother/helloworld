@@ -32,11 +32,15 @@ func parseOptions(args []string, output io.Writer) (toolfilesystem.Options, erro
 	flags.StringVar(&opts.Instruction, "instruction", strings.TrimSpace(os.Getenv("SYSTEM_PROMPT")), "system prompt (default: filesystem assistant; project path context is always appended)")
 	flags.BoolVar(&opts.AllowShell, "allow-shell", false, "allow unrestricted local shell execution; filesystem writes are already enabled")
 	flags.BoolVar(&opts.AllowCode, "allow-code", false, "allow sandboxed code execution via run_code (requires a running OpenSandbox server)")
+	flags.IntVar(&opts.MaxRetries, "max-retries", toolfilesystem.DefaultMaxRetries, "retry model calls on rate limiting (0 disables retries)")
 	if err := flags.Parse(args); err != nil {
 		return opts, err
 	}
 	if flags.NArg() != 0 {
 		return opts, fmt.Errorf("请启动后在 you> 输入问题，不接受位置参数")
+	}
+	if opts.MaxRetries < 0 {
+		return opts, fmt.Errorf("--max-retries 不能为负数: %d", opts.MaxRetries)
 	}
 	return opts, nil
 }

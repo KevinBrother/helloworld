@@ -83,6 +83,10 @@ func newAgent(ctx context.Context, chatModel model.BaseChatModel, opts Options) 
 	if opts.AllowShell {
 		cfg.StreamingShell = backend
 	}
+	cfg.Handlers = append(cfg.Handlers, newSafeTool())
+	if opts.MaxRetries > 0 {
+		cfg.ModelRetryConfig = newModelRetryConfig(opts.MaxRetries)
+	}
 	agent, err := deep.New(ctx, cfg)
 	if err != nil {
 		return nil, fmt.Errorf("create deep agent: %w", err)

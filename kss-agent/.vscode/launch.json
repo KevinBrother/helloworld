@@ -87,6 +87,17 @@
             "console": "integratedTerminal",
             "env": { "CGO_ENABLED": "0" },
             "args": ["--project-root", "${workspaceFolder}", "--allow-code"]
+        },
+        {
+            "name": "Debug ch05 - 关闭限流重试",
+            "type": "go",
+            "request": "launch",
+            "mode": "debug",
+            "program": "${workspaceFolder}/cmd/tool-filesystem",
+            "cwd": "${workspaceFolder}",
+            "console": "integratedTerminal",
+            "env": { "CGO_ENABLED": "0" },
+            "args": ["--project-root", "${workspaceFolder}", "--max-retries", "0"]
         }
     ],
     "inputs": [
